@@ -881,6 +881,22 @@ const isStringShorthand = <T>(value: T | string): value is string =>
   typeof value === "string";
 
 /**
+ * The URL behind the header's repo mark. A string is used as-is: `github`
+ * drives the per-page edit link, the header mark and the manifest's
+ * `repository` together, so a project whose docs repo is private has to unset
+ * all three, and would otherwise have no way to point the mark at anything.
+ */
+const headerRepoUrl = (
+  repo: boolean | string,
+  derived: string | null
+): string | null => {
+  if (isStringShorthand(repo)) {
+    return repo;
+  }
+  return repo ? derived : null;
+};
+
+/**
  * Resolve the configured logo. A single SVG is read and inlined so a
  * `currentColor` logo follows the theme; other images keep their URL for an
  * `<img>`. The file is looked up under `public/` and the project root.
@@ -1154,9 +1170,10 @@ export const buildRuntimeData = (project: BlumeProject): string => {
   // Resolve the header repo link per locale. API references no longer add a tab
   // automatically — authors point a `navigation.tabs` entry at the reference
   // route to surface it (see `referenceRoutes`).
+  const markUrl = headerRepoUrl(config.navigation.repo, repoUrl);
   const withRepoUrl = (nav: Navigation): Navigation => ({
     ...nav,
-    repoUrl: config.navigation.repo && repoUrl ? repoUrl : null,
+    repoUrl: markUrl,
   });
 
   // Resolved UI dictionaries: one per locale under i18n, English baseline

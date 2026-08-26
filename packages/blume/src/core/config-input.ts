@@ -451,8 +451,12 @@ export type SidebarConfig =
 export interface NavigationConfig {
   /** Pinned links shown above the generated sidebar sections. */
   featured?: FeaturedLink[];
-  /** Show a GitHub repo link in the header (requires `github` configured). */
-  repo?: boolean;
+  /**
+   * The GitHub link in the header. `true` derives it from `github` (the
+   * default), `false` hides it, and a URL points it anywhere — an
+   * organization, say, when the docs repo itself is private.
+   */
+  repo?: boolean | string;
   /** Context switchers shown in the header (versions, languages, …). */
   selectors?: NavSelector[];
   /** Sidebar behavior and (optionally) an explicit sidebar tree. */

@@ -252,6 +252,16 @@ navigation: {
 
 The link only appears when `github` is configured, so projects without a repo are unaffected either way.
 
+`repo` also takes a URL, which points the header mark anywhere:
+
+```ts blume.config.ts lineNumbers
+navigation: {
+  repo: "https://github.com/acme",
+}
+```
+
+That's for a project whose docs repo is private. `github` drives the per-page edit link, the header mark and the [agent manifest](/docs/configuration/ai)'s repository together, so such a project has to leave `github` unset — and a URL is what lets it still show a mark pointing somewhere public.
+
 ## Breadcrumbs and pagination
 
 These come for free from the sidebar tree — no configuration:

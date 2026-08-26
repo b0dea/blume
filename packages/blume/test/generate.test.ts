@@ -201,6 +201,50 @@ describe("collectStaged", () => {
   });
 });
 
+describe("buildRuntimeData — navigation.repo", () => {
+  it("points the header mark at a URL, with no github configured", async () => {
+    // A private docs repo has to unset `github` — that drops the edit link,
+    // the manifest's repository and the header mark together — so a URL is
+    // what lets it still show a mark pointing somewhere public.
+    const project = await scanProject(
+      await writeProject({
+        "blume.config.ts":
+          'export default { navigation: { repo: "https://github.com/acme" } };\n',
+        "docs/index.md": "# Home\n",
+      })
+    );
+    const data = JSON.parse(buildRuntimeData(project));
+    expect(data.navigation.repoUrl).toBe("https://github.com/acme");
+    // The manifest's own repository stays tied to `github`, which needs a real
+    // owner and repo — GithubInfo calls the API with it.
+    expect(data.config.repoUrl).toBeNull();
+  });
+
+  it("still derives the mark from github when repo is true", async () => {
+    const project = await scanProject(
+      await writeProject({
+        "blume.config.ts":
+          'export default { github: { owner: "acme", repo: "docs" } };\n',
+        "docs/index.md": "# Home\n",
+      })
+    );
+    const data = JSON.parse(buildRuntimeData(project));
+    expect(data.navigation.repoUrl).toBe("https://github.com/acme/docs");
+  });
+
+  it("hides the mark when repo is false, github or not", async () => {
+    const project = await scanProject(
+      await writeProject({
+        "blume.config.ts":
+          'export default { github: { owner: "acme", repo: "docs" }, navigation: { repo: false } };\n',
+        "docs/index.md": "# Home\n",
+      })
+    );
+    const data = JSON.parse(buildRuntimeData(project));
+    expect(data.navigation.repoUrl).toBeNull();
+  });
+});
+
 describe("buildRuntimeData", () => {
   it("serializes a minimal project with feature defaults off", async () => {
     const project = await scanProject(
@@ -218,6 +262,7 @@ describe("buildRuntimeData", () => {
     expect(data.config.search.popular).toStrictEqual([]);
     expect(data.config.favicon.href.startsWith("data:image/png")).toBe(true);
     expect(data.navigationByLocale).toEqual({});
+    expect(data.navigation.repoUrl).toBeNull();
     expect(data.uiByLocale).toEqual({});
     expect(data.feeds).toEqual([]);
     const home = data.routes.find(

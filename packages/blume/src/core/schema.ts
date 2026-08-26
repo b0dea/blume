@@ -968,8 +968,12 @@ const featuredLinkSchema = z.strictObject({
 const navigationConfigSchema = z.strictObject({
   /** Pinned links shown above the generated sidebar sections. */
   featured: z.array(featuredLinkSchema).default([]),
-  /** Show a GitHub repo link in the header (requires `github` configured). */
-  repo: z.boolean().default(true),
+  /**
+   * The GitHub link in the header. `true` derives it from `github`, `false`
+   * hides it, and a URL points it anywhere — an organization, say, when the
+   * docs repo itself is private and `github` has to stay unset.
+   */
+  repo: z.union([z.boolean(), z.string()]).default(true),
   selectors: z.array(navSelectorSchema).default([]),
   /**
    * Sidebar behavior. `display` sets how every group renders (a group in an
