@@ -382,6 +382,28 @@ describe("Card and CardGroup", () => {
     );
   });
 
+  it("keeps a declining card, rather than dropping it beside a good one", () => {
+    // The body already carries the good card downleveled in place, so falling
+    // back loses nothing; joining the rest would delete the declining card.
+    const out = downlevelComponents(
+      [
+        "<CardGroup>",
+        '  <Card title="Good" href="/a">',
+        "    Body A.",
+        "  </Card>",
+        '  <Card title={dynamic()} href="/b">',
+        "    Body B.",
+        "  </Card>",
+        "</CardGroup>",
+        "",
+      ].join("\n")
+    );
+    expect(out).toContain("**[Good](/a)**");
+    expect(out).toContain("Body A.");
+    expect(out).toContain('<Card title={dynamic()} href="/b">');
+    expect(out).toContain("Body B.");
+  });
+
   it("falls back to its body when no card in it could be serialized", () => {
     // The group unwraps, but a card whose props did not evaluate keeps its
     // own JSX — the same fallback `<Tabs>` takes with no `<Tab>` in it.

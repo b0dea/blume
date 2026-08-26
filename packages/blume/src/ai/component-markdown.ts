@@ -401,18 +401,21 @@ const card: ComponentMarkdown = cardMarkdown;
  * so it renders the cards it holds. Extracted with `childComponents` rather
  * than passed through, like {@link steps} and {@link tabs}: the body slice
  * keeps each card's own source indentation, which would land in the output.
- * A group holding no card — or none that could be serialized — falls back to
- * its body.
+ *
+ * Any card declining sends the whole group back to its body instead. The body
+ * already carries the serializable cards downleveled in place — every `Card`
+ * is spliced before this runs — so the only cost is that indentation, and
+ * joining the rest would drop the declining card from the output entirely.
  */
 const cardGroup: ComponentMarkdown = ({ childComponents, children }) => {
   const cards = childComponents("Card");
   if (cards.length === 0) {
     return children;
   }
-  const rendered = cards
-    .map(cardMarkdown)
-    .filter((entry): entry is string => entry !== null);
-  return rendered.length === 0 ? children : rendered.join("\n\n");
+  const rendered = cards.map(cardMarkdown);
+  return rendered.some((entry) => entry === null)
+    ? children
+    : rendered.join("\n\n");
 };
 
 const youtube: ComponentMarkdown = ({ props }) => {
