@@ -120,7 +120,11 @@ const tabsNavClass = hasSidebar
 const iconButton =
   "inline-flex size-9 cursor-pointer items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground";
 
-/** A header link leaves the site when it names a host, so it opens in a tab. */
+/**
+ * A header link leaves the site when it names a host, so it opens in a tab.
+ * `withBase` is applied either way — it passes external, protocol-relative and
+ * fragment hrefs through untouched, and prefixes only a root-relative route.
+ */
 const isExternalAction = (href: string): boolean =>
   /^[a-z][a-z\d+.-]*:/iu.test(href) || href.startsWith("//");
 
@@ -225,7 +229,7 @@ const clickScript = `(()=>{const dr=()=>{const h=document.querySelector("[data-b
       (navigation.actions ?? []).map((action) => (
         <a
           class="hidden rounded-full px-3 py-1.5 font-medium text-muted-foreground text-sm transition-colors hover:text-foreground sm:inline-flex"
-          href={action.href}
+          href={withBase(action.href)}
           rel={isExternalAction(action.href) ? "noreferrer" : undefined}
           target={isExternalAction(action.href) ? "_blank" : undefined}
         >
@@ -237,7 +241,7 @@ const clickScript = `(()=>{const dr=()=>{const h=document.querySelector("[data-b
       navigation.cta && (
         <a
           class="hidden items-center gap-1 rounded-full bg-accent px-3.5 py-1.5 font-medium text-accent-foreground text-sm transition-opacity hover:opacity-90 sm:inline-flex"
-          href={navigation.cta.href}
+          href={withBase(navigation.cta.href)}
           rel={isExternalAction(navigation.cta.href) ? "noreferrer" : undefined}
           target={isExternalAction(navigation.cta.href) ? "_blank" : undefined}
         >
