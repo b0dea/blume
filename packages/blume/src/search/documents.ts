@@ -3,6 +3,10 @@ import { fromMarkdown } from "mdast-util-from-markdown";
 import { gfmFromMarkdown } from "mdast-util-gfm";
 import { gfm } from "micromark-extension-gfm";
 
+import {
+  downlevelComponents,
+  exampleComponentSerializers,
+} from "../ai/component-markdown.ts";
 import { applyAudienceVisibility } from "../ai/visibility.ts";
 import type { VisibilityAudience } from "../ai/visibility.ts";
 import matter from "../core/frontmatter.ts";
@@ -224,6 +228,11 @@ const buildCrumbIndex = (sidebar: NavNode[]): Map<string, Crumbs> => {
  * searchable text; `"markdown"` keeps the body's Markdown — code blocks, lists,
  * headings — for Ask AI grounding, where fenced examples are often the answer
  * and stripping them makes the model unable to cite content the docs do contain.
+ * The `"markdown"` body is agent-facing, so components are downleveled with the
+ * same serializers the `.md` mirror, llms-full.txt and MCP `get_page` use: a
+ * page whose body is a `<CardGroup>` of `<Card>`s is prose to a reader and bare
+ * JSX to anything reading the source, and section landing pages are exactly
+ * that shape.
  *
  * `audience` resolves `<Visibility>` blocks before extraction: `"web"`
  * (default) keeps web-only content and drops agents-only blocks — the site
@@ -270,6 +279,18 @@ export const buildSearchDocuments = async (
     return page ? contentIndexable(page, project.config) : false;
   });
 
+  // Serializers for the "markdown" extraction, layered the way
+  // `buildRawMarkdown` layers them: examples first, so a user
+  // `markdownComponents` entry of the same name still wins. Built once —
+  // `downlevelComponents` rebuilds its registry per call otherwise.
+  const components =
+    options?.content === "markdown"
+      ? {
+          ...exampleComponentSerializers(project.examples ?? {}),
+          ...project.config.ai.markdownComponents,
+        }
+      : undefined;
+
   return await Promise.all(
     indexable.map(async (route) => {
       const page = pageById.get(route.id);
@@ -280,7 +301,9 @@ export const buildSearchDocuments = async (
         options?.audience ?? "web"
       );
       const body =
-        options?.content === "markdown" ? visible.trim() : toPlainText(visible);
+        options?.content === "markdown"
+          ? downlevelComponents(visible.trim(), components, matter(raw).data)
+          : toPlainText(visible);
       const tags = page?.meta?.search?.tags;
       const crumb = crumbs.get(route.path);
       const facets = page ? pageFacets(page, project.config) : undefined;
