@@ -599,9 +599,15 @@ blume-tabs [data-blume-tab-content] > pre {
   margin: 0;
 }
 
+/* Room for the copy button. These contexts drop the language bar the button
+   would otherwise sit in (\`::before\` is cleared below), but the button itself
+   is unconditional — absolutely positioned against the \`pre\`'s border box at
+   \`top-2.5\`, 1.875rem tall — so at the 1rem this used to carry it painted over
+   the first line of code. Any first line long enough to reach the button's
+   strip (a curl invocation, an install command, an import path) went under it. */
 blume-tabs pre[data-language],
 .not-prose pre[data-language] {
-  padding-top: 1rem;
+  padding-top: 2.5rem;
 }
 
 blume-tabs pre[data-language]::before,
