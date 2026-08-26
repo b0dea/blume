@@ -250,6 +250,32 @@ describe("buildRuntimeData — header actions", () => {
     expect(fr.cta.href).toBe("/fr/signup");
   });
 
+  it("leaves a protocol-relative href alone when localizing", async () => {
+    // `//host/path` starts with a slash but is an external URL, so a locale
+    // prefix would turn it into a route. Applies to featured links too, which
+    // go through the same localizer.
+    const project = await scanProject(
+      await writeProject({
+        "blume.config.ts": `export default {
+  i18n: { defaultLocale: "en", locales: [{ code: "en", label: "English" }, { code: "fr", label: "Français" }] },
+  navigation: {
+    actions: [{ href: "//cdn.example.com/status", label: "Status" }],
+    cta: { href: "//cdn.example.com/signup", label: "Sign up" },
+    featured: [{ href: "//cdn.example.com/changelog", label: "Changelog" }],
+  },
+};
+`,
+        "docs/index.md": "# Home\n",
+        "fr/docs/index.md": "# Accueil\n",
+      })
+    );
+    const data = JSON.parse(buildRuntimeData(project));
+    const { fr } = data.navigationByLocale;
+    expect(fr.actions[0].href).toBe("//cdn.example.com/status");
+    expect(fr.cta.href).toBe("//cdn.example.com/signup");
+    expect(fr.featured[0].href).toBe("//cdn.example.com/changelog");
+  });
+
   it("leaves an external header href alone when localizing", async () => {
     const project = await scanProject(
       await writeProject({

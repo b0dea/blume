@@ -142,8 +142,13 @@ const buildLocaleNavigation = (
   // header tab points to its in-locale route (e.g. `/docs` -> `/fr/docs`);
   // external paths pass through. Selectors are left alone: a language
   // selector's items intentionally target specific locales.
+  // `//host/path` is protocol-relative — an external URL that happens to start
+  // with a slash, so it must not pick up a locale prefix. `withBasePath` draws
+  // the same line for the same reason.
   const localizePath = (path: string): string =>
-    path.startsWith("/") ? localizeRoute(path, code, i18n) : path;
+    path.startsWith("/") && !path.startsWith("//")
+      ? localizeRoute(path, code, i18n)
+      : path;
   const tabs = resolveTabLabels(
     options.navigation.tabs,
     code,
