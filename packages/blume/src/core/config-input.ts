@@ -447,7 +447,6 @@ export type SidebarConfig =
       items?: SidebarItemConfig[];
     };
 
-/** Header, sidebar, tabs, and switcher configuration. */
 /** A plain header link, or the header's single call to action. */
 export interface HeaderAction {
   /** Link target. An external href opens in a new tab. */
@@ -456,6 +455,7 @@ export interface HeaderAction {
   label: string;
 }
 
+/** Header, sidebar, tabs, and switcher configuration. */
 export interface NavigationConfig {
   /** Plain links in the header, left of the icon buttons. */
   actions?: HeaderAction[];

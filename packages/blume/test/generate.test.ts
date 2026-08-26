@@ -225,6 +225,49 @@ describe("buildRuntimeData — header actions", () => {
     });
   });
 
+  it("localizes internal header hrefs, like featured links", async () => {
+    // A French reader clicking a header action must stay inside their locale.
+    // This is silent when it breaks — the English page exists, so no 404.
+    const project = await scanProject(
+      await writeProject({
+        "blume.config.ts": `export default {
+  i18n: { defaultLocale: "en", locales: [{ code: "en", label: "English" }, { code: "fr", label: "Français" }] },
+  navigation: {
+    actions: [{ href: "/changelog", label: "Changelog" }],
+    cta: { href: "/signup", label: "Sign up" },
+    featured: [{ href: "/changelog", label: "Changelog" }],
+  },
+};
+`,
+        "docs/index.md": "# Home\n",
+        "fr/docs/index.md": "# Accueil\n",
+      })
+    );
+    const data = JSON.parse(buildRuntimeData(project));
+    const { fr } = data.navigationByLocale;
+    expect(fr.featured[0].href).toBe("/fr/changelog");
+    expect(fr.actions[0].href).toBe("/fr/changelog");
+    expect(fr.cta.href).toBe("/fr/signup");
+  });
+
+  it("leaves an external header href alone when localizing", async () => {
+    const project = await scanProject(
+      await writeProject({
+        "blume.config.ts": `export default {
+  i18n: { defaultLocale: "en", locales: [{ code: "en", label: "English" }, { code: "fr", label: "Français" }] },
+  navigation: { cta: { href: "https://example.com/signup", label: "Sign up" } },
+};
+`,
+        "docs/index.md": "# Home\n",
+        "fr/docs/index.md": "# Accueil\n",
+      })
+    );
+    const data = JSON.parse(buildRuntimeData(project));
+    expect(data.navigationByLocale.fr.cta.href).toBe(
+      "https://example.com/signup"
+    );
+  });
+
   it("defaults to no actions and a null cta", async () => {
     const project = await scanProject(
       await writeProject({ "docs/index.md": "# Home\n" })

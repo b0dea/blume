@@ -120,6 +120,13 @@ export const validateNavTargets = (
       label: link.label,
       path: link.href,
     })),
+    ...(navigation.actions ?? []).map((action) => ({
+      label: action.label,
+      path: action.href,
+    })),
+    ...(navigation.cta
+      ? [{ label: navigation.cta.label, path: navigation.cta.href }]
+      : []),
   ];
   const diagnostics: Diagnostic[] = [];
   const seen = new Set<string>();
