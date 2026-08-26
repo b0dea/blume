@@ -252,6 +252,15 @@ ${THEME_MAPPING}
   color: var(--blume-muted-foreground);
   font-size: 0.875rem;
   line-height: 1.7;
+  /* An unbreakable run — an API permission, a broker list, a bare URL used as
+     its own link text, a module-qualified name in a generated reference —
+     paints past the content column, and nothing between the paragraph and the
+     viewport clips it, so it lands in the document's scroll width and drags
+     the page sideways on a phone. Inherited, so inline code is covered too.
+     \`break-word\` and not \`anywhere\`: only \`anywhere\` reduces min-content,
+     which is what sizes \`table-layout: auto\` columns, so it would resize
+     every table on the site. */
+  overflow-wrap: break-word;
 }
 
 /* No letter-spacing here: prose headings inherit the base h1-h6 rule's
