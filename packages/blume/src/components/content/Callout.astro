@@ -39,14 +39,19 @@ const variantClass: Record<CalloutType, string> = {
   warning: "border-amber-500/25 bg-amber-500/10",
 };
 
+// A callout's icon names its type, so it is meaningful UI and its bar is 3:1
+// against the tint behind it. Three missed: green and amber at `-600` (2.94:1
+// and 2.95:1, where blue is 4.67:1 and red 4.13:1) now take `-700`, and note's
+// icon was muted-foreground at 70% on the muted surface (2.68:1) — at full
+// strength it is 4.64:1. Dark mode was already clear and is unchanged.
 const iconClass: Record<CalloutType, string> = {
-  check: "text-green-600 dark:text-green-400",
+  check: "text-green-700 dark:text-green-400",
   danger: "text-red-600 dark:text-red-400",
   info: "text-blue-600 dark:text-blue-400",
-  note: "text-muted-foreground/70",
-  success: "text-green-600 dark:text-green-400",
+  note: "text-muted-foreground",
+  success: "text-green-700 dark:text-green-400",
   tip: "text-accent",
-  warning: "text-amber-600 dark:text-amber-400",
+  warning: "text-amber-700 dark:text-amber-400",
 };
 ---
 
