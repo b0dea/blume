@@ -159,7 +159,10 @@ const returnRoute = field ? routes.get(field.type.name) : undefined;
           </section>
         </div>
         {((sample && model) || isSubscription) && (
-          <div class="xl:sticky xl:top-24 xl:self-start" data-operation-panel>
+          <div
+            class="xl:sticky xl:top-24 xl:max-h-[calc(100dvh-7.5rem)] xl:self-start xl:overflow-y-auto xl:overscroll-contain"
+            data-operation-panel
+          >
             {sample && model && spec.playground.enabled && (
               <Playground
                 model={model}
