@@ -313,6 +313,98 @@ describe("Tabs", () => {
   });
 });
 
+describe("Card and CardGroup", () => {
+  it("renders a card as a linked title over its body", () => {
+    const out = downlevelComponents(
+      '<Card title="Frontmatter" href="/reference/frontmatter" icon="file">\n  Page metadata: title, description, sidebar.\n</Card>\n'
+    );
+    expect(out).toBe(
+      "**[Frontmatter](/reference/frontmatter)**\n\nPage metadata: title, description, sidebar.\n"
+    );
+  });
+
+  it("keeps the call to action, after the body", () => {
+    const out = downlevelComponents(
+      '<Card title="Deploy" href="/deploy" cta="Read the guide">\n  Ship it.\n</Card>\n'
+    );
+    expect(out).toBe("**[Deploy](/deploy)**\n\nShip it.\n\nRead the guide\n");
+  });
+
+  it("bolds a card with no href, and escapes brackets in the label", () => {
+    expect(
+      downlevelComponents('<Card title="A [beta] card">\n  Body.\n</Card>\n')
+    ).toBe("**A [beta] card**\n\nBody.\n");
+    expect(
+      downlevelComponents(
+        '<Card title="A [beta] card" href="/b">\n  Body.\n</Card>\n'
+      )
+    ).toBe("**[A \\[beta\\] card](/b)**\n\nBody.\n");
+  });
+
+  it("falls back to the href when there is no title", () => {
+    expect(
+      downlevelComponents('<Card href="/pricing">\n  What it costs.\n</Card>\n')
+    ).toBe("**[/pricing](/pricing)**\n\nWhat it costs.\n");
+  });
+
+  it("is just its body when it carries neither title nor href", () => {
+    expect(
+      downlevelComponents('<Card icon="file">\n  Only a blurb.\n</Card>\n')
+    ).toBe("Only a blurb.\n");
+  });
+
+  it("keeps a card with nothing but presentation verbatim", () => {
+    const source = '<Card icon="file" img="/shot.png" />\n';
+    expect(downlevelComponents(source)).toBe(source);
+  });
+
+  it("declines when a prop did not evaluate, rather than link somewhere wrong", () => {
+    const source = '<Card title={pageTitle()} href="/a">\n  Body.\n</Card>\n';
+    expect(downlevelComponents(source)).toBe(source);
+  });
+
+  it("unwraps a group to the cards it holds", () => {
+    const out = downlevelComponents(
+      [
+        "<CardGroup cols={2}>",
+        '  <Card title="One" href="/one">',
+        "    First.",
+        "  </Card>",
+        '  <Card title="Two" href="/two">',
+        "    Second.",
+        "  </Card>",
+        "</CardGroup>",
+        "",
+      ].join("\n")
+    );
+    expect(out).toBe(
+      "**[One](/one)**\n\nFirst.\n\n**[Two](/two)**\n\nSecond.\n"
+    );
+  });
+
+  it("falls back to its body when no card in it could be serialized", () => {
+    // The group unwraps, but a card whose props did not evaluate keeps its
+    // own JSX — the same fallback `<Tabs>` takes with no `<Tab>` in it.
+    const out = downlevelComponents(
+      [
+        "<CardGroup>",
+        '  <Card title={a()} href="/a">',
+        "    First.",
+        "  </Card>",
+        "</CardGroup>",
+        "",
+      ].join("\n")
+    );
+    expect(out).toBe('<Card title={a()} href="/a">\n  First.\n</Card>\n');
+  });
+
+  it("keeps a group's content when it holds no cards", () => {
+    expect(
+      downlevelComponents("<CardGroup>\n  Loose prose.\n</CardGroup>\n")
+    ).toBe("Loose prose.\n");
+  });
+});
+
 describe("YouTube", () => {
   it("links a bare id, honoring title and start", () => {
     expect(downlevelComponents('<YouTube id="dQw4w9WgXcQ" />\n')).toBe(

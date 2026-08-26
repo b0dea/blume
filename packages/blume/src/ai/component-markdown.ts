@@ -352,6 +352,69 @@ const tabs: ComponentMarkdown = ({ childComponents, children }) => {
     .join("\n\n");
 };
 
+/** Escape the brackets that would end a link's text early. */
+const linkText = (value: string): string =>
+  value.replaceAll(/[[\]]/gu, String.raw`\$&`);
+
+/**
+ * A card is a link with a blurb, so that is what it becomes: the title as the
+ * link text, the body under it, and the call to action last — the order the
+ * card renders in. Shaped like {@link tabs}, a bold label over the body,
+ * rather than a heading: a card sits inside a page whose outline its author
+ * wrote, and a heading would add a level to it.
+ *
+ * The icon and image are presentation and drop out. A card with no title
+ * falls back to its `href`, and one with neither is just its body. `lossy`
+ * declines: a title or href recovered from an expression that would not
+ * evaluate is a link pointing somewhere wrong, which is worse than the
+ * visible JSX.
+ *
+ * Takes the child shape so {@link cardGroup} can serialize the cards it
+ * extracts through the same function.
+ */
+const cardMarkdown = ({
+  children,
+  lossy,
+  props,
+}: ComponentMarkdownChild): string | null => {
+  if (lossy) {
+    return null;
+  }
+  const title = isString(props.title) ? props.title.trim() : "";
+  const href = isString(props.href) ? props.href.trim() : "";
+  const body = children.trim();
+  const label = title || href;
+  if (label === "") {
+    // Nothing but presentation left — keep the JSX rather than delete a card.
+    return body === "" ? null : body;
+  }
+  const head =
+    href === "" ? `**${label}**` : `**[${linkText(label)}](${href})**`;
+  const cta = isString(props.cta) ? props.cta.trim() : "";
+  return [head, body, cta].filter(Boolean).join("\n\n");
+};
+
+const card: ComponentMarkdown = cardMarkdown;
+
+/**
+ * `CardGroup` is the grid its cards sit in and carries no meaning of its own,
+ * so it renders the cards it holds. Extracted with `childComponents` rather
+ * than passed through, like {@link steps} and {@link tabs}: the body slice
+ * keeps each card's own source indentation, which would land in the output.
+ * A group holding no card — or none that could be serialized — falls back to
+ * its body.
+ */
+const cardGroup: ComponentMarkdown = ({ childComponents, children }) => {
+  const cards = childComponents("Card");
+  if (cards.length === 0) {
+    return children;
+  }
+  const rendered = cards
+    .map(cardMarkdown)
+    .filter((entry): entry is string => entry !== null);
+  return rendered.length === 0 ? children : rendered.join("\n\n");
+};
+
 const youtube: ComponentMarkdown = ({ props }) => {
   let input = "";
   if (isString(props.id)) {
@@ -407,6 +470,8 @@ export const exampleComponentSerializers = (examples: ExampleLookup) =>
  */
 const SERIALIZERS = {
   Callout: callout,
+  Card: card,
+  CardGroup: cardGroup,
   Steps: steps,
   Tabs: tabs,
   TypeTable: typeTable,
