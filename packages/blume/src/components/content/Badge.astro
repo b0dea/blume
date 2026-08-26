@@ -46,6 +46,8 @@ const customColor = colorName.startsWith("#") ? colorName : null;
 
 // Green and orange take `-800` where the others take `-700`: at `-700` those
 // two hues fall under 4.5:1 against a 15% tint of themselves. See MethodBadge.
+// Only the filled variants; the stroke table below draws on the page
+// background instead of a tint, where `-700` still clears the bar.
 const filledColorClass: Record<string, string> = {
   blue: "bg-blue-500/15 text-blue-700 dark:text-blue-300",
   gray: "bg-muted text-muted-foreground",
