@@ -201,6 +201,40 @@ describe("collectStaged", () => {
   });
 });
 
+describe("buildRuntimeData — header actions", () => {
+  it("carries actions and the cta onto every navigation tree", async () => {
+    const project = await scanProject(
+      await writeProject({
+        "blume.config.ts": `export default {
+  navigation: {
+    actions: [{ href: "/status", label: "Status" }],
+    cta: { href: "https://acme.com/signup", label: "Start free" },
+  },
+};
+`,
+        "docs/index.md": "# Home\n",
+      })
+    );
+    const data = JSON.parse(buildRuntimeData(project));
+    expect(data.navigation.actions).toEqual([
+      { href: "/status", label: "Status" },
+    ]);
+    expect(data.navigation.cta).toEqual({
+      href: "https://acme.com/signup",
+      label: "Start free",
+    });
+  });
+
+  it("defaults to no actions and a null cta", async () => {
+    const project = await scanProject(
+      await writeProject({ "docs/index.md": "# Home\n" })
+    );
+    const data = JSON.parse(buildRuntimeData(project));
+    expect(data.navigation.actions).toEqual([]);
+    expect(data.navigation.cta).toBeNull();
+  });
+});
+
 describe("buildRuntimeData — navigation.repo", () => {
   it("points the header mark at a URL, with no github configured", async () => {
     // A private docs repo has to unset `github` — that drops the edit link,

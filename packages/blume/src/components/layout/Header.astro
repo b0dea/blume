@@ -120,6 +120,10 @@ const tabsNavClass = hasSidebar
 const iconButton =
   "inline-flex size-9 cursor-pointer items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground";
 
+/** A header link leaves the site when it names a host, so it opens in a tab. */
+const isExternalAction = (href: string): boolean =>
+  /^[a-z][a-z\d+.-]*:/iu.test(href) || href.startsWith("//");
+
 // Delegated handlers for the theme toggle, mobile nav drawer, and banner
 // dismiss. Living with the header means every page that renders it — docs pages
 // and custom pages alike — gets identical behavior from one source.
@@ -212,6 +216,36 @@ const clickScript = `(()=>{const dr=()=>{const h=document.querySelector("[data-b
     )
   }
   <div class="flex items-center gap-2">
+    {
+      /* Plain links first, then the one filled button: the reader's eye lands
+         on the button because nothing beside it competes. Both are hidden
+         below `sm`, where the header has room for the logo and the drawer
+         toggle and nothing else — a call to action that has to survive on a
+         phone belongs in `navigation.featured`. */
+      (navigation.actions ?? []).map((action) => (
+        <a
+          class="hidden rounded-full px-3 py-1.5 font-medium text-muted-foreground text-sm transition-colors hover:text-foreground sm:inline-flex"
+          href={action.href}
+          rel={isExternalAction(action.href) ? "noreferrer" : undefined}
+          target={isExternalAction(action.href) ? "_blank" : undefined}
+        >
+          {action.label}
+        </a>
+      ))
+    }
+    {
+      navigation.cta && (
+        <a
+          class="hidden items-center gap-1 rounded-full bg-accent px-3.5 py-1.5 font-medium text-accent-foreground text-sm transition-opacity hover:opacity-90 sm:inline-flex"
+          href={navigation.cta.href}
+          rel={isExternalAction(navigation.cta.href) ? "noreferrer" : undefined}
+          target={isExternalAction(navigation.cta.href) ? "_blank" : undefined}
+        >
+          {navigation.cta.label}
+          <Icon name="chevron-right" size={14} />
+        </a>
+      )
+    }
     {
       navigation.repoUrl && (
         <a

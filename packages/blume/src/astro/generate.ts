@@ -1173,6 +1173,10 @@ export const buildRuntimeData = (project: BlumeProject): string => {
   const markUrl = headerRepoUrl(config.navigation.repo, repoUrl);
   const withRepoUrl = (nav: Navigation): Navigation => ({
     ...nav,
+    // `withRepoUrl` is the one decorate point every locale's and version's
+    // navigation passes through, so the header links are attached here too.
+    actions: config.navigation.actions,
+    cta: config.navigation.cta ?? null,
     repoUrl: markUrl,
   });
 

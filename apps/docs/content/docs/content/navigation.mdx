@@ -240,6 +240,21 @@ navigation: {
 
 Each item is a page route (a string), a group (`label` + `items`), or a link (`label` + `href`). Groups can nest, override the global [`display` mode](#display-modes), and start `collapsed`.
 
+## Header actions
+
+`navigation.actions` puts plain links in the header, left of the icon buttons, and `navigation.cta` is the one filled button:
+
+```ts blume.config.ts lineNumbers
+navigation: {
+  actions: [{ href: "/status", label: "Status" }],
+  cta: { href: "https://example.com/signup", label: "Start free" },
+}
+```
+
+`cta` is singular on purpose — a docs header has room for exactly one thing a reader is being asked to do, and a row of buttons asks for nothing. Secondary links belong in `actions`, or in [`featured`](#featured-links) if they should sit with the sidebar instead.
+
+An href that names a host opens in a new tab; a route stays in the tab. Both `actions` and `cta` are hidden below the `sm` breakpoint, where the header has room for the logo and the navigation toggle and nothing else — so a call to action that has to survive on a phone belongs in `featured`.
+
 ## Repository link
 
 When you set [`github`](/docs/configuration) in your config, Blume shows a GitHub icon in the header — beside the theme toggle — that links to your repository. It's on by default; hide it with `navigation.repo`:

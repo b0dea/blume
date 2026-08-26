@@ -448,7 +448,19 @@ export type SidebarConfig =
     };
 
 /** Header, sidebar, tabs, and switcher configuration. */
+/** A plain header link, or the header's single call to action. */
+export interface HeaderAction {
+  /** Link target. An external href opens in a new tab. */
+  href: string;
+  /** Link label. */
+  label: string;
+}
+
 export interface NavigationConfig {
+  /** Plain links in the header, left of the icon buttons. */
+  actions?: HeaderAction[];
+  /** The single primary call to action in the header, as a filled button. */
+  cta?: HeaderAction;
   /** Pinned links shown above the generated sidebar sections. */
   featured?: FeaturedLink[];
   /**
