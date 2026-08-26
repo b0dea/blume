@@ -357,6 +357,16 @@ const linkText = (value: string): string =>
   value.replaceAll(/[[\]]/gu, String.raw`\$&`);
 
 /**
+ * A link destination. Whitespace ends one, and a `)` ends one unless it is
+ * part of a balanced pair — so an href carrying either goes in the angle
+ * bracket form, where only `<` and `>` are special.
+ */
+const linkDestination = (href: string): string =>
+  /[\s()<>]/u.test(href)
+    ? `<${href.replaceAll(/[<>]/gu, String.raw`\$&`)}>`
+    : href;
+
+/**
  * A card is a link with a blurb, so that is what it becomes: the title as the
  * link text, the body under it, and the call to action last — the order the
  * card renders in. Shaped like {@link tabs}, a bold label over the body,
@@ -383,14 +393,18 @@ const cardMarkdown = ({
   const title = isString(props.title) ? props.title.trim() : "";
   const href = isString(props.href) ? props.href.trim() : "";
   const body = children.trim();
+  const cta = isString(props.cta) ? props.cta.trim() : "";
   const label = title || href;
   if (label === "") {
+    // Nothing to head the card with, so it is whatever text it carries.
+    const rest = [body, cta].filter(Boolean).join("\n\n");
     // Nothing but presentation left — keep the JSX rather than delete a card.
-    return body === "" ? null : body;
+    return rest === "" ? null : rest;
   }
   const head =
-    href === "" ? `**${label}**` : `**[${linkText(label)}](${href})**`;
-  const cta = isString(props.cta) ? props.cta.trim() : "";
+    href === ""
+      ? `**${label}**`
+      : `**[${linkText(label)}](${linkDestination(href)})**`;
   return [head, body, cta].filter(Boolean).join("\n\n");
 };
 

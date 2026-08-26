@@ -353,6 +353,46 @@ describe("Card and CardGroup", () => {
     ).toBe("Only a blurb.\n");
   });
 
+  it("keeps the call to action on a card with no title or href", () => {
+    expect(
+      downlevelComponents('<Card cta="Read the guide">\n  A blurb.\n</Card>\n')
+    ).toBe("A blurb.\n\nRead the guide\n");
+  });
+
+  it("wraps an href that would end its own link destination", () => {
+    // Whitespace ends a destination, and so does an unbalanced `)`.
+    expect(
+      downlevelComponents(
+        '<Card title="Docs" href="/docs/page)notes">\n  Body.\n</Card>\n'
+      )
+    ).toBe("**[Docs](</docs/page)notes>)**\n\nBody.\n");
+    expect(
+      downlevelComponents(
+        '<Card title="Docs" href="/docs/my page">\n  Body.\n</Card>\n'
+      )
+    ).toBe("**[Docs](</docs/my page>)**\n\nBody.\n");
+  });
+
+  it("reduces a self-closing card to its heading", () => {
+    expect(downlevelComponents('<Card title="Foo" href="/x" />\n')).toBe(
+      "**[Foo](/x)**\n"
+    );
+  });
+
+  it("downlevels a nested group through the outer one", () => {
+    const out = downlevelComponents(
+      [
+        "<CardGroup>",
+        "  <CardGroup>",
+        '    <Card title="Inner" href="/i">In.</Card>',
+        "  </CardGroup>",
+        "</CardGroup>",
+        "",
+      ].join("\n")
+    );
+    expect(out).toBe("**[Inner](/i)**\n\nIn.\n");
+  });
+
   it("keeps a card with nothing but presentation verbatim", () => {
     const source = '<Card icon="file" img="/shot.png" />\n';
     expect(downlevelComponents(source)).toBe(source);
