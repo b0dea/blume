@@ -58,7 +58,10 @@ const codeHtml = entry
 // whose collapse to the measured height no transition could hide. No-JS
 // readers aren't hurt by the cap, since the source scrolls at any height.
 const LINE_PX = 21;
-const PADDING_PX = 36;
+// The pre's vertical padding: 2.5rem on top — the copy-button strip the theme
+// gives flush blocks inside tabs (`blume-tabs pre.astro-code`) — plus 1rem
+// below, and the frame's borders.
+const PADDING_PX = 60;
 const ESTIMATE_MAX_PX = 400;
 // The floor also clamps the measured height client-side; it rides along on the
 // iframe as `data-blume-min-pane` so the script and this estimate can't drift.

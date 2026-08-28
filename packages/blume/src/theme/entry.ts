@@ -257,11 +257,13 @@ ${THEME_MAPPING}
      \`METHOD /very/long/{path}\`, a module-qualified name in a generated
      reference — paints past the content column, and nothing between the
      paragraph and the viewport clips it, so it lands in the document's scroll
-     width and drags the page sideways on a phone. Inherited, so headings,
-     table cells and inline code are covered too; nothing below re-declares it.
+     width and drags the page sideways on a phone. Inherited, so headings and
+     inline code are covered too; nothing below re-declares it.
      \`break-word\` and not \`anywhere\`: only \`anywhere\` reduces min-content,
      which is what sizes \`table-layout: auto\` columns, so it would resize
-     every table on the site. */
+     every table on the site. The flip side is that a token in a table cell
+     still never breaks — the column grows to fit it — so wide tables rely on
+     the .blume-table-scroll wrapper, not on this. */
   overflow-wrap: break-word;
 }
 
@@ -600,14 +602,18 @@ blume-tabs [data-blume-tab-content] > pre {
    the first line of code. Any first line long enough to reach the button's
    strip (a curl invocation, an install command, an import path) went under it.
    The selector follows the layout's injector, which picks \`top-2.5\` for any
-   \`.prose pre\` inside \`blume-tabs\` or \`.not-prose\` — titled or not — so an
-   untitled <CodeBlock> and the <Component> source pane get the room too.
+   pre inside \`blume-tabs\` or \`.not-prose\` — titled or not — so an untitled
+   <CodeBlock> in those components and the <Component> source pane get the
+   room too. Unscoped on purpose: <CodeBlock> wraps its pre in its own
+   \`.prose\` below the component chrome, and on a page without a prose column
+   (PageLayout) that inner wrapper would otherwise hand the pre the 3.75rem
+   language-bar padding while the bar itself stays cleared below.
    \`.astro-code\` limits it to highlighted blocks: the playground's response
    pre is created after the injector ran and never gets a button. API panel
    blocks match, but their own !important padding wins and they hide the
    injected button. */
-.prose blume-tabs pre.astro-code,
-.prose .not-prose pre.astro-code {
+blume-tabs pre.astro-code,
+.not-prose pre.astro-code {
   padding-top: 2.5rem;
 }
 
@@ -668,9 +674,13 @@ blume-tabs:not(:defined)[data-dropdown="true"] [data-blume-tablist] {
    child — the playground's <summary>, at the scroller's origin — inside the
    padding box where it can paint; the negative margins pull the box back so
    the content still aligns with the left column, and the sticky offset and
-   viewport cap are adjusted by the same amount. */
-@media (min-width: 80rem) {
-  [data-operation-panel] {
+   viewport cap are adjusted by the same amount. The breakpoint is Tailwind's
+   xl variant, not a literal, so it tracks the operation pages' xl:grid-cols
+   through a project's --breakpoint-xl override. Stable gutter: the panel's
+   height toggles at runtime ("Try it", tab switches), and on classic-scrollbar
+   platforms a bar appearing at the cap would otherwise narrow the content. */
+[data-operation-panel] {
+  @variant xl {
     --blume-panel-inset: 0.25rem;
     align-self: start;
     margin-block-start: calc(-1 * var(--blume-panel-inset));
@@ -681,6 +691,7 @@ blume-tabs:not(:defined)[data-dropdown="true"] [data-blume-tablist] {
     padding-inline: var(--blume-panel-inset) 0.75rem;
     position: sticky;
     scrollbar-color: var(--blume-border) transparent;
+    scrollbar-gutter: stable;
     scrollbar-width: thin;
     top: calc(6rem - var(--blume-panel-inset));
   }
