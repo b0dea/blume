@@ -990,10 +990,12 @@ const navigationConfigSchema = z.strictObject({
   featured: z.array(featuredLinkSchema).default([]),
   /**
    * The GitHub link in the header. `true` derives it from `github`, `false`
-   * hides it, and a URL points it anywhere — an organization, say, when the
-   * docs repo itself is private and `github` has to stay unset.
+   * hides it, and an absolute URL points it anywhere on GitHub — an
+   * organization, say, when the docs repo itself is private and `github` has
+   * to stay unset. The mark stays the GitHub one, so a URL elsewhere belongs in
+   * `actions`.
    */
-  repo: z.union([z.boolean(), z.string()]).default(true),
+  repo: z.union([z.boolean(), z.url()]).default(true),
   selectors: z.array(navSelectorSchema).default([]),
   /**
    * Sidebar behavior. `display` sets how every group renders (a group in an

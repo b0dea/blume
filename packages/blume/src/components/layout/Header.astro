@@ -2,6 +2,7 @@
 import Ask from "blume:ask";
 import data from "blume:data";
 import { withBase } from "../islands/base-path.ts";
+import { isExternalUrl } from "../../core/base-path.ts";
 import type { ComponentOverride } from "../../core/define-components.ts";
 import { EN_UI } from "../../core/i18n-ui.ts";
 import type { UIStrings } from "../../core/i18n-ui.ts";
@@ -120,13 +121,18 @@ const tabsNavClass = hasSidebar
 const iconButton =
   "inline-flex size-9 cursor-pointer items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground";
 
-/**
- * A header link leaves the site when it names a host, so it opens in a tab.
- * `withBase` is applied either way — it passes external, protocol-relative and
- * fragment hrefs through untouched, and prefixes only a root-relative route.
- */
-const isExternalAction = (href: string): boolean =>
-  /^[a-z][a-z\d+.-]*:/iu.test(href) || href.startsWith("//");
+// Header links: plain actions are secondary and hide below `sm`, where the
+// header has room for the logo and the drawer toggle and nothing else. The one
+// call to action hides there too — but only when a drawer toggle is actually
+// competing for the space. A page with no drawer (a PageLayout landing page
+// with no tabs) has nowhere else to surface it, so it stays. `withBase` passes
+// external, protocol-relative and fragment hrefs through untouched.
+const actionClass =
+  "hidden rounded-full px-3 py-1.5 font-medium text-muted-foreground text-sm transition-colors hover:text-foreground sm:inline-flex";
+const ctaClass = [
+  showNavToggle ? "hidden sm:inline-flex" : "inline-flex",
+  "items-center gap-1 rounded-full bg-accent px-3.5 py-1.5 font-medium text-accent-foreground text-sm transition-opacity hover:opacity-90",
+].join(" ");
 
 // Delegated handlers for the theme toggle, mobile nav drawer, and banner
 // dismiss. Living with the header means every page that renders it — docs pages
@@ -222,28 +228,28 @@ const clickScript = `(()=>{const dr=()=>{const h=document.querySelector("[data-b
   <div class="flex items-center gap-2">
     {
       /* Plain links first, then the one filled button: the reader's eye lands
-         on the button because nothing beside it competes. Both are hidden
-         below `sm`, where the header has room for the logo and the drawer
-         toggle and nothing else — a call to action that has to survive on a
-         phone belongs in `navigation.featured`. */
-      (navigation.actions ?? []).map((action) => (
-        <a
-          class="hidden rounded-full px-3 py-1.5 font-medium text-muted-foreground text-sm transition-colors hover:text-foreground sm:inline-flex"
-          href={withBase(action.href)}
-          rel={isExternalAction(action.href) ? "noreferrer" : undefined}
-          target={isExternalAction(action.href) ? "_blank" : undefined}
-        >
-          {action.label}
-        </a>
-      ))
+         on the button because nothing beside it competes. */
+      (navigation.actions ?? []).map((action) => {
+        const external = isExternalUrl(action.href);
+        return (
+          <a
+            class={actionClass}
+            href={withBase(action.href)}
+            rel={external ? "noreferrer" : undefined}
+            target={external ? "_blank" : undefined}
+          >
+            {action.label}
+          </a>
+        );
+      })
     }
     {
       navigation.cta && (
         <a
-          class="hidden items-center gap-1 rounded-full bg-accent px-3.5 py-1.5 font-medium text-accent-foreground text-sm transition-opacity hover:opacity-90 sm:inline-flex"
+          class={ctaClass}
           href={withBase(navigation.cta.href)}
-          rel={isExternalAction(navigation.cta.href) ? "noreferrer" : undefined}
-          target={isExternalAction(navigation.cta.href) ? "_blank" : undefined}
+          rel={isExternalUrl(navigation.cta.href) ? "noreferrer" : undefined}
+          target={isExternalUrl(navigation.cta.href) ? "_blank" : undefined}
         >
           {navigation.cta.label}
           <Icon name="chevron-right" size={14} />

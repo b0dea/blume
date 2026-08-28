@@ -465,8 +465,8 @@ export interface NavigationConfig {
   featured?: FeaturedLink[];
   /**
    * The GitHub link in the header. `true` derives it from `github` (the
-   * default), `false` hides it, and a URL points it anywhere — an
-   * organization, say, when the docs repo itself is private.
+   * default), `false` hides it, and an absolute URL points it anywhere on
+   * GitHub — an organization, say, when the docs repo itself is private.
    */
   repo?: boolean | string;
   /** Context switchers shown in the header (versions, languages, …). */
