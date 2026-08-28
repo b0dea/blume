@@ -341,6 +341,12 @@ describe("Card and CardGroup", () => {
     ).toBe("**[A \\[beta\\] card](/b)**\n\nBody.\n");
   });
 
+  it("stringifies a numeric title, rather than dropping it for the href", () => {
+    expect(
+      downlevelComponents('<Card title={2024} href="/y">\n  Year.\n</Card>\n')
+    ).toBe("**[2024](/y)**\n\nYear.\n");
+  });
+
   it("falls back to the href when there is no title", () => {
     expect(
       downlevelComponents('<Card href="/pricing">\n  What it costs.\n</Card>\n')
@@ -422,9 +428,9 @@ describe("Card and CardGroup", () => {
     );
   });
 
-  it("keeps a declining card, rather than dropping it beside a good one", () => {
-    // The body already carries the good card downleveled in place, so falling
-    // back loses nothing; joining the rest would delete the declining card.
+  it("keeps a declining card as its own block beside a good one", () => {
+    // The declining card's JSX stands as a block of its own — a blank line
+    // between, so it does not continue the rendered card's paragraph.
     const out = downlevelComponents(
       [
         "<CardGroup>",
@@ -438,10 +444,43 @@ describe("Card and CardGroup", () => {
         "",
       ].join("\n")
     );
-    expect(out).toContain("**[Good](/a)**");
-    expect(out).toContain("Body A.");
-    expect(out).toContain('<Card title={dynamic()} href="/b">');
-    expect(out).toContain("Body B.");
+    expect(out).toBe(
+      '**[Good](/a)**\n\nBody A.\n\n<Card title={dynamic()} href="/b">\n  Body B.\n</Card>\n'
+    );
+  });
+
+  it("renders the cards in a group through a user `Card` override", () => {
+    const out = downlevelComponents(
+      [
+        "<CardGroup>",
+        '  <Card title="One" href="/one">First.</Card>',
+        '  <Card title="Two" href="/two">Second.</Card>',
+        "</CardGroup>",
+        "",
+      ].join("\n"),
+      { Card: ({ props }) => `- ${String(props.title)}` }
+    );
+    expect(out).toBe("- One\n\n- Two\n");
+  });
+
+  it("keeps prose and a nested group beside the cards a group holds", () => {
+    const out = downlevelComponents(
+      [
+        "<CardGroup>",
+        "  Pick one:",
+        "",
+        '  <Card title="A" href="/a">A body.</Card>',
+        "  <CardGroup>",
+        '    <Card title="B" href="/b">B body.</Card>',
+        "  </CardGroup>",
+        '  <Icon name="sparkles" />',
+        "</CardGroup>",
+        "",
+      ].join("\n")
+    );
+    expect(out).toBe(
+      'Pick one:\n\n**[A](/a)**\n\nA body.\n\n**[B](/b)**\n\nB body.\n\n<Icon name="sparkles" />\n'
+    );
   });
 
   it("falls back to its body when no card in it could be serialized", () => {

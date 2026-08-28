@@ -101,7 +101,7 @@ export default defineConfig({
 });
 ```
 
-For container components, `childComponents("Name")` extracts direct children by tag — the same way the built-in `<Steps>` serializer collects its `<Step>` items. A same-name entry replaces a built-in serializer, so you can restyle how `<Callout>` downlevels — or return `null` to opt one out entirely.
+For container components, `childComponents("Name")` extracts direct children by tag — the same way the built-in `<Steps>` serializer collects its `<Step>` items — and `childBlocks()` returns every direct child in order, components and prose alike, each already downleveled to a block of Markdown (the built-in `<CardGroup>` serializer is just those blocks joined by blank lines). A same-name entry replaces a built-in serializer, so you can restyle how `<Callout>` downlevels — or return `null` to opt one out entirely.
 
 Serializers live in `blume.config.ts`, not `components.tsx`: the config file is executed at build time, while the components file is only statically analyzed (it may import `.astro` files, which can't run outside the site build). Your components themselves stay registered in `components.tsx` exactly as before — `markdownComponents` only adds their agent-facing Markdown form.
 

@@ -295,14 +295,14 @@ export const buildSearchDocuments = async (
     indexable.map(async (route) => {
       const page = pageById.get(route.id);
       const raw = page ? await readExpandedEntryText(project, page) : "";
-      const source = raw ? matter(raw).content : "";
+      const parsed = matter(raw);
       const visible = applyAudienceVisibility(
-        source,
+        parsed.content,
         options?.audience ?? "web"
       );
       const body =
         options?.content === "markdown"
-          ? downlevelComponents(visible.trim(), components, matter(raw).data)
+          ? downlevelComponents(visible.trim(), components, parsed.data)
           : toPlainText(visible);
       const tags = page?.meta?.search?.tags;
       const crumb = crumbs.get(route.path);

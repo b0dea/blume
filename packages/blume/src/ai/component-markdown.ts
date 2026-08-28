@@ -80,8 +80,28 @@ export interface ComponentMarkdownChild extends EvaluatedProps {
   children: string;
 }
 
+/** One direct child of a component — a child component or prose — as Markdown. */
+export interface ComponentMarkdownBlock {
+  /**
+   * The child downleveled: a serializable component's rendering (through the
+   * registry, so a user override of that component applies), or — for prose,
+   * a component with no serializer, or one that declined — its source with
+   * any serializable descendants downleveled in place.
+   */
+  markdown: string;
+  /** The JSX name of a child component; `undefined` for prose. */
+  name?: string;
+}
+
 /** What a serializer receives for one component usage. */
 export interface ComponentMarkdownContext extends EvaluatedProps {
+  /**
+   * Every direct child of the element in document order, components and
+   * prose alike, each as a block of Markdown. For a container that is nothing
+   * but its contents — `<CardGroup>` — joining these with blank lines is the
+   * whole serializer.
+   */
+  childBlocks: () => ComponentMarkdownBlock[];
   /** Direct child components of `name`, each with evaluated props and body. */
   childComponents: (name: string) => ComponentMarkdownChild[];
   /** The element's body, downleveled and dedented (empty if self-closing). */
@@ -160,9 +180,10 @@ const readProps = (
   return { lossy, props };
 };
 
-const hasOffsets = (
-  node: MdastNode
-): node is MdastNode & { position: { end: Offset; start: Offset } } =>
+/** A node Satteri stamped with byte offsets. */
+type Positioned = MdastNode & { position: { end: Offset; start: Offset } };
+
+const hasOffsets = (node: MdastNode): node is Positioned =>
   typeof node.position?.start?.offset === "number" &&
   typeof node.position?.end?.offset === "number";
 
@@ -366,6 +387,14 @@ const linkDestination = (href: string): string =>
     ? `<${href.replaceAll(/[<>]/gu, String.raw`\$&`)}>`
     : href;
 
+/** A text prop: a string, or a number stringified — `title={2024}` is a title. */
+const textProp = (value: EvaluatedValue): string => {
+  if (isString(value)) {
+    return value.trim();
+  }
+  return isNumber(value) ? String(value) : "";
+};
+
 /**
  * A card is a link with a blurb, so that is what it becomes: the title as the
  * link text, the body under it, and the call to action last — the order the
@@ -378,22 +407,15 @@ const linkDestination = (href: string): string =>
  * declines: a title or href recovered from an expression that would not
  * evaluate is a link pointing somewhere wrong, which is worse than the
  * visible JSX.
- *
- * Takes the child shape so {@link cardGroup} can serialize the cards it
- * extracts through the same function.
  */
-const cardMarkdown = ({
-  children,
-  lossy,
-  props,
-}: ComponentMarkdownChild): string | null => {
+const card: ComponentMarkdown = ({ children, lossy, props }) => {
   if (lossy) {
     return null;
   }
-  const title = isString(props.title) ? props.title.trim() : "";
+  const title = textProp(props.title);
   const href = isString(props.href) ? props.href.trim() : "";
   const body = children.trim();
-  const cta = isString(props.cta) ? props.cta.trim() : "";
+  const cta = textProp(props.cta);
   const label = title || href;
   if (label === "") {
     // Nothing to head the card with, so it is whatever text it carries.
@@ -408,29 +430,22 @@ const cardMarkdown = ({
   return [head, body, cta].filter(Boolean).join("\n\n");
 };
 
-const card: ComponentMarkdown = cardMarkdown;
-
 /**
  * `CardGroup` is the grid its cards sit in and carries no meaning of its own,
- * so it renders the cards it holds. Extracted with `childComponents` rather
- * than passed through, like {@link steps} and {@link tabs}: the body slice
- * keeps each card's own source indentation, which would land in the output.
- *
- * Any card declining sends the whole group back to its body instead. The body
- * already carries the serializable cards downleveled in place — every `Card`
- * is spliced before this runs — so the only cost is that indentation, and
- * joining the rest would drop the declining card from the output entirely.
+ * so it becomes its contents: every direct child in order, each a block, a
+ * blank line between them. Built on `childBlocks` rather than extracting the
+ * cards so nothing the group holds is lost — a `Card` renders through the
+ * registry (a user override of `Card` applies in here too), a nested group
+ * recurses, prose between the cards stays, and a card that declines keeps its
+ * JSX as a block of its own instead of vanishing beside a rendered sibling.
+ * Passing the body slice through instead would leave each card's source
+ * indentation in the output and run one card's title straight on from the
+ * previous card's body as the same paragraph.
  */
-const cardGroup: ComponentMarkdown = ({ childComponents, children }) => {
-  const cards = childComponents("Card");
-  if (cards.length === 0) {
-    return children;
-  }
-  const rendered = cards.map(cardMarkdown);
-  return rendered.some((entry) => entry === null)
-    ? children
-    : rendered.join("\n\n");
-};
+const cardGroup: ComponentMarkdown = ({ childBlocks }) =>
+  childBlocks()
+    .map((block) => block.markdown)
+    .join("\n\n");
 
 const youtube: ComponentMarkdown = ({ props }) => {
   let input = "";
@@ -517,22 +532,20 @@ interface Walk {
 }
 
 /**
- * The element's body as Markdown: the verbatim source slice covering its
- * children, with any serializable descendant components downleveled in place.
- * Mutually recursive with {@link collectSplices} (a container's children may
- * hold further serializable components), hence the forward reference.
+ * A source slice as Markdown: the verbatim `[start, end)` range with any
+ * serializable component under `nodes` downleveled in place, dedented and
+ * trimmed. Mutually recursive with {@link collectSplices} (the nodes may hold
+ * further serializable components), hence the forward reference.
  */
-const renderChildren = (walk: Walk, node: MdastNode): string => {
-  const children = (node.children ?? []).filter(hasOffsets);
-  const [first] = children;
-  if (!first) {
-    return "";
-  }
-  const start = first.position.start.offset;
-  const end = children.at(-1)?.position.end.offset ?? start;
+const renderSlice = (
+  walk: Walk,
+  start: number,
+  end: number,
+  nodes: MdastNode[]
+): string => {
   const splices: Splice[] = [];
   // oxlint-disable-next-line no-use-before-define
-  collectSplices(walk, children, splices);
+  collectSplices(walk, nodes, splices);
   const spliced = applySplices(
     walk.source.slice(start, end),
     splices.map((splice) => ({
@@ -544,6 +557,45 @@ const renderChildren = (walk: Walk, node: MdastNode): string => {
   return dedent(spliced).trim();
 };
 
+/** The element's body as Markdown: the slice covering all of its children. */
+const renderChildren = (walk: Walk, node: MdastNode): string => {
+  const children = (node.children ?? []).filter(hasOffsets);
+  const [first] = children;
+  if (!first) {
+    return "";
+  }
+  const start = first.position.start.offset;
+  return renderSlice(
+    walk,
+    start,
+    children.at(-1)?.position.end.offset ?? start,
+    children
+  );
+};
+
+/**
+ * One direct child as a block of Markdown: a registered component's own
+ * rendering, else — prose, an unknown component, or one that declined — its
+ * source slice, the same choice {@link collectSplices} makes at the top level.
+ */
+const renderBlock = (walk: Walk, node: Positioned): string => {
+  const serializer =
+    isJsxElement(node) && node.name ? walk.registry[node.name] : undefined;
+  const text = serializer
+    ? // oxlint-disable-next-line no-use-before-define
+      serializeElement(serializer, walk, node)
+    : null;
+  return (
+    text ??
+    renderSlice(
+      walk,
+      node.position.start.offset,
+      node.position.end.offset,
+      node.children ?? []
+    )
+  );
+};
+
 /** Serialize one component usage, or `null` to keep its JSX verbatim. */
 const serializeElement = (
   serializer: ComponentMarkdown,
@@ -552,6 +604,11 @@ const serializeElement = (
 ): string | null =>
   serializer({
     ...readProps(node, walk.frontmatter),
+    childBlocks: () =>
+      (node.children ?? []).filter(hasOffsets).map((child) => ({
+        markdown: renderBlock(walk, child),
+        name: isJsxElement(child) ? child.name : undefined,
+      })),
     childComponents: (name) =>
       (node.children ?? [])
         .filter((child) => isJsxElement(child) && child.name === name)
