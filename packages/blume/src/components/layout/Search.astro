@@ -289,6 +289,8 @@ const kbd = "rounded border border-border bg-muted px-1 py-0.5 font-mono";
       selectables: Selectable[] = [];
       selectedIndex = -1;
       activeSection: string | null = null;
+      /** The section pill for `activeSection` in the current filter row. */
+      activePill: HTMLElement | undefined;
       renderGeneration = 0;
       /** Monotonic id source for option rows (aria-activedescendant). */
       optionSeq = 0;
@@ -638,6 +640,7 @@ const kbd = "rounded border border-border bg-muted px-1 py-0.5 font-mono";
       }
 
       renderFilters(sections: { count: number; label: string }[]) {
+        this.activePill = undefined;
         if (sections.length < 2) {
           this.filters.hidden = true;
           this.filters.replaceChildren();
@@ -647,7 +650,6 @@ const kbd = "rounded border border-border bg-muted px-1 py-0.5 font-mono";
         this.filters.replaceChildren();
         const total = sections.reduce((sum, s) => sum + s.count, 0);
         this.filters.appendChild(this.createPill(this.allMsg, total, null));
-        let activePill: HTMLElement | undefined;
         for (const section of sections) {
           const pill = this.createPill(
             section.label,
@@ -656,18 +658,9 @@ const kbd = "rounded border border-border bg-muted px-1 py-0.5 font-mono";
           );
           this.filters.appendChild(pill);
           if (section.label === this.activeSection) {
-            activePill = pill;
+            this.activePill = pill;
           }
         }
-        // The row is height-capped and scrolls. Pills sit in the pool's
-        // first-seen order and sections drop out as the query narrows, so the
-        // active pill can move rows between renders — and the row's scrollTop
-        // survives replaceChildren — so without this the reader can be looking
-        // at filtered results with no highlighted pill in view. Only a section
-        // pill: with "All" selected every render (each keystroke, each resolved
-        // search) would otherwise snap a row the reader scrolled back to the
-        // top, moving the pill they were about to click.
-        activePill?.scrollIntoView({ block: "nearest" });
       }
 
       createPill(label: string, count: number, value: string | null) {
@@ -797,6 +790,17 @@ const kbd = "rounded border border-border bg-muted px-1 py-0.5 font-mono";
           this.input.removeAttribute("aria-activedescendant");
           this.clearPreview();
         }
+        // The filter row is height-capped and scrolls. Pills sit in the pool's
+        // first-seen order and sections drop out as the query narrows, so the
+        // active pill can move rows between renders — and the row's scrollTop
+        // survives replaceChildren — so without this the reader can be looking
+        // at filtered results with no highlighted pill in view. Only a section
+        // pill: with "All" selected every render (each keystroke, each resolved
+        // search) would otherwise snap a row the reader scrolled back to the
+        // top, moving the pill they were about to click. Issued here, after
+        // the results are in the DOM, so it shares one layout flush with
+        // selectIndex instead of forcing a second one mid-render.
+        this.activePill?.scrollIntoView({ block: "nearest" });
       }
 
       selectIndex(index: number) {

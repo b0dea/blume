@@ -27,12 +27,16 @@
  * the scroller's origin, inside the padding box where it can paint; the
  * negative margins pull the box back so the content still aligns with the left
  * column, and the sticky offset (`top-24` less the inset) and the viewport cap
- * (`7.5rem` less the inset) are adjusted by the same amount.
+ * (`7.5rem` less the inset) are adjusted by the same amount. The end side
+ * uses the same trick at 1rem (`-me-4 pe-4`): the box spills into the page
+ * gutter (`<main>` keeps `xl:px-10`), so the scrollbar and the reserved gutter
+ * live there, off the Request card's edge, and with overlay scrollbars the
+ * cards keep the column's full 28rem; a classic bar costs its own width.
  */
 ---
 
 <div
-  class="xl:-ms-1 xl:-mt-1 xl:sticky xl:top-[5.75rem] xl:max-h-[calc(100dvh-7.25rem)] xl:overflow-y-auto xl:scrollbar-thin xl:scrollbar-thumb-border xl:scrollbar-track-transparent xl:[scrollbar-gutter:stable] xl:pt-1 xl:ps-1 xl:pb-1 xl:pe-3"
+  class="xl:-ms-1 xl:-mt-1 xl:-me-4 xl:sticky xl:top-[5.75rem] xl:max-h-[calc(100dvh-7.25rem)] xl:overflow-y-auto xl:scrollbar-thin xl:scrollbar-thumb-border xl:scrollbar-track-transparent xl:[scrollbar-gutter:stable] xl:pt-1 xl:ps-1 xl:pb-1 xl:pe-4"
   data-operation-panel
 >
   <slot />

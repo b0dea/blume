@@ -339,8 +339,19 @@ export const initPlayground = (root: HTMLElement): void => {
     region.append(pre);
     // At xl the panel is its own scroll region capped to the viewport, so a
     // response appended under a tall form can land below the panel's fold
-    // where neither page scroll nor anything else brings it into view.
-    region.scrollIntoView?.({ block: "nearest" });
+    // where nothing brings it into view. Scroll the panel alone — "nearest",
+    // by hand — and never the document: below xl the panel does not scroll,
+    // and a document scroll would carry the form (Send, the body editor, its
+    // errors) off the top on a phone.
+    const panel = region.closest<HTMLElement>("[data-operation-panel]");
+    if (panel && panel.scrollHeight > panel.clientHeight) {
+      const box = panel.getBoundingClientRect();
+      const target = region.getBoundingClientRect();
+      const delta = Math.min(target.bottom - box.bottom, target.top - box.top);
+      if (delta > 0) {
+        panel.scrollBy({ top: delta });
+      }
+    }
   };
 
   /**
