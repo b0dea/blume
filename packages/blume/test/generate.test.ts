@@ -219,6 +219,153 @@ describe("collectStaged", () => {
   });
 });
 
+describe("buildRuntimeData — header actions", () => {
+  it("carries actions and the cta onto every navigation tree", async () => {
+    const project = await scanProject(
+      await writeProject({
+        "blume.config.ts": `export default {
+  navigation: {
+    actions: [{ href: "/status", label: "Status" }],
+    cta: { href: "https://acme.com/signup", label: "Start free" },
+  },
+};
+`,
+        "docs/index.md": "# Home\n",
+      })
+    );
+    const data = JSON.parse(buildRuntimeData(project));
+    expect(data.navigation.actions).toEqual([
+      { href: "/status", label: "Status" },
+    ]);
+    expect(data.navigation.cta).toEqual({
+      href: "https://acme.com/signup",
+      label: "Start free",
+    });
+  });
+
+  it("localizes internal header hrefs, like featured links", async () => {
+    // A French reader clicking a header action must stay inside their locale.
+    // This is silent when it breaks — the English page exists, so no 404.
+    const project = await scanProject(
+      await writeProject({
+        "blume.config.ts": `export default {
+  i18n: { defaultLocale: "en", locales: [{ code: "en", label: "English" }, { code: "fr", label: "Français" }] },
+  navigation: {
+    actions: [{ href: "/changelog", label: "Changelog" }],
+    cta: { href: "/signup", label: "Sign up" },
+    featured: [{ href: "/changelog", label: "Changelog" }],
+  },
+};
+`,
+        "docs/index.md": "# Home\n",
+        "fr/docs/index.md": "# Accueil\n",
+      })
+    );
+    const data = JSON.parse(buildRuntimeData(project));
+    const { fr } = data.navigationByLocale;
+    expect(fr.featured[0].href).toBe("/fr/changelog");
+    expect(fr.actions[0].href).toBe("/fr/changelog");
+    expect(fr.cta.href).toBe("/fr/signup");
+  });
+
+  it("leaves a protocol-relative href alone when localizing", async () => {
+    // `//host/path` starts with a slash but is an external URL, so a locale
+    // prefix would turn it into a route. Applies to featured links too, which
+    // go through the same localizer.
+    const project = await scanProject(
+      await writeProject({
+        "blume.config.ts": `export default {
+  i18n: { defaultLocale: "en", locales: [{ code: "en", label: "English" }, { code: "fr", label: "Français" }] },
+  navigation: {
+    actions: [{ href: "//cdn.example.com/status", label: "Status" }],
+    cta: { href: "//cdn.example.com/signup", label: "Sign up" },
+    featured: [{ href: "//cdn.example.com/changelog", label: "Changelog" }],
+  },
+};
+`,
+        "docs/index.md": "# Home\n",
+        "fr/docs/index.md": "# Accueil\n",
+      })
+    );
+    const data = JSON.parse(buildRuntimeData(project));
+    const { fr } = data.navigationByLocale;
+    expect(fr.actions[0].href).toBe("//cdn.example.com/status");
+    expect(fr.cta.href).toBe("//cdn.example.com/signup");
+    expect(fr.featured[0].href).toBe("//cdn.example.com/changelog");
+  });
+
+  it("leaves an external header href alone when localizing", async () => {
+    const project = await scanProject(
+      await writeProject({
+        "blume.config.ts": `export default {
+  i18n: { defaultLocale: "en", locales: [{ code: "en", label: "English" }, { code: "fr", label: "Français" }] },
+  navigation: { cta: { href: "https://example.com/signup", label: "Sign up" } },
+};
+`,
+        "docs/index.md": "# Home\n",
+        "fr/docs/index.md": "# Accueil\n",
+      })
+    );
+    const data = JSON.parse(buildRuntimeData(project));
+    expect(data.navigationByLocale.fr.cta.href).toBe(
+      "https://example.com/signup"
+    );
+  });
+
+  it("defaults to no actions and a null cta", async () => {
+    const project = await scanProject(
+      await writeProject({ "docs/index.md": "# Home\n" })
+    );
+    const data = JSON.parse(buildRuntimeData(project));
+    expect(data.navigation.actions).toEqual([]);
+    expect(data.navigation.cta).toBeNull();
+  });
+});
+
+describe("buildRuntimeData — navigation.repo", () => {
+  it("points the header mark at a URL, with no github configured", async () => {
+    // A private docs repo has to unset `github` — that drops the edit link,
+    // the manifest's repository and the header mark together — so a URL is
+    // what lets it still show a mark pointing somewhere public.
+    const project = await scanProject(
+      await writeProject({
+        "blume.config.ts":
+          'export default { navigation: { repo: "https://github.com/acme" } };\n',
+        "docs/index.md": "# Home\n",
+      })
+    );
+    const data = JSON.parse(buildRuntimeData(project));
+    expect(data.navigation.repoUrl).toBe("https://github.com/acme");
+    // The manifest's own repository stays tied to `github`, which needs a real
+    // owner and repo — GithubInfo calls the API with it.
+    expect(data.config.repoUrl).toBeNull();
+  });
+
+  it("still derives the mark from github when repo is true", async () => {
+    const project = await scanProject(
+      await writeProject({
+        "blume.config.ts":
+          'export default { github: { owner: "acme", repo: "docs" } };\n',
+        "docs/index.md": "# Home\n",
+      })
+    );
+    const data = JSON.parse(buildRuntimeData(project));
+    expect(data.navigation.repoUrl).toBe("https://github.com/acme/docs");
+  });
+
+  it("hides the mark when repo is false, github or not", async () => {
+    const project = await scanProject(
+      await writeProject({
+        "blume.config.ts":
+          'export default { github: { owner: "acme", repo: "docs" }, navigation: { repo: false } };\n',
+        "docs/index.md": "# Home\n",
+      })
+    );
+    const data = JSON.parse(buildRuntimeData(project));
+    expect(data.navigation.repoUrl).toBeNull();
+  });
+});
+
 describe("buildRuntimeData", () => {
   it("serializes a minimal project with feature defaults off", async () => {
     const project = await scanProject(
@@ -236,6 +383,7 @@ describe("buildRuntimeData", () => {
     expect(data.config.search.popular).toStrictEqual([]);
     expect(data.config.favicon.href.startsWith("data:image/png")).toBe(true);
     expect(data.navigationByLocale).toEqual({});
+    expect(data.navigation.repoUrl).toBeNull();
     expect(data.uiByLocale).toEqual({});
     expect(data.feeds).toEqual([]);
     const home = data.routes.find(

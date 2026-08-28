@@ -463,12 +463,28 @@ export type SidebarConfig =
       items?: SidebarItemConfig[];
     };
 
+/** A plain header link, or the header's single call to action. */
+export interface HeaderAction {
+  /** Link target. An external href opens in a new tab. */
+  href: string;
+  /** Link label. */
+  label: string;
+}
+
 /** Header, sidebar, tabs, and switcher configuration. */
 export interface NavigationConfig {
+  /** Plain links in the header, left of the icon buttons. */
+  actions?: HeaderAction[];
+  /** The single primary call to action in the header, as a filled button. */
+  cta?: HeaderAction;
   /** Pinned links shown above the generated sidebar sections. */
   featured?: FeaturedLink[];
-  /** Show a GitHub repo link in the header (requires `github` configured). */
-  repo?: boolean;
+  /**
+   * The GitHub link in the header. `true` derives it from `github` (the
+   * default), `false` hides it, and an absolute URL points it anywhere on
+   * GitHub — an organization, say, when the docs repo itself is private.
+   */
+  repo?: boolean | string;
   /** Context switchers shown in the header (versions, languages, …). */
   selectors?: NavSelector[];
   /** Sidebar behavior and (optionally) an explicit sidebar tree. */

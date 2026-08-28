@@ -273,6 +273,12 @@ export interface FeaturedLink {
   icon?: string;
 }
 
+/** A plain header link, or the header's single call to action. */
+export interface HeaderAction {
+  href: string;
+  label: string;
+}
+
 /** The complete navigation model derived from the content graph. */
 export interface Navigation {
   tabs: NavTab[];
@@ -288,6 +294,10 @@ export interface Navigation {
    * graphs; treat as `/`.
    */
   root?: string;
+  /** Plain links in the header, left of the icon buttons. */
+  actions?: HeaderAction[];
+  /** The single primary call to action in the header. */
+  cta?: HeaderAction | null;
   /** Pinned links shown above the sidebar sections, unscoped by tab. */
   featured: FeaturedLink[];
   /** Repo URL for the header link, or null when hidden (`navigation.repo`). */
