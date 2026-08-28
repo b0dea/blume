@@ -337,6 +337,10 @@ export const initPlayground = (root: HTMLElement): void => {
     code.textContent = prettyBody(text);
     pre.append(code);
     region.append(pre);
+    // At xl the panel is its own scroll region capped to the viewport, so a
+    // response appended under a tall form can land below the panel's fold
+    // where neither page scroll nor anything else brings it into view.
+    region.scrollIntoView?.({ block: "nearest" });
   };
 
   /**

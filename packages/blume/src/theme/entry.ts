@@ -1,3 +1,8 @@
+import {
+  CODE_PADDING_BLOCK_REM,
+  FLUSH_CODE_PADDING_TOP_REM,
+} from "./code-block-padding.ts";
+
 interface TailwindEntryOptions {
   /**
    * Globs to scan for utility classes. Typically the Blume package source and
@@ -258,7 +263,8 @@ ${THEME_MAPPING}
      reference — paints past the content column, and nothing between the
      paragraph and the viewport clips it, so it lands in the document's scroll
      width and drags the page sideways on a phone. Inherited, so headings and
-     inline code are covered too; nothing below re-declares it.
+     inline code are covered too; the only re-declarations below are the
+     opt-in code-wrap mode and Twoslash, which want different values.
      \`break-word\` and not \`anywhere\`: only \`anywhere\` reduces min-content,
      which is what sizes \`table-layout: auto\` columns, so it would resize
      every table on the site. The flip side is that a token in a table cell
@@ -372,7 +378,7 @@ ${THEME_MAPPING}
   line-height: 1.55;
   margin: 1.5rem 0;
   overflow-x: auto;
-  padding: 1rem 0;
+  padding: ${CODE_PADDING_BLOCK_REM}rem 0;
   position: relative;
 }
 
@@ -595,26 +601,33 @@ blume-tabs [data-blume-tab-content] > pre {
   margin: 0;
 }
 
-/* Room for the copy button. These contexts drop the language bar the button
-   would otherwise sit in (\`::before\` is cleared below), but the button itself
-   is unconditional — absolutely positioned against the \`pre\`'s border box at
-   \`top-2.5\`, 1.875rem tall — so at the 1rem this used to carry it painted over
-   the first line of code. Any first line long enough to reach the button's
-   strip (a curl invocation, an install command, an import path) went under it.
-   The selector follows the layout's injector, which picks \`top-2.5\` for any
-   pre inside \`blume-tabs\` or \`.not-prose\` — titled or not — so an untitled
-   <CodeBlock> in those components and the <Component> source pane get the
-   room too. Unscoped on purpose: <CodeBlock> wraps its pre in its own
-   \`.prose\` below the component chrome, and on a page without a prose column
-   (PageLayout) that inner wrapper would otherwise hand the pre the 3.75rem
-   language-bar padding while the bar itself stays cleared below.
-   \`.astro-code\` limits it to highlighted blocks: the playground's response
-   pre is created after the injector ran and never gets a button. API panel
+/* These contexts drop the language bar (\`::before\` is cleared below), so the
+   bar's padding goes with it and the block keeps the plain inset. Unscoped on
+   purpose: <CodeBlock> wraps its pre in its own \`.prose\` below the component
+   chrome, so without this a titled block on a page with no prose column
+   (PageLayout) would keep the 3.75rem bar padding under a cleared bar. */
+blume-tabs pre[data-language],
+.not-prose pre[data-language] {
+  padding-top: ${CODE_PADDING_BLOCK_REM}rem;
+}
+
+/* Room for the copy button. The docs layout injects it into every \`.prose pre\`
+   — absolutely positioned against the pre's border box, 1.875rem tall, at
+   \`top-2.5\` in the flush contexts above and \`top-2\` elsewhere — and it is
+   unconditional, so wherever no language bar exists to hold it, it painted
+   over the first line of code: any line long enough to reach the button's
+   strip (a curl invocation, an install command, an import path) went under
+   it. Keyed on the attribute the docs layout stamps on <body>, so the strip
+   only appears where the injector runs (PageLayout pages run none), and on
+   \`.astro-code\` so the playground's response pre — created after the
+   injector ran, never given a button — keeps its plain inset. The first
+   selector is the injector's own flush predicate; the second covers the
+   remaining bar-less case, an untitled <CodeBlock> in plain prose. API panel
    blocks match, but their own !important padding wins and they hide the
    injected button. */
-blume-tabs pre.astro-code,
-.not-prose pre.astro-code {
-  padding-top: 2.5rem;
+[data-blume-code-copy] :is(blume-tabs, .not-prose) pre.astro-code,
+[data-blume-code-copy] .prose pre.astro-code:not([data-language]) {
+  padding-top: ${FLUSH_CODE_PADDING_TOP_REM}rem;
 }
 
 blume-tabs pre[data-language]::before,
@@ -653,48 +666,6 @@ blume-tabs:not(:defined)[data-dropdown="true"] [data-blume-tablist] {
   border: 0;
   border-radius: 0;
   margin: 0;
-}
-
-/* The API reference's sample panel. OpenAPI, AsyncAPI and GraphQL operation
-   pages share the markup, so the rule lives here, keyed on the attribute they
-   all carry, rather than in three identical class strings. At the desktop
-   breakpoint (Tailwind's xl) the panel sits beside the docs column and sticks
-   below the 4rem header with the same 2rem gap the content keeps. It is
-   bounded to the viewport with its own scroll region: a grid item's sticky
-   containing block is its row, and the row is as tall as its tallest item, so
-   a long request schema on the left would otherwise pin the panel with
-   everything below the fold unreachable until the left column ended. The
-   tradeoff runs the other way when the left column is the short one — the
-   row is then only as tall as the capped panel and the overhang is reached by
-   scrolling the panel, not the page. The scrollbar matches the sidebar and the
-   table of contents, and the end padding keeps it off the Request card's edge.
-   No overscroll containment, for the same reason those two have none: once
-   the panel reaches its end, wheel input chains to the page. The 0.25rem
-   inset keeps the global focus ring (2px outline, 2px offset) on the first
-   child — the playground's <summary>, at the scroller's origin — inside the
-   padding box where it can paint; the negative margins pull the box back so
-   the content still aligns with the left column, and the sticky offset and
-   viewport cap are adjusted by the same amount. The breakpoint is Tailwind's
-   xl variant, not a literal, so it tracks the operation pages' xl:grid-cols
-   through a project's --breakpoint-xl override. Stable gutter: the panel's
-   height toggles at runtime ("Try it", tab switches), and on classic-scrollbar
-   platforms a bar appearing at the cap would otherwise narrow the content. */
-[data-operation-panel] {
-  @variant xl {
-    --blume-panel-inset: 0.25rem;
-    align-self: start;
-    margin-block-start: calc(-1 * var(--blume-panel-inset));
-    margin-inline-start: calc(-1 * var(--blume-panel-inset));
-    max-height: calc(100dvh - 7.5rem + var(--blume-panel-inset));
-    overflow-y: auto;
-    padding-block: var(--blume-panel-inset);
-    padding-inline: var(--blume-panel-inset) 0.75rem;
-    position: sticky;
-    scrollbar-color: var(--blume-border) transparent;
-    scrollbar-gutter: stable;
-    scrollbar-width: thin;
-    top: calc(6rem - var(--blume-panel-inset));
-  }
 }
 
 /* Opt-in line numbers (\`\`\`ts file.ts lineNumbers): a counter-driven gutter that
