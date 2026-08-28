@@ -42,10 +42,8 @@ test("the skip link is the first focusable element", async ({ page }) => {
 /**
  * Contrast on real article content and the sidebar must meet AA in both
  * themes. Left out, as design decisions this gate can't blanket-AA: syntax
- * tokens (`pre` and `<blume-diff>` blocks), brand-accent text and fills
- * (`text-accent`, `bg-accent`), and the `tip` callout, whose body text sits on
- * a 10% tint of the site's accent — with this site's teal that lands at
- * 4.44:1, a token-level question rather than a component one.
+ * tokens (`pre` and `<blume-diff>` blocks) and brand-accent text and fills
+ * (`text-accent`, `bg-accent`).
  */
 const contentContrast = (page: Page) =>
   new AxeBuilder({ page })
@@ -55,7 +53,6 @@ const contentContrast = (page: Page) =>
     .exclude("blume-diff")
     .exclude(".text-accent")
     .exclude(".bg-accent")
-    .exclude('[data-blume-callout="tip"]')
     .withRules(["color-contrast"])
     .analyze();
 

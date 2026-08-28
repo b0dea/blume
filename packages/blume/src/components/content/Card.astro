@@ -36,7 +36,9 @@ const variantClass = {
   info: "border-blue-500/30 bg-blue-500/10",
   note: "border-border bg-muted/40",
   success: "border-green-500/30 bg-green-500/10",
-  tip: "border-accent/30 bg-accent/10",
+  // 6% for the same reason as Callout: the accent defaults to near black, and
+  // muted body text on a 10% black tint misses WCAG AA.
+  tip: "border-accent/30 bg-accent/6",
   warning: "border-amber-500/30 bg-amber-500/10",
 }[kind ?? "note"];
 ---
