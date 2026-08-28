@@ -229,10 +229,7 @@ const channelBindings = bindingGroups(channel?.bindings);
         {(spec.playground.enabled ||
           samplePanels.length > 0 ||
           messagePanels.length > 0) && (
-          <div
-            class="xl:sticky xl:top-24 xl:max-h-[calc(100dvh-7.5rem)] xl:self-start xl:overflow-y-auto xl:overscroll-contain xl:pe-3 xl:scrollbar-thin xl:scrollbar-thumb-border xl:scrollbar-track-transparent"
-            data-operation-panel
-          >
+          <div data-operation-panel>
             {spec.playground.enabled && model && <MessageComposer model={model} />}
             <div class="not-prose flex flex-col gap-6">
               <PanelTabs copy heading="Example" panels={samplePanels} />

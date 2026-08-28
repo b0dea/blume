@@ -253,10 +253,12 @@ ${THEME_MAPPING}
   font-size: 0.875rem;
   line-height: 1.7;
   /* An unbreakable run — an API permission, a broker list, a bare URL used as
-     its own link text, a module-qualified name in a generated reference —
-     paints past the content column, and nothing between the paragraph and the
-     viewport clips it, so it lands in the document's scroll width and drags
-     the page sideways on a phone. Inherited, so inline code is covered too.
+     its own link text, an OpenAPI operation title of the form
+     \`METHOD /very/long/{path}\`, a module-qualified name in a generated
+     reference — paints past the content column, and nothing between the
+     paragraph and the viewport clips it, so it lands in the document's scroll
+     width and drags the page sideways on a phone. Inherited, so headings,
+     table cells and inline code are covered too; nothing below re-declares it.
      \`break-word\` and not \`anywhere\`: only \`anywhere\` reduces min-content,
      which is what sizes \`table-layout: auto\` columns, so it would resize
      every table on the site. */
@@ -267,13 +269,6 @@ ${THEME_MAPPING}
    display tracking, same as headings outside the prose column. */
 .prose :where(h1, h2, h3, h4) {
   font-weight: 500;
-}
-
-/* A heading can carry one long unbreakable token — an OpenAPI operation's title
-   is \`METHOD /very/long/{path}\` when the spec sets no summary — which would run
-   off the content column. Break it across lines instead of overflowing. */
-.prose :where(h1, h2, h3, h4, h5, h6) {
-  overflow-wrap: break-word;
 }
 
 .prose :where(h1) {
@@ -555,7 +550,6 @@ blume-diff {
    never matches (a cell is not its own descendant). */
 .prose :where(td, th) > code,
 .prose :where(td, th) :not(pre) > code {
-  overflow-wrap: break-word;
   white-space: normal;
 }
 
@@ -604,9 +598,16 @@ blume-tabs [data-blume-tab-content] > pre {
    is unconditional — absolutely positioned against the \`pre\`'s border box at
    \`top-2.5\`, 1.875rem tall — so at the 1rem this used to carry it painted over
    the first line of code. Any first line long enough to reach the button's
-   strip (a curl invocation, an install command, an import path) went under it. */
-blume-tabs pre[data-language],
-.not-prose pre[data-language] {
+   strip (a curl invocation, an install command, an import path) went under it.
+   The selector follows the layout's injector, which picks \`top-2.5\` for any
+   \`.prose pre\` inside \`blume-tabs\` or \`.not-prose\` — titled or not — so an
+   untitled <CodeBlock> and the <Component> source pane get the room too.
+   \`.astro-code\` limits it to highlighted blocks: the playground's response
+   pre is created after the injector ran and never gets a button. API panel
+   blocks match, but their own !important padding wins and they hide the
+   injected button. */
+.prose blume-tabs pre.astro-code,
+.prose .not-prose pre.astro-code {
   padding-top: 2.5rem;
 }
 
@@ -646,6 +647,43 @@ blume-tabs:not(:defined)[data-dropdown="true"] [data-blume-tablist] {
   border: 0;
   border-radius: 0;
   margin: 0;
+}
+
+/* The API reference's sample panel. OpenAPI, AsyncAPI and GraphQL operation
+   pages share the markup, so the rule lives here, keyed on the attribute they
+   all carry, rather than in three identical class strings. At the desktop
+   breakpoint (Tailwind's xl) the panel sits beside the docs column and sticks
+   below the 4rem header with the same 2rem gap the content keeps. It is
+   bounded to the viewport with its own scroll region: a grid item's sticky
+   containing block is its row, and the row is as tall as its tallest item, so
+   a long request schema on the left would otherwise pin the panel with
+   everything below the fold unreachable until the left column ended. The
+   tradeoff runs the other way when the left column is the short one — the
+   row is then only as tall as the capped panel and the overhang is reached by
+   scrolling the panel, not the page. The scrollbar matches the sidebar and the
+   table of contents, and the end padding keeps it off the Request card's edge.
+   No overscroll containment, for the same reason those two have none: once
+   the panel reaches its end, wheel input chains to the page. The 0.25rem
+   inset keeps the global focus ring (2px outline, 2px offset) on the first
+   child — the playground's <summary>, at the scroller's origin — inside the
+   padding box where it can paint; the negative margins pull the box back so
+   the content still aligns with the left column, and the sticky offset and
+   viewport cap are adjusted by the same amount. */
+@media (min-width: 80rem) {
+  [data-operation-panel] {
+    --blume-panel-inset: 0.25rem;
+    align-self: start;
+    margin-block-start: calc(-1 * var(--blume-panel-inset));
+    margin-inline-start: calc(-1 * var(--blume-panel-inset));
+    max-height: calc(100dvh - 7.5rem + var(--blume-panel-inset));
+    overflow-y: auto;
+    padding-block: var(--blume-panel-inset);
+    padding-inline: var(--blume-panel-inset) 0.75rem;
+    position: sticky;
+    scrollbar-color: var(--blume-border) transparent;
+    scrollbar-width: thin;
+    top: calc(6rem - var(--blume-panel-inset));
+  }
 }
 
 /* Opt-in line numbers (\`\`\`ts file.ts lineNumbers): a counter-driven gutter that

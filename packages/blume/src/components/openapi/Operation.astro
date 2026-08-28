@@ -166,10 +166,7 @@ const languages = sampleLanguages(spec?.codeSamples ?? []);
           )}
         </div>
         {sample && model && (
-          <div
-            class="xl:sticky xl:top-24 xl:max-h-[calc(100dvh-7.5rem)] xl:self-start xl:overflow-y-auto xl:overscroll-contain xl:pe-3 xl:scrollbar-thin xl:scrollbar-thumb-border xl:scrollbar-track-transparent"
-            data-operation-panel
-          >
+          <div data-operation-panel>
             {spec.playground.enabled && (
               <Playground
                 model={model}
