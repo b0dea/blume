@@ -64,7 +64,7 @@ export type EvaluatedValue =
   | EvaluatedValue[]
   | { [key: string]: EvaluatedValue };
 
-const isString = <Value>(value: Value): value is Value & string =>
+export const isString = <Value>(value: Value): value is Value & string =>
   typeof value === "string";
 
 const isNumber = <Value>(value: Value): value is Value & number =>

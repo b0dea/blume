@@ -12,6 +12,7 @@ import type {
   DownlevelWalk,
   MdastNode as DownlevelNode,
 } from "../ai/component-markdown.ts";
+import { openapiComponentSerializers } from "../ai/openapi-components.ts";
 import { applyAudienceVisibility } from "../ai/visibility.ts";
 import type { VisibilityAudience } from "../ai/visibility.ts";
 import matter from "../core/frontmatter.ts";
@@ -443,6 +444,7 @@ export const buildSearchDocuments = async (
   // per call otherwise.
   const components = {
     ...exampleComponentSerializers(project.examples ?? {}),
+    ...openapiComponentSerializers(project),
     ...project.config.ai.markdownComponents,
   };
 

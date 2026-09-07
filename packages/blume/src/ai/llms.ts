@@ -12,6 +12,7 @@ import {
   downlevelComponents,
   exampleComponentSerializers,
 } from "./component-markdown.ts";
+import { openapiComponentSerializers } from "./openapi-components.ts";
 import { AGENT_SKILLS_DIR, AGENT_SKILLS_INDEX_PATH } from "./skills.ts";
 import type { SkillArtifact } from "./skills.ts";
 import { applyAgentVisibility } from "./visibility.ts";
@@ -296,6 +297,7 @@ const buildFull = async (project: BlumeProject): Promise<string> => {
   // `markdownComponents` entry is spread last and still wins.
   const components = {
     ...exampleComponentSerializers(project.examples ?? {}),
+    ...openapiComponentSerializers(project),
     ...config.ai.markdownComponents,
   };
 

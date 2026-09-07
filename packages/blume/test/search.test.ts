@@ -203,6 +203,23 @@ const DIVIDER_BODY = [
   "",
 ].join("\n");
 
+/**
+ * A flow-level component the registry does not know. Its children are ordinary
+ * blocks and stay indexed — only a component with a serializer is replaced by
+ * the Markdown that serializer emits.
+ */
+const UNKNOWN_BODY = [
+  "---",
+  "title: F",
+  "---",
+  '<Unregistered kind="aside">',
+  "",
+  "Prose inside an unknown component still indexes.",
+  "",
+  "</Unregistered>",
+  "",
+].join("\n");
+
 beforeAll(async () => {
   root = await mkdtemp(join(tmpdir(), "blume-search-"));
   await writeFile(join(root, "a.md"), BODY);
@@ -210,6 +227,7 @@ beforeAll(async () => {
   await writeFile(join(root, "code.mdx"), CODE_BODY);
   await writeFile(join(root, "comment.mdx"), COMMENT_BODY);
   await writeFile(join(root, "divider.mdx"), DIVIDER_BODY);
+  await writeFile(join(root, "unknown.mdx"), UNKNOWN_BODY);
 });
 
 afterAll(async () => {
@@ -470,6 +488,15 @@ describe("buildSearchDocuments", () => {
       expect(doc?.content).not.toContain("draft");
       expect(doc?.content).not.toContain("<Step");
       expect(doc?.content).not.toContain("title=");
+    });
+
+    it("walks a component the registry does not know, keeping its prose", async () => {
+      const [doc] = await buildSearchDocuments(mdxProject("unknown.mdx"));
+      expect(doc?.content).toContain(
+        "Prose inside an unknown component still indexes."
+      );
+      expect(doc?.content).not.toContain("Unregistered");
+      expect(doc?.content).not.toContain("aside");
     });
 
     it("strips fences everywhere by default, including inside components", async () => {

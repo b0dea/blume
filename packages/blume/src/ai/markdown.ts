@@ -10,6 +10,7 @@ import {
   exampleComponentSerializers,
 } from "./component-markdown.ts";
 import { buildLlmsIndex } from "./llms.ts";
+import { openapiComponentSerializers } from "./openapi-components.ts";
 import { applyAgentVisibility } from "./visibility.ts";
 
 /** One route's raw-Markdown variants. */
@@ -59,6 +60,7 @@ export const buildRawMarkdown = async (
   // entry of the same name is spread last, so it still wins.
   const components = {
     ...exampleComponentSerializers(project.examples ?? {}),
+    ...openapiComponentSerializers(project),
     ...project.config.ai.markdownComponents,
   };
 
