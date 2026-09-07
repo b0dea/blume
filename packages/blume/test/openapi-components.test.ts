@@ -149,6 +149,20 @@ describe("openapi component serializers", () => {
     }
   });
 
+  it("declines a name inherited from Object.prototype rather than throwing", () => {
+    // `specs["toString"]` and `operations["toString"]` find the inherited
+    // function, which is truthy and carries none of the fields read next.
+    const data = { reference: spec([operation({ key: "list-pets" })]) };
+    for (const source of [
+      '<Operation source="toString" id="list-pets" />\n',
+      '<Operation source="reference" id="toString" />\n',
+      '<ApiTagOperations source="constructor" tag="pets" />\n',
+      '<ApiOverview source="valueOf" />\n',
+    ]) {
+      expect(downlevelComponents(source, serializers(data))).toBe(source);
+    }
+  });
+
   it("declines every component when the project has no OpenAPI source", () => {
     const bare = openapiComponentSerializers({ sources: [] });
     const source = '<Operation source="reference" id="list-pets" />\n';

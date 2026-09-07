@@ -45,7 +45,7 @@ const countByTag = (operations: ApiOperationRef[]): Map<string, number> => {
  * llms-full.txt, MCP `get_page` and the Ask AI corpus all downlevel components
  * to Markdown, and these three had no serializer, so an operation page reached
  * an agent as its description followed by a bare tag. On a site whose reference
- * is most of the corpus that is most of the corpus: measured on one 449-page
+ * is most of the corpus, that is most of the corpus: measured on one 449-page
  * site, 266 pages and 266 raw `<Operation>` in llms-full.txt, so "which
  * endpoint do I call?" had no answer anywhere in the agent surface.
  *
@@ -64,8 +64,13 @@ export const openapiComponentSerializers = (
   // sources. Without it every agent-surface builder throws on a fixture.
   const specs =
     (project.sources ?? []).find(isOpenApiSource)?.openApiData() ?? {};
+  // Own properties only: `source="toString"` would otherwise resolve to the
+  // inherited function, which is truthy and carries no `operations`, so the
+  // serializer would throw where it is meant to decline.
   const specOf = (source: EvaluatedValue): ApiSpecData | undefined =>
-    isString(source) ? specs[source] : undefined;
+    isString(source) && Object.hasOwn(specs, source)
+      ? specs[source]
+      : undefined;
 
   return {
     /**
@@ -109,7 +114,10 @@ export const openapiComponentSerializers = (
     Operation: ({ props }) => {
       const { id } = props;
       const data = specOf(props.source);
-      const operation = data && isString(id) ? data.operations[id] : undefined;
+      const operation =
+        data && isString(id) && Object.hasOwn(data.operations, id)
+          ? data.operations[id]
+          : undefined;
       if (!operation) {
         return null;
       }
