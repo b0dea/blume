@@ -1,54 +1,22 @@
 ---
 import specs from "blume:openapi";
 
-import type { AsyncApiDocument } from "../../openapi/asyncapi.ts";
+import { specAddresses, specOf } from "../../openapi/model.ts";
 
 // The spec-level metadata block (version + base URLs) at the top of an API
 // overview page. The tag sections that follow are emitted by `overviewMdx` as
 // markdown headings plus `<ApiTagOperations>` lists, so they land in the
-// table of contents.
+// table of contents. The agent surfaces downlevel this block from the same
+// `specAddresses`, so the `.md` page lists what this one shows.
 interface Props {
   source: string;
 }
 
 const { source } = Astro.props;
-const spec = specs[source];
-
-// OpenAPI declares `servers` as an array of URLs; AsyncAPI as a named map of
-// host/protocol/pathname; a GraphQL schema names no server, so its configured
-// live endpoint stands in. All flatten into one list of address chips.
-const addresses: string[] = [];
-if (spec?.kind === "graphql") {
-  if (spec.endpoint) {
-    addresses.push(spec.endpoint);
-  }
-} else if (spec?.kind === "asyncapi") {
-  const servers = (spec.document as AsyncApiDocument).servers ?? {};
-  for (const server of Object.values(servers)) {
-    if (server?.host) {
-      addresses.push(
-        `${server.protocol ? `${server.protocol}://` : ""}${server.host}${server.pathname ?? ""}`
-      );
-    }
-  }
-} else {
-  // Hand-written specs sometimes declare `servers` as a bare object; degrade
-  // to no address chips instead of throwing mid-build.
-  const declared = ((spec?.document ?? {}) as { servers?: { url?: string }[] })
-    .servers;
-  const servers = Array.isArray(declared) ? declared : [];
-  for (const server of servers) {
-    if (server.url) {
-      addresses.push(server.url);
-    }
-  }
-}
-let addressLabel = "Base URL";
-if (spec?.kind === "asyncapi") {
-  addressLabel = "Servers";
-} else if (spec?.kind === "graphql") {
-  addressLabel = "Endpoint";
-}
+const spec = specOf(specs, source);
+const { addresses, label: addressLabel } = spec
+  ? specAddresses(spec)
+  : { addresses: [], label: "" };
 ---
 
 {

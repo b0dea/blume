@@ -5,12 +5,9 @@ import matter from "../core/frontmatter.ts";
 import type { BlumeProject } from "../core/project-graph.ts";
 import { readExpandedEntryText } from "../core/sources/read.ts";
 import type { RouteManifestEntry } from "../core/types.ts";
-import {
-  downlevelComponents,
-  exampleComponentSerializers,
-} from "./component-markdown.ts";
+import { downlevelComponents } from "./component-markdown.ts";
 import { buildLlmsIndex } from "./llms.ts";
-import { openapiComponentSerializers } from "./openapi-components.ts";
+import { projectComponentSerializers } from "./serializers.ts";
 import { applyAgentVisibility } from "./visibility.ts";
 
 /** One route's raw-Markdown variants. */
@@ -56,13 +53,7 @@ export const buildRawMarkdown = async (
 ): Promise<Record<string, RawMarkdownEntry>> => {
   const pageById = new Map(project.graph.pages.map((page) => [page.id, page]));
 
-  // Downlevel `<Component>` to its example's source. A user `markdownComponents`
-  // entry of the same name is spread last, so it still wins.
-  const components = {
-    ...exampleComponentSerializers(project.examples ?? {}),
-    ...openapiComponentSerializers(project),
-    ...project.config.ai.markdownComponents,
-  };
+  const components = projectComponentSerializers(project);
 
   const readRoute = async (route: RouteManifestEntry): Promise<string> => {
     const page = pageById.get(route.id);

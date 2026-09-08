@@ -8,6 +8,7 @@ import type { GraphqlMember } from "./graphql.ts";
 import { isGraphqlOperationKind } from "./graphql.ts";
 import type { ApiOperationRef, ApiSpecData } from "./model.ts";
 import type { ReferenceSource } from "./references.ts";
+import { operationSignature } from "./signature.ts";
 
 /**
  * Lower a parsed spec into MDX for the staged content source. Each operation and
@@ -226,11 +227,11 @@ export const operationMdx = (
 ): RenderedPage => {
   const method = operation.method.toUpperCase();
   const graphql = spec.kind === "graphql";
-  // A GraphQL page IS its field/type — `QUERY pets` would double the badge the
+  // A GraphQL page IS its field/type — `query pets` would double the badge the
   // page already renders; the other kinds title an endpoint or channel action.
   const fallbackTitle = graphql
     ? operation.path
-    : `${method} ${operation.path}`;
+    : operationSignature(spec, operation);
   const title = operation.summary || fallbackTitle;
   // Skip the body description when it only repeats the summary (the `<h1>`) —
   // common in specs that set summary and description to the same string.

@@ -143,6 +143,75 @@ export interface ApiSpecData {
 /** The generated `blume:openapi` module: specs keyed by {@link ApiSpecData.slug}. */
 export type OpenApiData = Record<string, ApiSpecData>;
 
+/**
+ * The spec a `<Operation source>` / `<ApiOverview source>` names, or nothing.
+ * `blume:openapi` crosses a JSON boundary as a plain object, so a lookup must
+ * be an own-property one: `source="toString"` would otherwise resolve to the
+ * inherited function, which is truthy and carries no `operations`, and every
+ * consumer would throw where it means to decline. Shared by the components
+ * and the agent-surface serializers so they miss the same way.
+ */
+export const specOf = (
+  specs: OpenApiData,
+  source: string
+): ApiSpecData | undefined =>
+  Object.hasOwn(specs, source) ? specs[source] : undefined;
+
+/** The operation an `<Operation id>` names within its spec, or nothing. */
+export const operationOf = (
+  spec: ApiSpecData,
+  id: string
+): ApiOperationRef | undefined =>
+  Object.hasOwn(spec.operations, id) ? spec.operations[id] : undefined;
+
+/** The addresses an API overview lists, and what to call them. */
+export interface SpecAddresses {
+  /** `Base URL` (OpenAPI), `Servers` (AsyncAPI) or `Endpoint` (GraphQL). */
+  label: string;
+  addresses: string[];
+}
+
+/**
+ * Where the API lives, flattened into one list for the overview page. OpenAPI
+ * declares `servers` as an array of URLs; AsyncAPI as a named map of
+ * host/protocol/pathname; a GraphQL schema names no server, so its configured
+ * live endpoint stands in.
+ */
+export const specAddresses = (spec: ApiSpecData): SpecAddresses => {
+  const addresses: string[] = [];
+  if (spec.kind === "graphql") {
+    if (spec.endpoint) {
+      addresses.push(spec.endpoint);
+    }
+    return { addresses, label: "Endpoint" };
+  }
+  if (spec.kind === "asyncapi") {
+    // SAFETY: an `asyncapi` spec's document is the AsyncAPI shape (`parse.ts`
+    // routes each kind to its own parser).
+    const servers = (spec.document as AsyncApiDocument).servers ?? {};
+    for (const server of Object.values(servers)) {
+      if (server?.host) {
+        addresses.push(
+          `${server.protocol ? `${server.protocol}://` : ""}${server.host}${server.pathname ?? ""}`
+        );
+      }
+    }
+    return { addresses, label: "Servers" };
+  }
+  // Hand-written specs sometimes declare `servers` as a bare object; degrade
+  // to no addresses instead of throwing mid-build.
+  // SAFETY: the remaining kind is OpenAPI, whose document declares `servers`
+  // as an array of server objects; the array check below guards a spec that
+  // wrote something else there.
+  const declared = (spec.document as { servers?: { url?: string }[] }).servers;
+  for (const server of Array.isArray(declared) ? declared : []) {
+    if (server.url) {
+      addresses.push(server.url);
+    }
+  }
+  return { addresses, label: "Base URL" };
+};
+
 // The runtime object check stands guard because the document was parsed from
 // arbitrary YAML/JSON: a spec can put a scalar where the type promises an
 // operation object.

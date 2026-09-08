@@ -9,6 +9,7 @@ import type { BlumeProject } from "../src/core/project-graph.ts";
 import type { BlumeConfigInput, ResolvedConfig } from "../src/core/schema.ts";
 import { blumeConfigSchema } from "../src/core/schema.ts";
 import { serverFeatures } from "../src/core/server-features.ts";
+import type { ContentSource } from "../src/core/sources/types.ts";
 import type { NavNode, PageRecord } from "../src/core/types.ts";
 import type { SearchDocument } from "../src/search/documents.ts";
 import {
@@ -43,6 +44,8 @@ interface ProjectFixture {
       title: string;
     }[];
   };
+  /** No API reference: the reference serializers decline. */
+  sources: ContentSource[];
 }
 
 const parse = (search: SearchInput) => blumeConfigSchema.parse({ search });
@@ -53,10 +56,11 @@ const emptyProject = (search: SearchInput): BlumeProject => {
     config: parse(search),
     graph: { pages: [] },
     manifest: { routes: [] },
+    sources: [],
   };
-  // SAFETY: the sync dispatcher reads only config, graph.pages, and
-  // manifest.routes from the project; the remaining BlumeProject fields are
-  // never touched by these tests.
+  // SAFETY: the sync dispatcher reads only config, graph.pages,
+  // manifest.routes, and sources from the project; the remaining BlumeProject
+  // fields are never touched by these tests.
   return fixture as BlumeProject;
 };
 
@@ -431,9 +435,10 @@ describe("buildSearchDocuments — localized sidebars", () => {
           },
         ],
       },
+      sources: [],
     };
-    // SAFETY: buildSearchDocuments reads only config, graph, and
-    // manifest.routes; the remaining BlumeProject fields are never touched.
+    // SAFETY: buildSearchDocuments reads only config, graph, manifest.routes,
+    // and sources; the remaining BlumeProject fields are never touched.
     const project = fixture as BlumeProject;
 
     const [doc] = await buildSearchDocuments(project);

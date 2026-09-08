@@ -10,6 +10,7 @@ import {
   graphqlRootField,
   isGraphqlOperationKind,
 } from "../../openapi/graphql.ts";
+import { operationOf, specOf } from "../../openapi/model.ts";
 import { highlightCode } from "../../markdown/index.ts";
 import { DEPRECATED_LABEL_CLASS } from "../colors.ts";
 import {
@@ -46,8 +47,8 @@ interface Props {
 }
 
 const { source, id } = Astro.props;
-const spec = specs[source];
-const ref = spec?.operations[id];
+const spec = specOf(specs, source);
+const ref = spec ? operationOf(spec, id) : undefined;
 const document = (spec?.document ?? { roots: {}, types: {} }) as GraphqlDocument;
 const isOperation = ref !== undefined && isGraphqlOperationKind(ref.method);
 const field = ref && isOperation ? graphqlRootField(document, ref) : undefined;

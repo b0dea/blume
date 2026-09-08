@@ -1,37 +1,36 @@
-import type { BlumeProject } from "../core/project-graph.ts";
-import type { ApiOperationRef, ApiSpecData } from "../openapi/model.ts";
-import { isOpenApiSource } from "../openapi/source.ts";
+import type { ApiOperationRef, OpenApiData } from "../openapi/model.ts";
+import { operationOf, specAddresses, specOf } from "../openapi/model.ts";
+import { operationSignature } from "../openapi/signature.ts";
 import type {
   ComponentMarkdown,
   EvaluatedValue,
 } from "./component-markdown.ts";
-import { isString } from "./component-markdown.ts";
+import { isString, linkDestination } from "./component-markdown.ts";
 
-/** `` `GET /pets/{id}` `` — the line an agent is looking for. */
-const signature = (operation: ApiOperationRef): string =>
-  `\`${operation.method.toUpperCase()} ${operation.path}\``;
-
-const summarize = (operation: ApiOperationRef): string =>
-  operation.summary.trim().replaceAll(/\s+/gu, " ");
+/**
+ * Spec-authored prose as one line of inline Markdown. Unlike the props the
+ * other serializers pass through, a summary is written by whoever wrote the
+ * spec, not by the docs author, so the characters CommonMark would read as
+ * markup — `<user>` as inline HTML, `*only*` as emphasis — are escaped.
+ */
+const inlineText = (text: string): string =>
+  text
+    .trim()
+    .replaceAll(/\s+/gu, " ")
+    .replaceAll(/[\\`*_[\]<>~]/gu, String.raw`\$&`);
 
 /** One operation as a link, for the tag listings. */
-const listItem = (operation: ApiOperationRef): string => {
-  const tail = [summarize(operation), operation.deprecated ? "Deprecated." : ""]
+const listItem = (
+  signature: string,
+  operation: Pick<ApiOperationRef, "deprecated" | "route" | "summary">
+): string => {
+  const tail = [
+    inlineText(operation.summary),
+    operation.deprecated ? "Deprecated." : "",
+  ]
     .filter(Boolean)
     .join(" ");
-  return `- [${signature(operation)}](${operation.route})${tail ? ` — ${tail}` : ""}`;
-};
-
-const operationsOf = (data: ApiSpecData): ApiOperationRef[] =>
-  Object.values(data.operations);
-
-/** Operation counts per display tag, in first-seen order. */
-const countByTag = (operations: ApiOperationRef[]): Map<string, number> => {
-  const counts = new Map<string, number>();
-  for (const operation of operations) {
-    counts.set(operation.tag, (counts.get(operation.tag) ?? 0) + 1);
-  }
-  return counts;
+  return `- [\`${signature}\`](${linkDestination(operation.route)})${tail ? ` — ${tail}` : ""}`;
 };
 
 /**
@@ -49,61 +48,55 @@ const countByTag = (operations: ApiOperationRef[]): Map<string, number> => {
  * site, 266 pages and 266 raw `<Operation>` in llms-full.txt, so "which
  * endpoint do I call?" had no answer anywhere in the agent surface.
  *
- * What these emit is what {@link ApiOperationRef} already normalizes across
- * OpenAPI, AsyncAPI and GraphQL, rather than re-deriving anything from the
- * document. Parameters, schemas and responses are deliberately left out: those
- * are `operation-model.ts` plus each component's own preparation, and a second
- * implementation here would be free to disagree with the page. The endpoint and
- * what it does is the part that was missing altogether.
+ * Each serializer emits what its component renders and no more: the endpoint
+ * in the spec kind's own notation ({@link operationSignature}), the version and
+ * addresses the overview shows ({@link specAddresses}), the linked list a tag
+ * section shows. Parameters, schemas and responses are deliberately left out:
+ * those are `operation-model.ts` plus each component's own preparation, and a
+ * second implementation here would be free to disagree with the page. The
+ * endpoint and what it does is the part that was missing altogether.
+ *
+ * `specs` is the parsed `blume:openapi` data — empty when the project has no
+ * API reference, in which case every serializer declines.
  */
-export const openapiComponentSerializers = (
-  project: Partial<Pick<BlumeProject, "sources">>
-) => {
-  // `sources` is always set on a scanned project; the default is for the
-  // partial projects the downlevel tests build, which carry pages and no
-  // sources. Without it every agent-surface builder throws on a fixture.
-  const specs =
-    (project.sources ?? []).find(isOpenApiSource)?.openApiData() ?? {};
-  // Own properties only: `source="toString"` would otherwise resolve to the
-  // inherited function, which is truthy and carries no `operations`, so the
-  // serializer would throw where it is meant to decline.
-  const specOf = (source: EvaluatedValue): ApiSpecData | undefined =>
-    isString(source) && Object.hasOwn(specs, source)
-      ? specs[source]
-      : undefined;
+export const openapiComponentSerializers = (specs: OpenApiData) => {
+  const spec = (source: EvaluatedValue) =>
+    isString(source) ? specOf(specs, source) : undefined;
 
   return {
     /**
-     * The overview page's map of the reference. Without it the page downlevels
-     * to its intro paragraph followed by a run of empty tag headings.
+     * The spec-level block at the top of the overview page: its version and
+     * where the API lives. The tag sections that follow are real Markdown
+     * headings over `<ApiTagOperations>`, so they downlevel on their own.
      */
     ApiOverview: ({ props }) => {
-      const data = specOf(props.source);
+      const data = spec(props.source);
       if (!data) {
         return null;
       }
-      const operations = operationsOf(data);
-      if (operations.length === 0) {
-        return null;
-      }
-      const groups = [...countByTag(operations).entries()].map(
-        ([tag, count]) =>
-          `- **${tag}** — ${count} operation${count === 1 ? "" : "s"}`
-      );
-      return `**${data.title}**\n\n${groups.join("\n")}`;
+      const { addresses, label } = specAddresses(data);
+      const lines = [
+        data.version ? `Version ${inlineText(data.version)}` : "",
+        addresses.length > 0
+          ? `${label}: ${addresses.map((address) => `\`${address}\``).join(", ")}`
+          : "",
+      ].filter(Boolean);
+      return lines.length > 0 ? lines.join("\n\n") : null;
     },
 
     /** One tag's operations, mirroring the list the rendered page shows. */
     ApiTagOperations: ({ props }) => {
       const { tag } = props;
-      const data = specOf(props.source);
+      const data = spec(props.source);
       if (!(data && isString(tag))) {
         return null;
       }
-      const operations = operationsOf(data).filter(
-        (operation) => operation.tagSlug === tag
-      );
-      return operations.length > 0 ? operations.map(listItem).join("\n") : null;
+      const items = Object.values(data.operations)
+        .filter((operation) => operation.tagSlug === tag)
+        .map((operation) =>
+          listItem(operationSignature(data, operation), operation)
+        );
+      return items.length > 0 ? items.join("\n") : null;
     },
 
     /**
@@ -113,17 +106,18 @@ export const openapiComponentSerializers = (
      */
     Operation: ({ props }) => {
       const { id } = props;
-      const data = specOf(props.source);
-      const operation =
-        data && isString(id) && Object.hasOwn(data.operations, id)
-          ? data.operations[id]
-          : undefined;
+      const data = spec(props.source);
+      if (!(data && isString(id))) {
+        return null;
+      }
+      const operation = operationOf(data, id);
       if (!operation) {
         return null;
       }
+      const signature = `\`${operationSignature(data, operation)}\``;
       return operation.deprecated
-        ? `${signature(operation)}\n\n**Deprecated.**`
-        : signature(operation);
+        ? `${signature}\n\n**Deprecated.**`
+        : signature;
     },
   } satisfies Record<string, ComponentMarkdown>;
 };

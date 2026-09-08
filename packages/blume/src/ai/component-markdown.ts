@@ -384,7 +384,7 @@ const linkText = (value: string): string =>
  * part of a balanced pair — so an href carrying either goes in the angle
  * bracket form, where only `<` and `>` are special.
  */
-const linkDestination = (href: string): string =>
+export const linkDestination = (href: string): string =>
   /[\s()<>]/u.test(href)
     ? `<${href.replaceAll(/[<>]/gu, String.raw`\$&`)}>`
     : href;

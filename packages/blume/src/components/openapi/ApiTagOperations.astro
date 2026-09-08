@@ -1,5 +1,6 @@
 ---
 import specs from "blume:openapi";
+import { specOf } from "../../openapi/model.ts";
 import { withBase } from "../islands/base-path.ts";
 import MethodBadge from "./MethodBadge.astro";
 
@@ -14,7 +15,7 @@ interface Props {
 }
 
 const { source, tag } = Astro.props;
-const operations = Object.values(specs[source]?.operations ?? {}).filter(
+const operations = Object.values(specOf(specs, source)?.operations ?? {}).filter(
   (operation) => operation.tagSlug === tag
 );
 ---

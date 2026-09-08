@@ -124,6 +124,35 @@ export const isGraphqlOperationKind = (
 ): method is GraphqlOperationKind =>
   GRAPHQL_OPERATION_KINDS.some((kind) => kind === method);
 
+/** The SDL keyword that declares each named-type kind: `type Pet`, `enum Status`. */
+const GRAPHQL_TYPE_KEYWORDS = {
+  enum: "enum",
+  input: "input",
+  interface: "interface",
+  object: "type",
+  scalar: "scalar",
+  union: "union",
+} satisfies Record<GraphqlTypeKind, string>;
+
+/**
+ * A GraphQL member in the schema's own notation — `query pets` for a root
+ * field, `type Pet` / `input PetInput` / `enum Status` for a named type. The
+ * rendered page shows the same pair as a kind badge beside the name; the
+ * text form spells the kind the way SDL does, so a reader who knows GraphQL
+ * and not Blume's badges reads it right.
+ */
+export const graphqlSignature = (
+  operation: Pick<ApiOperationRef, "method" | "path">
+): string => {
+  // SAFETY: the GraphQL extractor only ever assigns member kinds as the
+  // method (see `extractGraphqlOperations`).
+  const member = operation.method as GraphqlMember;
+  const keyword = isGraphqlOperationKind(member)
+    ? member
+    : GRAPHQL_TYPE_KEYWORDS[member];
+  return `${keyword} ${operation.path}`;
+};
+
 // Deterministic name order for type pages, independent of schema declaration
 // order and of the platform's collation (localeCompare varies across ICU
 // builds; codepoint order does not).

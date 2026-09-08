@@ -5,14 +5,13 @@ import {
   componentRegistry,
   downlevelComponentNode,
   downlevelComponents,
-  exampleComponentSerializers,
 } from "../ai/component-markdown.ts";
 import type {
   ComponentMarkdown,
   DownlevelWalk,
   MdastNode as DownlevelNode,
 } from "../ai/component-markdown.ts";
-import { openapiComponentSerializers } from "../ai/openapi-components.ts";
+import { projectComponentSerializers } from "../ai/serializers.ts";
 import { applyAudienceVisibility } from "../ai/visibility.ts";
 import type { VisibilityAudience } from "../ai/visibility.ts";
 import matter from "../core/frontmatter.ts";
@@ -438,15 +437,9 @@ export const buildSearchDocuments = async (
     return page ? contentIndexable(page, project.config) : false;
   });
 
-  // Serializers for downleveling, layered the way `buildRawMarkdown` layers
-  // them: examples first, so a user `markdownComponents` entry of the same
-  // name still wins. Built once — `downlevelComponents` rebuilds its registry
-  // per call otherwise.
-  const components = {
-    ...exampleComponentSerializers(project.examples ?? {}),
-    ...openapiComponentSerializers(project),
-    ...project.config.ai.markdownComponents,
-  };
+  // Built once — `downlevelComponents` rebuilds its registry per call
+  // otherwise.
+  const components = projectComponentSerializers(project);
 
   return await Promise.all(
     indexable.map(async (route) => {

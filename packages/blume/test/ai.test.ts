@@ -109,8 +109,12 @@ const makeProject = (
     }),
     // SAFETY: the ai builders read only each route's path and sourcePath.
     manifest: { routes } as BlumeManifest,
+    // No API reference: the downlevel pass finds no OpenAPI source and the
+    // reference serializers decline.
+    sources: [],
   };
-  // SAFETY: the ai builders touch only config, context, graph, and manifest.
+  // SAFETY: the ai builders touch only config, context, graph, manifest, and
+  // sources.
   return project as BlumeProject;
 };
 
@@ -959,8 +963,11 @@ const askDataProject = (): BlumeProject => {
         askRoute({ id: "b.md", path: "/b", title: "Beta" }),
       ],
     } as BlumeManifest,
+    // No API reference: the reference serializers decline.
+    sources: [],
   };
-  // SAFETY: buildAskData touches only config, context, graph, and manifest.
+  // SAFETY: buildAskData touches only config, context, graph, manifest, and
+  // sources.
   return fixture as BlumeProject;
 };
 
@@ -1007,8 +1014,11 @@ describe("buildAskData", () => {
           }),
         ],
       } as BlumeManifest,
+      // No API reference: the reference serializers decline.
+      sources: [],
     };
-    // SAFETY: buildAskData touches only config, context, graph, and manifest.
+    // SAFETY: buildAskData touches only config, context, graph, manifest, and
+    // sources.
     const data = await buildAskData(proj as BlumeProject);
     const doc = data.documents.find((entry) => entry.route === "/v");
     expect(doc?.content).toContain("Agent-only body.");
@@ -1037,8 +1047,11 @@ describe("buildAskData", () => {
           }),
         ],
       } as BlumeManifest,
+      // No API reference: the reference serializers decline.
+      sources: [],
     };
-    // SAFETY: buildAskData touches only config, context, graph, and manifest.
+    // SAFETY: buildAskData touches only config, context, graph, manifest, and
+    // sources.
     const data = await buildAskData(proj as BlumeProject);
     const doc = data.documents.find((entry) => entry.route === "/t");
     expect(doc?.content).toContain("> **Warning**");
@@ -1064,8 +1077,11 @@ describe("buildAskData", () => {
           }),
         ],
       } as BlumeManifest,
+      // No API reference: the reference serializers decline.
+      sources: [],
     };
-    // SAFETY: buildAskData touches only config, context, graph, and manifest.
+    // SAFETY: buildAskData touches only config, context, graph, manifest, and
+    // sources.
     const data = await buildAskData(proj as BlumeProject);
     const doc = data.documents.find((entry) => entry.route === "/f");
     // `title={frontmatter.status}` resolves because the body is downleveled

@@ -8,7 +8,10 @@ import type { z } from "zod";
 import type { BlumeProject } from "../src/core/project-graph.ts";
 import { blumeConfigSchema, pageMetaSchema } from "../src/core/schema.ts";
 import type { ResolvedConfig } from "../src/core/schema.ts";
+import type { ContentSource } from "../src/core/sources/types.ts";
 import type { PageRecord, RouteManifestEntry } from "../src/core/types.ts";
+import type { ApiSpecData } from "../src/openapi/model.ts";
+import type { OpenApiContentSource } from "../src/openapi/source.ts";
 import { buildSearchDocuments } from "../src/search/documents.ts";
 import { pageFacets } from "../src/search/facets.ts";
 
@@ -80,17 +83,23 @@ const route = (over: Partial<RouteManifestEntry>): RouteManifestEntry =>
     ...over,
   }) as RouteManifestEntry;
 
+/** No API reference, so the reference serializers decline on every page. */
+const NO_SOURCES: ContentSource[] = [];
+
 const projectWith = (
   pages: PageRecord[],
   routes: RouteManifestEntry[],
-  config: z.input<typeof blumeConfigSchema> = {}
+  config: z.input<typeof blumeConfigSchema> = {},
+  sources: ContentSource[] = NO_SOURCES
 ): BlumeProject =>
-  // SAFETY: `buildSearchDocuments` reads only `config`, `graph.pages`, and
-  // `manifest.routes` from the project.
+  // SAFETY: `buildSearchDocuments` reads only `config`, `graph.pages`,
+  // `manifest.routes`, and `sources` (for the API reference serializers)
+  // from the project.
   ({
     config: blumeConfigSchema.parse(config),
     graph: { pages },
     manifest: { routes },
+    sources,
   }) as BlumeProject;
 
 /**
@@ -220,6 +229,63 @@ const UNKNOWN_BODY = [
   "",
 ].join("\n");
 
+/** A generated operation page: the spec's prose over the `<Operation>` tag. */
+const OPERATION_BODY =
+  'Lists every pet in the store.\n\n<Operation source="reference" id="list-pets" />\n';
+
+/** A generated overview page: `<ApiOverview>` then one tag section. */
+const OVERVIEW_BODY = [
+  "The Pet Store API.",
+  "",
+  '<ApiOverview source="reference" />',
+  "",
+  "## Pets",
+  "",
+  '<ApiTagOperations source="reference" tag="pets" />',
+  "",
+].join("\n");
+
+/** The OpenAPI source as the generated reference pages see it. */
+const petStore = (): OpenApiContentSource => {
+  const spec: ApiSpecData = {
+    codeSamples: [],
+    description: "",
+    // SAFETY: the search walk reads the document only for its `servers`.
+    document: {
+      servers: [{ url: "https://api.example.com" }],
+    } as ApiSpecData["document"],
+    expandSchemas: false,
+    kind: "openapi",
+    label: "API",
+    operations: {
+      "list-pets": {
+        deprecated: false,
+        description: "",
+        key: "list-pets",
+        method: "get",
+        path: "/pets",
+        route: "/reference/pets/list-pets",
+        summary: "List pets",
+        tag: "Pets",
+        tagSlug: "pets",
+      },
+    },
+    playground: { enabled: false, proxy: false },
+    route: "/reference",
+    slug: "reference",
+    tags: [{ description: "", name: "Pets", slug: "pets" }],
+    title: "Pet Store",
+    version: "3.2.1",
+  };
+  return {
+    kind: "openapi-source",
+    load: () => Promise.resolve({ diagnostics: [], entries: [] }),
+    name: "openapi",
+    openApiData: () => ({ reference: spec }),
+    staged: true,
+  };
+};
+
 beforeAll(async () => {
   root = await mkdtemp(join(tmpdir(), "blume-search-"));
   await writeFile(join(root, "a.md"), BODY);
@@ -228,6 +294,8 @@ beforeAll(async () => {
   await writeFile(join(root, "comment.mdx"), COMMENT_BODY);
   await writeFile(join(root, "divider.mdx"), DIVIDER_BODY);
   await writeFile(join(root, "unknown.mdx"), UNKNOWN_BODY);
+  await writeFile(join(root, "operation.mdx"), OPERATION_BODY);
+  await writeFile(join(root, "overview.mdx"), OVERVIEW_BODY);
 });
 
 afterAll(async () => {
@@ -308,6 +376,7 @@ describe("buildSearchDocuments", () => {
         ],
       },
       manifest: { routes: [route({ contentType: "rfc" })] },
+      sources: NO_SOURCES,
     } as BlumeProject;
     const [doc] = await buildSearchDocuments(project);
     expect(doc?.facets).toStrictEqual({ status: "enforced" });
@@ -499,6 +568,33 @@ describe("buildSearchDocuments", () => {
       expect(doc?.content).not.toContain("aside");
     });
 
+    it("indexes a generated reference page's endpoint, version and base URL", async () => {
+      // A reference page is its prose plus one of the API components; without
+      // the project's OpenAPI source the components downlevel to nothing and
+      // the endpoint — the term a search for it wants — is never indexed.
+      const ids = ["operation.mdx", "overview.mdx"];
+      const [operation, overview] = await buildSearchDocuments(
+        projectWith(
+          ids.map((id) => page({ id })),
+          ids.map((id) =>
+            route({ id, path: `/${id}`, sourcePath: join(root, id) })
+          ),
+          {},
+          [petStore()]
+        )
+      );
+      expect(operation?.content).toContain("Lists every pet in the store.");
+      expect(operation?.content).toContain("GET /pets");
+      expect(operation?.content).not.toContain("<Operation");
+      // The overview page shows the version, base URL and every operation's
+      // signature and summary, so its document carries them too.
+      expect(overview?.content).toContain("Version 3.2.1");
+      expect(overview?.content).toContain("https://api.example.com");
+      expect(overview?.content).toContain("GET /pets");
+      expect(overview?.content).toContain("List pets");
+      expect(overview?.content).not.toContain("<Api");
+    });
+
     it("strips fences everywhere by default, including inside components", async () => {
       const [doc] = await buildSearchDocuments(mdxProject("code.mdx"));
       expect(doc?.content).not.toContain("retryPolicy");
@@ -641,8 +737,8 @@ describe("buildSearchDocuments with includeWhenDisabled", () => {
   const projectNoSearch = (
     over: z.input<typeof pageMetaSchema> = {}
   ): BlumeProject =>
-    // SAFETY: `buildSearchDocuments` reads only `config`, `graph.pages`, and
-    // `manifest.routes` from the project.
+    // SAFETY: `buildSearchDocuments` reads only `config`, `graph.pages`,
+    // `manifest.routes`, and `sources` from the project.
     ({
       config: blumeConfigSchema.parse({ search: { provider: "none" } }),
       graph: {
@@ -657,6 +753,7 @@ describe("buildSearchDocuments with includeWhenDisabled", () => {
       manifest: {
         routes: [route({ id: "a.md", indexable: false, path: "/a" })],
       },
+      sources: NO_SOURCES,
     }) as BlumeProject;
 
   it("indexes nothing by default when search is disabled", async () => {
