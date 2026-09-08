@@ -5,7 +5,7 @@ import type {
   ComponentMarkdown,
   EvaluatedValue,
 } from "./component-markdown.ts";
-import { isString, linkDestination } from "./component-markdown.ts";
+import { inlineCode, isString, linkDestination } from "./component-markdown.ts";
 
 /**
  * Spec-authored prose as one line of inline Markdown. Unlike the props the
@@ -30,7 +30,7 @@ const listItem = (
   ]
     .filter(Boolean)
     .join(" ");
-  return `- [\`${signature}\`](${linkDestination(operation.route)})${tail ? ` — ${tail}` : ""}`;
+  return `- [${inlineCode(signature)}](${linkDestination(operation.route)})${tail ? ` — ${tail}` : ""}`;
 };
 
 /**
@@ -78,7 +78,7 @@ export const openapiComponentSerializers = (specs: OpenApiData) => {
       const lines = [
         data.version ? `Version ${inlineText(data.version)}` : "",
         addresses.length > 0
-          ? `${label}: ${addresses.map((address) => `\`${address}\``).join(", ")}`
+          ? `${label}: ${addresses.map(inlineCode).join(", ")}`
           : "",
       ].filter(Boolean);
       return lines.length > 0 ? lines.join("\n\n") : null;
@@ -114,7 +114,7 @@ export const openapiComponentSerializers = (specs: OpenApiData) => {
       if (!operation) {
         return null;
       }
-      const signature = `\`${operationSignature(data, operation)}\``;
+      const signature = inlineCode(operationSignature(data, operation));
       return operation.deprecated
         ? `${signature}\n\n**Deprecated.**`
         : signature;

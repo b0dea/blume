@@ -471,6 +471,21 @@ const youtube: ComponentMarkdown = ({ props }) => {
   return `[${title}](https://www.youtube.com/watch?v=${videoId}${start})`;
 };
 
+/**
+ * `text` as an inline code span whose delimiter outlengths any backtick run
+ * inside it, padded with a space when the content starts or ends with a
+ * backtick (CommonMark strips one such pair) — so a spec path or address
+ * carrying a backtick cannot close the span early.
+ */
+export const inlineCode = (text: string): string => {
+  const runs = text.match(/`+/gu);
+  const longest = runs ? Math.max(...runs.map((run) => run.length)) : 0;
+  const delimiter = "`".repeat(longest + 1);
+  const padded =
+    text.startsWith("`") || text.endsWith("`") ? ` ${text} ` : text;
+  return `${delimiter}${padded}${delimiter}`;
+};
+
 /** Fence `code` so its opening/closing run outlengths any backticks inside. */
 const fencedBlock = (lang: string, code: string): string => {
   const trimmed = code.replace(/(?<!\n)\n+$/u, "");

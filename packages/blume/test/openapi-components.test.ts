@@ -138,6 +138,61 @@ describe("openapi component serializers", () => {
     }
   });
 
+  it("keeps a backtick in a path or address inside its code span", () => {
+    // A backtick in the value would close a fixed single-backtick span early,
+    // so the span's delimiter outlengths any backtick run in the value.
+    const data = {
+      reference: spec(
+        [
+          operation({
+            key: "odd",
+            path: "/odd/`tick`",
+            route: "/reference/pets/odd",
+            summary: "Odd",
+          }),
+          operation({
+            key: "edge",
+            path: "/edge/``",
+            route: "/reference/pets/edge",
+          }),
+        ],
+        {
+          // SAFETY: `specAddresses` reads only `servers` off an OpenAPI
+          // document.
+          document: {
+            servers: [{ url: "https://api.example.com/`v1`" }],
+          } as ApiSpecData["document"],
+        }
+      ),
+    };
+    expect(
+      downlevelComponents(
+        '<Operation source="reference" id="odd" />\n',
+        serializers(data)
+      )
+    ).toBe("`` GET /odd/`tick` ``\n");
+    expect(
+      downlevelComponents(
+        '<Operation source="reference" id="edge" />\n',
+        serializers(data)
+      )
+    ).toBe("``` GET /edge/`` ```\n");
+    expect(
+      downlevelComponents(
+        '<ApiTagOperations source="reference" tag="pets" />\n',
+        serializers(data)
+      )
+    ).toBe(
+      "- [`` GET /odd/`tick` ``](/reference/pets/odd) — Odd\n- [``` GET /edge/`` ```](/reference/pets/edge)\n"
+    );
+    expect(
+      downlevelComponents(
+        '<ApiOverview source="reference" />\n',
+        serializers(data)
+      )
+    ).toBe("Version 1.0.0\n\nBase URL: `` https://api.example.com/`v1` ``\n");
+  });
+
   it("lists a tag's operations as links, with their summaries", () => {
     const data = {
       reference: spec([
