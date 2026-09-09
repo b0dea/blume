@@ -36,7 +36,7 @@ import type {
   CheckModule,
   PageSnapshot,
 } from "./types.ts";
-import { normalizePath, siteOrigin } from "./url.ts";
+import { isServed, siteOrigin } from "./url.ts";
 
 const MODULES: CheckModule[] = [
   contentChecks,
@@ -168,13 +168,11 @@ export const runAudit = async (options: AuditOptions): Promise<AuditResult> => {
         from: withBasePath(basePath, redirect.from),
         to: withBasePath(basePath, redirect.to),
       })),
-      // Pages and static files both: a redirect may legitimately land on a
-      // served asset (`/old-whitepaper` -> `/files/whitepaper.pdf`).
-      new Set(
-        [...byUrl.keys(), ...crawl.files.keys()].map((path) =>
-          normalizePath(path)
-        )
-      )
+      // Pages, static files, and server routes alike: a redirect may
+      // legitimately land on a served asset (`/old-whitepaper` ->
+      // `/files/whitepaper.pdf`), and the same predicate the link and llms.txt
+      // checks use decides what counts.
+      (path) => isServed({ byUrl, files: crawl.files, project }, path)
     ),
     robots: crawl.robots,
     sitemap: crawl.sitemap,

@@ -8,7 +8,7 @@ import type {
   RobotsDoc,
   SitemapDoc,
 } from "../src/audit/types.ts";
-import { normalizePath, siteOrigin } from "../src/audit/url.ts";
+import { isServed, siteOrigin } from "../src/audit/url.ts";
 import type { BlumeProject } from "../src/core/project-graph.ts";
 
 /** A page with everything a healthy Blume page has, so a test only sets the defect. */
@@ -107,17 +107,17 @@ export const context = (options: ContextOptions = {}): AuditContext => {
   } as BlumeProject;
 
   const byUrl = new Map(pages.map((page) => [page.url, page]));
+  const files = options.files ?? new Map<string, number>();
   return {
     byUrl,
-    files: options.files ?? new Map(),
+    files,
     graph: buildGraph(pages, siteOrigin(options.site)),
     llms: options.llms ?? null,
     origin: null,
     pages,
     project,
-    redirects: resolveRedirects(
-      redirects,
-      new Set([...byUrl.keys()].map(normalizePath))
+    redirects: resolveRedirects(redirects, (path) =>
+      isServed({ byUrl, files, project }, path)
     ),
     robots: options.robots ?? null,
     sitemap: options.sitemap ?? null,

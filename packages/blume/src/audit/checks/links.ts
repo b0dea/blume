@@ -9,14 +9,7 @@ import type {
   PageSnapshot,
   SnapshotLink,
 } from "../types.ts";
-import { normalizePath, resolveHref, siteOrigin } from "../url.ts";
-
-/** Whether a path is served by the build — as a page, or as a static file. */
-const isServed = (context: AuditContext, path: string): boolean =>
-  context.byUrl.has(path) ||
-  context.files.has(path) ||
-  // Astro's directory format serves `/docs/api` from `/docs/api/index.html`.
-  context.files.has(`${path}/index.html`);
+import { isServed, normalizePath, resolveHref, siteOrigin } from "../url.ts";
 
 /** Browser-magic fragments that scroll without needing a matching id. */
 const MAGIC_FRAGMENTS = new Set(["", "top"]);

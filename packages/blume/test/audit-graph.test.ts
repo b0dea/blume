@@ -178,11 +178,12 @@ describe("buildGraph", () => {
 
 describe("resolveRedirects", () => {
   const pages = new Set(["/", "/new", "/final"]);
+  const served = (path: string) => pages.has(path);
 
   it("classifies a one-hop redirect to a real page as ok", () => {
     const [result] = resolveRedirects(
       [{ from: "/old", status: 301, to: "/new" }],
-      pages
+      served
     );
     expect(result?.outcome).toBe("ok");
   });
@@ -190,7 +191,7 @@ describe("resolveRedirects", () => {
   it("accepts a redirect to a served static file", () => {
     const [result] = resolveRedirects(
       [{ from: "/old-whitepaper", status: 301, to: "/files/whitepaper.pdf" }],
-      new Set([...pages, "/files/whitepaper.pdf"])
+      (path) => served(path) || path === "/files/whitepaper.pdf"
     );
     expect(result?.outcome).toBe("ok");
   });
@@ -198,7 +199,7 @@ describe("resolveRedirects", () => {
   it("classifies a redirect to nowhere as broken", () => {
     const [result] = resolveRedirects(
       [{ from: "/old", status: 301, to: "/gone" }],
-      pages
+      served
     );
     expect(result?.outcome).toBe("broken");
   });
@@ -209,7 +210,7 @@ describe("resolveRedirects", () => {
         { from: "/a", status: 301, to: "/b" },
         { from: "/b", status: 301, to: "/final" },
       ],
-      pages
+      served
     );
     expect(result?.outcome).toBe("chain");
     expect(result?.chain).toEqual(["/a", "/b", "/final"]);
@@ -221,7 +222,7 @@ describe("resolveRedirects", () => {
         { from: "/a", status: 301, to: "/b" },
         { from: "/b", status: 301, to: "/a" },
       ],
-      pages
+      served
     );
     expect(result?.outcome).toBe("loop");
   });
@@ -229,7 +230,7 @@ describe("resolveRedirects", () => {
   it("detects a self-redirect as a loop", () => {
     const [result] = resolveRedirects(
       [{ from: "/a", status: 301, to: "/a" }],
-      pages
+      served
     );
     expect(result?.outcome).toBe("loop");
   });
@@ -242,7 +243,7 @@ describe("resolveRedirects", () => {
         { from: "/old", status: 301, to: "/new#setup" },
         { from: "/older", status: 301, to: "/new?q=x" },
       ],
-      pages
+      served
     );
     expect(withFragment?.outcome).toBe("ok");
     expect(withQuery?.outcome).toBe("ok");
@@ -261,7 +262,7 @@ describe("resolveRedirects", () => {
           to: withBasePath(basePath, "/new"),
         },
       ],
-      new Set(["/docs", "/docs/new"])
+      (path) => path === "/docs" || path === "/docs/new"
     );
     expect(result?.outcome).toBe("ok");
     expect(result?.chain).toEqual(["/docs/old", "/docs/new"]);
@@ -270,7 +271,7 @@ describe("resolveRedirects", () => {
   it("accepts an external destination without following it", () => {
     const [result] = resolveRedirects(
       [{ from: "/a", status: 301, to: "https://other.dev/x" }],
-      pages
+      served
     );
     expect(result?.outcome).toBe("ok");
   });

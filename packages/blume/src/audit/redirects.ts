@@ -12,7 +12,7 @@ interface ConfiguredRedirect {
  * it lands on.
  *
  * - `loop`   — the chain revisits a hop it has already been to. Never resolves.
- * - `broken` — the chain ends somewhere that isn't a built page.
+ * - `broken` — the chain ends somewhere the build does not serve.
  * - `chain`  — it resolves, but through at least one intermediate redirect.
  * - `ok`     — one hop, straight to a real page.
  *
@@ -32,7 +32,8 @@ const pathOnly = (value: string): string => {
 
 export const resolveRedirects = (
   redirects: readonly ConfiguredRedirect[],
-  pageUrls: ReadonlySet<string>
+  /** Whether the build serves a normalized path — see `isServed`. */
+  served: (path: string) => boolean
 ): RedirectResolution[] => {
   const byFrom = new Map<string, ConfiguredRedirect>();
   for (const redirect of redirects) {
@@ -71,7 +72,7 @@ export const resolveRedirects = (
 
     const destination = chain.at(-1) ?? from;
     const external = /^https?:\/\//iu.test(destination);
-    if (!(external || pageUrls.has(destination))) {
+    if (!(external || served(destination))) {
       return { ...redirect, chain, outcome: "broken" as const };
     }
     // `chain` is [from, …hops, destination]; more than two entries means at

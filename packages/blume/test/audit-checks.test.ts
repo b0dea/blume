@@ -580,6 +580,25 @@ describe("link checks", () => {
     expect(run(linkChecks, ctx)).toEqual([]);
   });
 
+  it("accepts a link to the MCP route, which the server answers", () => {
+    // The same `isServed` the llms.txt check uses: a page that advertises the
+    // MCP endpoint is not linking to a missing file.
+    const ctx = context({
+      mcp: { enabled: true, route: "/mcp" },
+      pages: [snapshot({ links: [link("/mcp")], url: "/" })],
+    });
+    expect(run(linkChecks, ctx)).toEqual([]);
+  });
+
+  it("accepts a redirect that lands on the MCP route", () => {
+    const ctx = context({
+      mcp: { enabled: true, route: "/mcp" },
+      pages: [snapshot({ url: "/" })],
+      redirects: [{ from: "/old-mcp", status: 301, to: "/mcp" }],
+    });
+    expect(ctx.redirects[0]?.outcome).toBe("ok");
+  });
+
   it("reports an internal link that hardcodes the site origin", () => {
     const ctx = context({
       pages: [snapshot({ links: [link(`${SITE}/a`)], url: "/a" })],

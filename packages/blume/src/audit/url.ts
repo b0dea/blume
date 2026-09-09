@@ -1,8 +1,41 @@
 import { normalizePath, stripBasePath } from "../core/base-path.ts";
+import type { AuditContext } from "./types.ts";
 
 // Re-exported from its home next to the other path helpers; the audit checks
 // (and their tests) import it from here.
 export { normalizePath } from "../core/base-path.ts";
+
+/** The slice of an audit context that says what the build serves. */
+export type ServedContext = Pick<AuditContext, "byUrl" | "files" | "project">;
+
+/**
+ * Routes the server answers that the build writes no file for.
+ *
+ * The MCP endpoint is streamable HTTP: llms.txt advertises `ai.mcp.route`
+ * whenever the server is enabled, but it appears in neither the page snapshots
+ * nor the static file index, so a check that only consults those reads the
+ * site's own index as broken. The exemption is the configured route while the
+ * server is on, and nothing wider — with `ai.mcp` off, a listed `/mcp` is as
+ * dead as any other missing target. Any future server route (a search API, a
+ * playground proxy) belongs here too, so every check recognizes it at once.
+ */
+const serverRoutes = (context: ServedContext): string[] => {
+  const mcp = context.project.config.ai?.mcp;
+  return mcp?.enabled ? [normalizePath(mcp.route)] : [];
+};
+
+/**
+ * Whether a normalized path is served by the build — as a page, as a static
+ * file, or as a route the server answers. The one definition of "served" for
+ * the link, llms.txt, and redirect checks, so they can never disagree about
+ * the same target.
+ */
+export const isServed = (context: ServedContext, path: string): boolean =>
+  context.byUrl.has(path) ||
+  context.files.has(path) ||
+  // Astro's directory format serves `/docs/api` from `/docs/api/index.html`.
+  context.files.has(`${path}/index.html`) ||
+  serverRoutes(context).includes(path);
 
 /** What an `href` in built HTML turned out to point at. */
 export type ResolvedHref =
