@@ -48,6 +48,7 @@ import {
   stagedContentDir,
   staticJsonEndpointTemplate,
 } from "../src/astro/templates.ts";
+import { stripBasePath, withBasePath } from "../src/core/base-path.ts";
 import type { BlumeConfig } from "../src/core/config-input.ts";
 import { TOC_HIDDEN_KEY } from "../src/core/heading-markers.ts";
 import { blumeConfigSchema } from "../src/core/schema.ts";
@@ -124,6 +125,95 @@ describe("catchAllPageTemplate", () => {
   it("no longer imports the removed Warning component", () => {
     const out = catchAllPageTemplate({ ...exportOpts, mathEnabled: false });
     expect(out).not.toContain("Warning");
+  });
+
+  it("swaps the switcher's fallback locale in base-less space", () => {
+    const out = catchAllPageTemplate({ ...exportOpts, mathEnabled: false });
+    // The base helpers are the manifest's own, imported rather than re-spelled
+    // in the emitted frontmatter.
+    expect(out).toContain(
+      'import { stripBasePath, withBasePath } from "blume/core/base-path.ts"'
+    );
+    expect(out).toContain(
+      "href: alt ? alt.path : mountLocalized(logicalRoute, l.code)"
+    );
+    // Run the generated locale helpers and the fallback composition to pin
+    // their behavior. The two slices are the locale prefix helpers and the
+    // mount/strip pair that follows the hreflang block.
+    const localeStart = out.indexOf("const localePrefix");
+    const localeEnd = out.indexOf("// Version resolution");
+    const mountStart = out.indexOf("const mountLocalized");
+    const mountEnd = out.indexOf("const localeSwitch");
+    expect(localeStart).toBeGreaterThan(-1);
+    expect(localeEnd).toBeGreaterThan(localeStart);
+    expect(mountStart).toBeGreaterThan(localeEnd);
+    expect(mountEnd).toBeGreaterThan(mountStart);
+    const snippet = new Bun.Transpiler({ loader: "ts" }).transformSync(
+      `const targetsFor = (i18n, data, route, locale, withBasePath, stripBasePath) => {
+${out.slice(localeStart, localeEnd)}
+${out.slice(mountStart, mountEnd)}
+return i18n.locales.map((l) => mountLocalized(logicalRoute, l.code));
+};`
+    );
+    type Targets = (
+      i18n: {
+        defaultLocale: string;
+        hideDefaultLocalePrefix: boolean;
+        locales: { code: string }[];
+      },
+      data: { config: { basePath: string } },
+      route: string,
+      locale: string,
+      mount: typeof withBasePath,
+      strip: typeof stripBasePath
+    ) => string[];
+    // SAFETY: the generated snippet wrapped above declares `targetsFor` with
+    // exactly the parameter list and string[] return asserted by `Targets`.
+    // oxlint-disable-next-line no-new-func -- evaluating our own generated output
+    const targetsFor = new Function(
+      `${snippet}\nreturn targetsFor;`
+    )() as Targets;
+    const i18n = {
+      defaultLocale: "en",
+      hideDefaultLocalePrefix: true,
+      locales: [{ code: "en" }, { code: "ja" }, { code: "ko" }],
+    };
+    const under = (basePath: string, route: string, locale: string) =>
+      targetsFor(
+        i18n,
+        { config: { basePath } },
+        route,
+        locale,
+        withBasePath,
+        stripBasePath
+      );
+    // Regression: `route` carries the base path, locale prefixes do not. A page
+    // with no `alternates` used to strip its locale from the based route (no
+    // match) and then prepend the target locale, emitting `/ja/docs/ja/x` for a
+    // page served at `/docs/ja/x`.
+    expect(under("/docs", "/docs/ja/reference", "ja")).toEqual([
+      "/docs/reference",
+      "/docs/ja/reference",
+      "/docs/ko/reference",
+    ]);
+    // The hidden default locale strips nothing and re-adds nothing.
+    expect(under("/docs", "/docs/reference", "en")).toEqual([
+      "/docs/reference",
+      "/docs/ja/reference",
+      "/docs/ko/reference",
+    ]);
+    // A locale root under the base collapses to the bare mount, not `/docs/`.
+    expect(under("/docs", "/docs/ja", "ja")).toEqual([
+      "/docs",
+      "/docs/ja",
+      "/docs/ko",
+    ]);
+    // Without a base path the composition is the pre-fix behavior.
+    expect(under("", "/ja/reference", "ja")).toEqual([
+      "/reference",
+      "/ja/reference",
+      "/ko/reference",
+    ]);
   });
 
   it("filters [!toc] slugs through the heading plugin's frontmatter key", () => {
