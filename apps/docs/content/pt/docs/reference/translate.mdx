@@ -45,6 +45,7 @@ A estrutura nunca é confiada ao agente. Antes de escrever, o Blume verifica cad
 
 - O frontmatter é reconstruído a partir dos dados do arquivo de origem, com apenas os seis valores traduzíveis sobrepostos — as chaves que o agente inventou são descartadas, as chaves que ele apagou são restauradas, e `slug`, `icon`, `order` e as datas são, por construção, idênticas às da origem.
 - O número de blocos de código precisa corresponder ao da origem, o corpo não pode estar vazio e o frontmatter precisa ser analisável.
+- Cada título é fixado ao id de âncora do título de origem com um [marcador `[#id]`](/docs/content/syntax#custom-anchors) no final, a menos que a tradução já fixe um, para que os links `#fragment` resolvam de forma idêntica em todos os idiomas. Os títulos são pareados por posição, então uma tradução cuja estrutura de títulos não corresponde à da origem não recebe nenhum marcador.
 
 Uma resposta que falha na validação não escreve nada — o item é reportado como falho e a execução segue em frente. Tudo o que teve sucesso permanece registrado no livro de registro, então uma nova execução repete apenas as falhas.
 

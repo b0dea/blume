@@ -45,6 +45,7 @@ Dem Agenten wird bei der Struktur nie vertraut. Vor dem Schreiben prüft Blume j
 
 - Das Frontmatter wird aus den Daten der Quelldatei rekonstruiert, wobei nur die sechs übersetzbaren Werte überlagert werden – vom Agenten erfundene Schlüssel werden verworfen, von ihm gelöschte Schlüssel werden wiederhergestellt, und `slug`, `icon`, `order` sowie Datumsangaben stammen konstruktionsbedingt wortwörtlich aus der Quelle.
 - Die Anzahl der Code-Fences muss mit der Quelle übereinstimmen, der Textkörper darf nicht leer sein, und das Frontmatter muss parsebar sein.
+- Jede Überschrift wird mit einem angehängten [`[#id]`-Marker](/docs/content/syntax#custom-anchors) an die Anker-ID ihrer Quellüberschrift geheftet, sofern die Übersetzung nicht bereits einen setzt, damit `#fragment`-Links in jeder Sprache identisch auflösen. Überschriften werden positionsweise einander zugeordnet – eine Übersetzung, deren Überschriftenstruktur nicht zur Quelle passt, bekommt also keine Marker.
 
 Eine Antwort, die die Validierung nicht besteht, schreibt nichts – das Element wird als fehlgeschlagen gemeldet und der Lauf fährt fort. Alles Erfolgreiche bleibt im Ledger gestempelt, sodass ein erneuter Lauf nur die Fehlschläge wiederholt.
 

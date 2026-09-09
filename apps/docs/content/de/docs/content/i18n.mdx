@@ -6,7 +6,7 @@ description: >-
 
 Blume stellt ein Projekt in vielen Sprachen bereit. Lege übersetzte Dateien an der richtigen Stelle ab, und Blume verdrahtet Routing, den Sprachumschalter, die Navigation pro Locale und SEO für dich – es gibt keine separate Routing-Ebene zu pflegen. Es ist optional: Ohne einen `i18n`-Block bleibt deine Website genau wie zuvor einsprachig. Es lässt sich außerdem mit [Versionierung](/docs/content/versioning) kombinieren – ein eingefrorener Snapshot behält seine Übersetzungen, und der Locale-Fallback funktioniert innerhalb jeder Version.
 
-## Aktivieren
+## Aktivieren [#enable-it]
 
 Füge einen `i18n`-Block hinzu, der deine Locales auflistet und angibt, welche die Standard-Locale ist:
 
@@ -23,7 +23,7 @@ i18n: {
 
 Jede Locale hat einen `code` (wird in URLs verwendet), ein `label` (wird im Sprachumschalter angezeigt) und ein optionales `dir` für Rechts-nach-links-Schriften (standardmäßig `"ltr"`). Ein optionales `style` gibt [`blume translate`](/docs/reference/translate) freie Hinweise für die Locale – Register, Dialekt, Terminologie, z. B. `"Brazilian Portuguese, informal você"` – sodass die Wahl von der allerersten Übersetzung an festgelegt ist, statt vom Agenten entschieden zu werden.
 
-## Übersetzte Inhalte organisieren
+## Übersetzte Inhalte organisieren [#organize-translated-content]
 
 Die Standard-Locale liegt im Stammverzeichnis deiner Inhalte. Jede weitere Locale ist ein Ordner der obersten Ebene, benannt nach ihrem `code`, der die Standardstruktur spiegelt:
 
@@ -46,7 +46,7 @@ docs/
 
 Du übersetzt nur die Dateien, die du möchtest – alles andere greift automatisch auf einen Fallback zurück (siehe [Fallbacks](#fallbacks)).
 
-### Dateinamen-Suffixe
+### Dateinamen-Suffixe [#filename-suffixes]
 
 Du möchtest Übersetzungen lieber neben dem Original behalten? Setze `parser: "dot"` und benenne Dateien mit einem Locale-Suffix, statt Ordner zu verwenden:
 
@@ -58,7 +58,7 @@ docs/
 
 Gut geeignet für spärliche Übersetzungen – lege die wenigen übersetzten Seiten daneben ab, ohne den gesamten Baum zu spiegeln.
 
-### Gemeinsame Dateien
+### Gemeinsame Dateien [#shared-files]
 
 Für Inhalte, die in jeder Sprache gleich sind – ein Changelog, eine Statusseite – füge einen `$`-Marker hinzu, damit eine Datei alle Locales ohne Duplikate bedient:
 
@@ -69,7 +69,7 @@ docs/guides/meta.$.ts   (folder meta applied to every locale)
 
 Eine locale-spezifische `meta.ts` überschreibt die gemeinsame für diese Sprache weiterhin.
 
-## URLs der Standard-Locale
+## URLs der Standard-Locale [#default-locale-urls]
 
 Standardmäßig hat die Standard-Locale kein URL-Präfix (`/`, `/guides/quickstart`), während andere Locales ein Präfix erhalten (`/fr/…`). So bleiben die URLs deiner Hauptsprache sauber. Um jeder Locale ein Präfix zu geben, einschließlich der Standard-Locale:
 
@@ -80,7 +80,7 @@ i18n: {
 }
 ```
 
-## Navigation pro Locale
+## Navigation pro Locale [#per-locale-navigation]
 
 Jede Sprache erhält ihre eigene Seitenleiste, aufgebaut aus den Dateien dieser Locale – so können Übersetzungen in Struktur, Reihenfolge oder Beschriftungen abweichen. Auch [`meta.ts`](/docs/content/meta)-Dateien von Ordnern werden pro Locale aufgelöst: Lege unter dem Standard-Parser `dir` eine `meta.ts` in `fr/guides/` ab, um die französische Gruppe unabhängig zu sortieren. Unter dem `dot`-Parser liegen Übersetzungen neben den Originalen, sodass die `meta.ts` eines Ordners für jede Locale gilt. Alles andere zur [Navigation](/docs/content/navigation) funktioniert genauso, pro Sprache.
 
@@ -103,7 +103,13 @@ Fallback-Seiten werden vom Suchindex ausgeschlossen und in `hreflang` nicht als 
 Beginne damit, deine wichtigsten Seiten zu übersetzen – die Startseite, den Schnellstart und die wichtigsten Anleitungen – und lass den Rest auf den Fallback zurückgreifen. Du kannst Übersetzungen mit der Zeit ergänzen, ohne Links zu beschädigen.
 :::
 
-## Übersetzen mit einem Agenten
+## Links über Locales hinweg [#links-across-locales]
+
+Schreibe interne Links so, wie du es in der Standard-Locale tun würdest – `[Setup](/guides/setup)`, `<Card href="/guides/setup">` – und zwar in jeder Sprache, auch auf übersetzten Seiten. Wenn eine Seite unter einem Locale-Präfix gerendert wird, verschiebt Blume jeden wurzelrelativen Seitenlink in diese Locale (`/fr/guides/setup`), sofern die Route dort bereitgestellt wird – als echte Übersetzung oder als Fallback-Seite. Ein Link ohne Variante pro Locale – eine benutzerdefinierte Seite, eine generierte Route oder eine fehlende Übersetzung auf einer Website mit deaktivierten Fallbacks – behält sein ursprüngliches Ziel, statt auf einen 404 zu zeigen, und ein Link, der bereits ein Locale-Präfix trägt (`/de/guides/setup`), bleibt unangetastet, sodass Links über Locales hinweg explizit bleiben.
+
+Anker wandern mit dem Link mit, daher müssen Heading-IDs über alle Sprachen hinweg übereinstimmen. [`blume translate`](/docs/reference/translate) erledigt das für dich: Jede übersetzte Überschrift wird mit einem angehängten `[#id]`-Marker an die ID ihrer Quellüberschrift gebunden. Bei einer von Hand geschriebenen Übersetzung bindest du die Überschriften selbst mit demselben [`[#custom-id]`-Marker](/docs/content/syntax#custom-anchors) – sonst passt `#ordering` nicht zum automatisch generierten `#ordre` der französischen Seite, und `blume validate` meldet die Abweichung gegenüber der übersetzten Seite, auf der eine Leserin oder ein Leser tatsächlich landet.
+
+## Übersetzen mit einem Agenten [#translating-with-an-agent]
 
 Du musst die Locales nicht von Hand ausfüllen. [`blume translate`](/docs/reference/translate) findet jede Seite, die in einer Locale fehlt oder veraltet ist, und übersetzt sie mit einer lokalen Agenten-CLI ([Claude Code](https://claude.com/claude-code) oder [Codex](https://developers.openai.com/codex/cli)):
 
@@ -113,11 +119,11 @@ blume translate --claude
 
 Blume validiert die Struktur jedes Ergebnisses – Frontmatter, Code-Fences, Links – und schreibt die Dateien selbst; der Agent übersetzt nur Text. Ein eingecheckter Ledger (`blume.translations.json`) verfolgt, aus welcher Quellrevision jede Übersetzung stammt, sodass erneute Läufe nur ändern, was sich geändert hat, und von Hand geschriebene Übersetzungen unverändert übernommen und nie überschrieben werden. In der CI schlägt `blume translate --check` fehl, wenn eine Quellseite ihren Übersetzungen vorausgeeilt ist.
 
-## Der Sprachumschalter
+## Der Sprachumschalter [#the-language-switcher]
 
 Wenn i18n aktiviert ist, erscheint automatisch ein Sprachumschalter im Header, generiert aus deinen `locales`. Für jede Seite verlinkt er die passende Übersetzung in jeder Sprache; wo eine Übersetzung fehlt, verlinkt er die Fallback-Seite und kennzeichnet sie als nicht übersetzt. Es gibt nichts zu konfigurieren.
 
-## Übersetzte Benutzeroberfläche
+## Übersetzte Benutzeroberfläche [#translated-ui]
 
 Blume liefert integrierte Übersetzungen für seine eigene Oberfläche mit – „Auf dieser Seite“, „Suchen“, „Auf GitHub bearbeiten“ und den Rest – sodass eine Locale mit integriertem Paket von Haus aus eine übersetzte Oberfläche erhält. **Du übersetzt nur deine Inhalte.**
 
@@ -147,15 +153,15 @@ Lokalisiertes SEO wird für dich erledigt – keine Metadaten pro Seite zu schre
 
 Setze [`deployment.site`](/docs/deployment), damit diese als absolute URLs ausgegeben werden können.
 
-## Suche
+## Suche [#search]
 
 Die Suche ist auf die aktive Sprache beschränkt: Auf einer `/fr/…`-Seite liefert der Dialog französische Ergebnisse, mit einem Umschalter **Alle Sprachen**, um auf einmal über alle Locales zu suchen. Der Standardindex (Orama) und der FlexSearch-Index filtern im Browser; gehostete Anbieter führen eine `locale`-Facette auf jedem Datensatz.
 
-## Rechts-nach-links
+## Rechts-nach-links [#right-to-left]
 
 Setze `dir: "rtl"` auf einer Locale, und Blume spiegelt die gesamte Oberfläche – die Seitenleiste, den Header, das Inhaltsverzeichnis, die Seitennavigation, die Suche und die Menüs – und setzt `<html dir>` entsprechend. Zwei Dinge bleiben bewusst von links nach rechts: **Code-Blöcke** (Code liest sich in jeder Sprache LTR) und **Fallback-Inhalte** – eine unübersetzte Seite behält die Richtung der Sprache, in der sie tatsächlich geschrieben ist, sodass unter einer RTL-Locale angezeigtes Englisch weiterhin korrekt lesbar ist, während die umgebende Oberfläche gespiegelt wird.
 
-## Wie geht es weiter
+## Wie geht es weiter [#where-to-next]
 
 <CardGroup cols={2}>
   <Card title="Navigation" href="/docs/content/navigation" icon="menu">
