@@ -60,6 +60,8 @@ interface ContextOptions {
   robots?: RobotsDoc | null;
   llms?: LlmsDoc | null;
   llmsTxt?: boolean | { enabled: boolean; openapi: boolean };
+  /** `ai.mcp`, whose route llms.txt lists but the static output never holds. */
+  mcp?: { enabled: boolean; route: string };
   files?: Map<string, number>;
   sources?: Map<string, string>;
   seo?: { robots?: boolean; sitemap?: boolean };
@@ -84,7 +86,10 @@ export const context = (options: ContextOptions = {}): AuditContext => {
   // the checks never touch the graph, manifest, or source machinery.
   const project = {
     config: {
-      ai: { llmsTxt: options.llmsTxt ?? { enabled: true, openapi: true } },
+      ai: {
+        llmsTxt: options.llmsTxt ?? { enabled: true, openapi: true },
+        mcp: options.mcp ?? { enabled: false, route: "/mcp" },
+      },
       basePath: "",
       deployment: {
         adapter: options.adapter ?? null,

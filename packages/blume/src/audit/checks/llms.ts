@@ -23,6 +23,22 @@ const llmsConfig = (context: AuditContext) => {
 };
 
 /**
+ * The MCP endpoint's path, when this build serves one.
+ *
+ * llms.txt advertises `ai.mcp.route` whenever the server is enabled, but that
+ * endpoint is streamable HTTP — a route the server answers, not a file the
+ * build writes. It appears in neither the page snapshots nor the static file
+ * index, so the stale-entry check below reads the site's own index as broken.
+ * Every other target llms.txt lists (llms-full.txt, /index.md,
+ * agent-readability.json, sitemap.xml) is a real file, so this is the only
+ * exemption the check needs.
+ */
+const mcpRoute = (context: AuditContext): string | null => {
+  const mcp = context.project.config.ai?.mcp;
+  return mcp?.enabled ? normalizePath(mcp.route) : null;
+};
+
+/**
  * An llms.txt link target reduced to a site path, or null when it's off-site.
  * Entry URLs carry the deployment base; page URLs (from the file tree) don't.
  */
@@ -88,6 +104,7 @@ export const llmsChecks: CheckModule = {
     );
 
     const listed = new Set<string>();
+    const served = mcpRoute(context);
     for (const entry of llms.entries) {
       const path = entryPath(entry.url, origin, deployBase);
       if (path === null) {
@@ -99,7 +116,11 @@ export const llmsChecks: CheckModule = {
       // A listed target may be a served asset rather than a page — Blume's own
       // llms.txt links the changelog RSS feed — so the file index vouches for
       // it too, the same way redirect targets may land on a served asset.
-      if (!context.byUrl.has(path) && !context.files.has(path)) {
+      if (
+        path !== served &&
+        !context.byUrl.has(path) &&
+        !context.files.has(path)
+      ) {
         found.push(
           finding(
             "BLUME_AUDIT_LLMS_TXT_STALE_ENTRY",
