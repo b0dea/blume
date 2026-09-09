@@ -6,7 +6,7 @@ description: >-
 
 Blume erstellt deine Seitenleiste aus dem Dateisystem und lässt dich sie dann so weit verfeinern, wie du möchtest – Seite für Seite, Ordner für Ordner oder mit einer einzigen expliziten Konfiguration. Breadcrumbs, Zurück-/Weiter-Links und die Gliederung auf der Seite ergeben sich alle aus demselben Modell, ganz ohne Verkabelung.
 
-## Die generierte Seitenleiste
+## Die generierte Seitenleiste [#the-generated-sidebar]
 
 Standardmäßig spiegelt die Seitenleiste deinen Inhaltsbaum wider:
 
@@ -16,7 +16,7 @@ Standardmäßig spiegelt die Seitenleiste deinen Inhaltsbaum wider:
 
 Für viele Websites reicht das bereits – alles Weitere ist optional.
 
-## Seitenbeschriftung, Symbol und Badge
+## Seitenbeschriftung, Symbol und Badge [#page-label-icon-and-badge]
 
 Passe im Frontmatter unter `sidebar` an, wie eine einzelne Seite in der Seitenleiste erscheint:
 
@@ -30,7 +30,7 @@ sidebar:
 
 Das vollständige Seitenschema findest du unter [Frontmatter](/docs/reference/frontmatter).
 
-## Ordnergruppen
+## Ordnergruppen [#folder-groups]
 
 Jeder Ordner wird zu einer Gruppe in der Seitenleiste. Lege eine [`meta.ts`](/docs/content/meta) neben die Seiten, um Titel, Symbol und Reihenfolge der Gruppe sowie die Reihenfolge ihrer untergeordneten Einträge festzulegen:
 
@@ -50,7 +50,7 @@ Das `meta.title` eines Ordners und das Frontmatter-`title` seiner eigenen `index
 
 Um Seiten zu gruppieren, _ohne_ ein URL-Segment hinzuzufügen, verwende einen in Klammern gesetzten Ordnernamen – siehe [Seiten](/docs/content#group-folders).
 
-## Anzeigemodi
+## Anzeigemodi [#display-modes]
 
 `navigation.sidebar.display` legt fest, wie jede Gruppe in der Seitenleiste dargestellt wird:
 
@@ -70,7 +70,7 @@ navigation: {
 Der `page`-Modus hält tiefe Abschnitte aufgeräumt – greif darauf zurück, wenn Gruppen viele untergeordnete Einträge haben und du lieber in sie hineinnavigieren möchtest, als an ihnen vorbeizuscrollen.
 :::
 
-### Überschreibungen pro Gruppe
+### Überschreibungen pro Gruppe [#per-group-overrides]
 
 Jede generierte Gruppe kann sich vom globalen Modus abmelden – ganz ohne explizite Seitenleiste. Setze `display` in der [`meta.ts`](/docs/content/meta) des Ordners oder – wenn der Ordner eine `index`-Seite hat – unter `sidebar` im Frontmatter dieser Seite, und nur diese eine Gruppe ändert sich:
 
@@ -104,7 +104,7 @@ Das `display` einer Gruppe gilt nur für diese Gruppe – verschachtelte Untergr
 
 Eine Gruppe in einer [expliziten Seitenleiste](#explicit-sidebar) überschreibt den globalen Modus mit einem eigenen `display`, genau wie zuvor.
 
-## Reihenfolge
+## Reihenfolge [#ordering]
 
 Wenn die Seitenleiste generiert wird, wird die Reihenfolge nach absteigender Priorität aufgelöst:
 
@@ -125,7 +125,7 @@ Wenn die Seitenleiste generiert wird, wird die Reihenfolge nach absteigender Pri
 
 Zwei gleichrangige Einträge mit derselben expliziten oder numerischen Reihenfolge werden untereinander alphabetisch sortiert – Blume meldet eine `BLUME_DUPLICATE_SIDEBAR_ORDER`-Warnung, damit der Gleichstand nicht unbemerkt bleibt.
 
-## Ausgeblendete Seiten
+## Ausgeblendete Seiten [#hidden-pages]
 
 Blende eine Seite aus der Seitenleiste – und aus der Zurück-/Weiter-Navigation – aus, während sie weiterhin gebaut und über ihre URL erreichbar bleibt:
 
@@ -185,7 +185,7 @@ Tabs **grenzen außerdem die Seitenleiste ein**: Wenn die aktuelle Route unter d
 
 Auf einer Route, die unter keinem Tab liegt (oder unter einem Tab, dessen `path` `/` ist), zeigt die Seitenleiste die Seiten, die _nicht_ zu einem Tab gehören – der Ordner jedes Tabs wird darin ausgeblendet, da dieser Abschnitt bereits einen eigenen Tab im Header hat. Eine Root-Landing-Page listet also deine losen Seiten der obersten Ebene, während die in Abschnitte gegliederten Inhalte hinter ihrem Tab bleiben – analog zu den Root-Ordnern von Fumadocs. Hat eine Route auf diese Weise keine eigenen Seiten anzuzeigen, wird stattdessen der vollständige Baum gezeigt, damit die Seitenleiste nie leer bleibt.
 
-## Selektoren
+## Selektoren [#selectors]
 
 Zum Wechseln zwischen ganzen Partitionen einer Website – einem Produkt, einer Version oder einer beliebigen gruppierten Menge von Zielen – füge einen `selector` hinzu. Jeder wird als Dropdown im Header dargestellt und zeigt die Option, deren `path` zur aktuellen Route passt:
 
@@ -208,7 +208,7 @@ Jeder Eintrag nimmt ein `label`, einen `path` sowie optional `icon`, `descriptio
 
 Ist [Versionierung](/docs/content/versioning) konfiguriert, stellt Blume automatisch einen Versions-Selektor dar – deklarierst du hier einen eigenen `kind: "version"`-Selektor, ersetzt er den automatischen, sodass selbstgebaute Setups weiterhin funktionieren.
 
-## Hervorgehobene Links
+## Hervorgehobene Links [#featured-links]
 
 Hefte Links an den oberen Rand der Seitenleiste, über alle Abschnitte – ein Blog, ein Changelog, eine Kontakt- oder Supportseite, die immer nur einen Klick entfernt sein sollte. Anders als der generierte Baum sind hervorgehobene Links **nicht nach Tab eingegrenzt**: Sie erscheinen auf jeder Route und bei jedem Breakpoint.
 
@@ -223,7 +223,7 @@ navigation: {
 
 Jeder Link nimmt ein `label`, ein `href` und optional ein `icon` entgegen (ein Name eines [eingebauten Symbols](/docs/content/components#icon), ein Bildpfad bzw. eine Bild-URL oder ein Inline-SVG – wie überall sonst auch). Ein `href` kann überallhin verweisen: Eine externe URL öffnet sich in einem neuen Tab, während eine interne Route (`/contact`) zur Build-Zeit gegen deine Seiten geprüft wird und dich warnt, wenn nichts übereinstimmt.
 
-## Explizite Seitenleiste
+## Explizite Seitenleiste [#explicit-sidebar]
 
 Für volle Kontrolle listest du explizite Einträge in `navigation.sidebar` auf – ein bloßes Array ist eine Kurzform für `sidebar.items`, und die Objektform kombiniert sie mit einem globalen [`display`](#display-modes). Sind Einträge gesetzt, verwendet Blume sie unverändert und überspringt die Generierung aus dem Dateisystem:
 
@@ -243,7 +243,7 @@ navigation: {
 
 Jeder Eintrag ist eine Seitenroute (eine Zeichenkette), eine Gruppe (`label` + `items`) oder ein Link (`label` + `href`). Gruppen können verschachtelt werden, den globalen [`display`-Modus](#display-modes) überschreiben und `collapsed` starten.
 
-## Header-Aktionen
+## Header-Aktionen [#header-actions]
 
 `navigation.actions` platziert schlichte Links im Header, links neben den Symbol-Buttons, und `navigation.cta` ist der eine gefüllte Button:
 
@@ -280,18 +280,18 @@ navigation: {
 
 Das ist für ein Projekt gedacht, dessen Doku-Repository privat ist. `github` steuert den Bearbeiten-Link pro Seite, das Zeichen im Header und das Repository im [Agenten-Manifest](/docs/discoverability/agent-discovery) gemeinsam, sodass ein solches Projekt `github` ungesetzt lassen muss – und eine URL sorgt dafür, dass trotzdem ein Zeichen angezeigt wird, das auf etwas Öffentliches verweist. Das Symbol bleibt das GitHub-Zeichen, ein Link auf einen anderen Host gehört daher in [`actions`](#header-actions).
 
-## Breadcrumbs und Seitennavigation
+## Breadcrumbs und Seitennavigation [#breadcrumbs-and-pagination]
 
 Diese ergeben sich kostenlos aus dem Seitenleistenbaum – ohne Konfiguration:
 
 - **Breadcrumbs** zeigen die übergeordnete Gruppe der aktuellen Seite über dem Titel.
 - **Zurück- und Weiter-Links** am Fuß jeder Seite folgen der Reihenfolge in der Seitenleiste und überspringen ausgeblendete Seiten.
 
-## Auf dieser Seite
+## Auf dieser Seite [#on-this-page]
 
 Aus den `##`- und `###`-Überschriften jeder Seite wird automatisch eine Gliederung in der rechten Spalte erzeugt, damit lange Seiten überschaubar bleiben. Auf schmaleren Bildschirmen, wo die rechte Spalte ausgeblendet ist, klappt sie zu einem „Auf dieser Seite“-Dropdown über dem Inhalt zusammen.
 
-## Seitenaktionen
+## Seitenaktionen [#page-actions]
 
 Unter dem Inhaltsverzeichnis zeigt jede Seite eine Reihe von Schnellaktionen:
 

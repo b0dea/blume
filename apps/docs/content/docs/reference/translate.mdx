@@ -44,6 +44,7 @@ The agent is never trusted with structure. Before writing, Blume checks each rep
 
 - The frontmatter is reconstructed from the source file's data, with only the six translatable values overlaid — keys the agent invented are dropped, keys it deleted are restored, and `slug`, `icon`, `order`, and dates are source-verbatim by construction.
 - The number of code fences must match the source, the body must be non-empty, and the frontmatter must parse.
+- Every heading is pinned to its source heading's anchor id with a trailing [`[#id]` marker](/docs/content/syntax#custom-anchors), unless the translation already pins one, so `#fragment` links resolve identically in every language. Headings pair up positionally, so a translation whose heading structure doesn't match the source gets no pins.
 
 A reply that fails validation writes nothing — the item is reported as failed and the run moves on. Everything that succeeded stays stamped in the ledger, so a rerun retries only the failures.
 

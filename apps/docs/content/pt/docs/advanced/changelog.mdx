@@ -6,7 +6,7 @@ description: >-
 
 O Blume traz um changelog pronto para usar. Escreva cada versão como um arquivo de conteúdo normal, marque com `type: changelog`, e o Blume reúne todas as entradas em uma página de cronologia gerada e em um feed RSS — sem layout para construir, sem lista para manter. Ou dispense os arquivos por completo e [alimente seu changelog a partir do GitHub Releases](#from-github-releases).
 
-## Escrever uma entrada
+## Escrever uma entrada [#write-an-entry]
 
 Uma entrada de changelog é uma página `.md` ou `.mdx` normal com `type: changelog` no frontmatter. Por convenção elas ficam em `changelog/`, mas o que importa é o tipo — não a pasta:
 
@@ -28,7 +28,7 @@ A big batch of components landed this release — columns, frames, trees, and to
 
 Atribua uma `date` a cada entrada para que a cronologia e o feed ordenem da mais recente para a mais antiga. Uma data YAML sem aspas serve — o Blume normaliza.
 
-### O objeto `changelog`
+### O objeto `changelog` [#the-changelog-object]
 
 O objeto opcional `changelog` adiciona metadados mais ricos para a cronologia e o feed:
 
@@ -52,7 +52,7 @@ O objeto opcional `changelog` adiciona metadados mais ricos para a cronologia e 
   }}
 />
 
-## A página de cronologia
+## A página de cronologia [#the-timeline-page]
 
 Assim que você tiver pelo menos uma entrada `type: changelog`, o Blume gera automaticamente uma página **`/changelog`**. Ela é exibida como uma cronologia focada e de largura total — sem barra lateral nem índice — com cada entrada da mais recente para a mais antiga, mostrando a data, o rótulo e a tag `category` em uma coluna à esquerda, ao lado do conteúdo:
 
@@ -72,7 +72,7 @@ navigation: {
 }
 ```
 
-### Agrupado por versão principal
+### Agrupado por versão principal [#grouped-by-major-version]
 
 Quando suas versões seguem o [semver](https://semver.org) e abrangem mais de uma versão principal, o Blume pagina a cronologia por versão principal. Apenas a linha principal mais recente é exibida, com um botão **Show N.x releases** no rodapé que revela a versão principal imediatamente mais antiga, um clique por vez:
 
@@ -80,7 +80,7 @@ Quando suas versões seguem o [semver](https://semver.org) e abrangem mais de um
 - Ela tolera as tags com escopo que os monorepos publicam, então `pkg@2.0.0` fica agrupado em `2.x` e `pkg@1.4.0` em `1.x`.
 - É melhoria progressiva: todas as versões continuam presentes no HTML da página (e no feed RSS e no índice de busca), então os leitores sem JavaScript — e os rastreadores — veem o histórico completo. O botão só recolhe as versões principais mais antigas depois que a página hidrata.
 
-## A partir do GitHub Releases
+## A partir do GitHub Releases [#from-github-releases]
 
 Em vez de escrever as entradas à mão, aponte a [fonte `github-releases`](/docs/content/sources#github-releases) integrada para um repositório e cada versão vira uma entrada `type: changelog` — a mesma cronologia e o mesmo feed, alimentados diretamente pelas versões que você já publica. O próprio [changelog](/changelog) do Blume é construído assim:
 
@@ -100,7 +100,7 @@ content: {
 
 O nome da versão vira o título, a tag dela vira `changelog.version` e a respectiva data de publicação ordena a cronologia. Cada página de versão também recebe uma meta description única, resumida a partir das notas — sem markdown, sem títulos de seção nem prefixos de hash de commit dos changesets, cortada para o comprimento de trecho de busca que o [`blume audit`](/docs/reference/cli#auditing-the-built-site) verifica — em vez de recorrer à descrição do site. Um repositório privado se autentica com a variável de ambiente `GITHUB_TOKEN`. Veja [Fontes de conteúdo](/docs/content/sources#github-releases) para todas as opções.
 
-## O feed RSS
+## O feed RSS [#the-rss-feed]
 
 O Blume também constrói um feed do changelog em **`/changelog/rss.xml`**, ordenado por `date` da mais recente para a mais antiga. Os feeds precisam de uma URL absoluta do site, então defina [`deployment.site`](/docs/deployment); o Blume então injeta uma tag `<link rel="alternate">` em todas as páginas para que os leitores o descubram automaticamente.
 
@@ -118,7 +118,7 @@ seo: {
 
 Remova `"changelog"` de `rss.types` para dispensar o feed mantendo a cronologia.
 
-## Dados estruturados
+## Dados estruturados [#structured-data]
 
 Quando os [dados estruturados](/docs/discoverability/structured-data) estão ativos, cada entrada do changelog é emitida como um **`TechArticle`** do schema.org com a descrição e a data de publicação dela, para que os mecanismos de busca possam indexar as versões como artigos datados.
 

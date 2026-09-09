@@ -6,7 +6,7 @@ description: >-
 
 Blume は、標準的な Markdown と MDX を、厳選された GitHub Flavored の機能セットでレンダリングします — インポートも設定も不要です。これまでどおりの書き方でコンテンツを書いてください。このページでは、サポートされているすべての機能を、ライブプレビューと各ソースとともに紹介します。
 
-## 見出し
+## 見出し [#headings]
 
 見出しでページを構造化します。Blume はフロントマターの `title` をページ見出しとしてレンダリングするため、コンテンツは `##` から始めてください — `##` と `###` は目次の項目になります。`##`〜`######` のすべての見出しは、それ自身のアンカーへのリンクでも囲まれるため、読者は見出しをクリックしてそのセクションへのパーマリンクをコピー、ブックマーク、共有できます（ホバーすると `#` が表示されます）。これをオフにするには、`blume.config.ts` で `markdown: { headingAnchors: false }` を指定します。
 
@@ -18,7 +18,7 @@ Blume は、標準的な Markdown と MDX を、厳選された GitHub Flavored 
 #### Detail
 ```
 
-### カスタムアンカー
+### カスタムアンカー [#custom-anchors]
 
 アンカーの id は見出しのテキストから生成されるため、見出しの文言を変えると新しいアンカーになります。代わりにアンカーを固定するには `[#custom-id]` を末尾に付けます — このマーカーはレンダリングされず、見出しの文言がどうなってもリンクは機能し続けます。固定したアンカーは[翻訳されたロケール](/docs/content/i18n)間でも同一のまま保たれます。自動生成された id では言語ごとに異なってしまうためです。
 
@@ -36,7 +36,7 @@ Pandoc、kramdown、および Markdown ベースの仕様策定ツールチェ�
 
 フラグメントリンクは、`id` を持つ生の HTML 要素（`<a id="setup"></a>`）を対象にすることもできます。`blume validate` は見出しアンカーと並んでそれらも受け付けます。
 
-### 目次マーカー
+### 目次マーカー [#table-of-contents-markers]
 
 さらに 2 つの末尾マーカーが、見出しを目次にどう表示するかを制御します。`[!toc]` は見出しをページ上に残しつつ目次からは除外します。`[toc]` はその逆で、見出しは目次にのみ表示され、ページ上では不可視のアンカーターゲットになります — 散文ではなくコンポーネントで構成されたセクションにラベルを付けるのに便利です。マーカーは任意の順序で連結できます。CommonMark から受け継いだ例外が 1 つあります：末尾の角括弧のラベルに対して、ページ内のどこかにリンク参照定義（`[toc]: /url`）がある場合、それはマーカーではなくショートカット参照リンクとなり、見出しのテキストに残ります。
 
@@ -50,7 +50,7 @@ Pandoc、kramdown、および Markdown ベースの仕様策定ツールチェ�
 
 マーカーは常に解析されます — 文字どおりマーカーの形をしたテキストで終わる見出しは、マーカー付きとして扱われます。バックスラッシュによるエスケープは役に立ちません（マーカーの解析が走る前に、Markdown が `\[` を `[` に解決するためです）。見出しの末尾にマーカーそのものの文字列を表示するには、インラインコードで囲んでください：`` ## Using `[toc]` ``。
 
-## 強調
+## 強調 [#emphasis]
 
 単語を強調したり、削除を示したり、文中でコードやキー入力を表示したりするためのインライン書式です。
 
@@ -60,7 +60,7 @@ Pandoc、kramdown、および Markdown ベースの仕様策定ツールチェ�
 **Bold**, _italic_, ~~strikethrough~~, and `inline code`.
 ```
 
-## 上付き文字と下付き文字
+## 上付き文字と下付き文字 [#superscript-and-subscript]
 
 脚注記号、序数、そして科学表記や化学表記をインラインで表現するために使います。
 
@@ -71,7 +71,7 @@ E = mc^2^ と H~2~O。
 E = mc^2^ and H~2~O.
 ```
 
-## 引用
+## 引用 [#blockquotes]
 
 引用、補足のコールアウト、編集上の注記を周囲の本文から切り離します。
 
@@ -81,7 +81,7 @@ E = mc^2^ and H~2~O.
 > Documentation that's fast, AI-ready, and zero-config — down to the template.
 ```
 
-## リスト
+## リスト [#lists]
 
 順序のない集合には箇条書きリスト、順序のある手順には番号付きリスト、チェックリストやロードマップにはタスクリストを使います。
 
@@ -111,7 +111,7 @@ E = mc^2^ and H~2~O.
 - [ ] Write the first guide
 ```
 
-## テーブル
+## テーブル [#tables]
 
 設定オプション、比較表、パラメータ一覧といった構造化データを表にします。区切り行にコロンを使うと、列を揃えられます。
 
@@ -135,7 +135,7 @@ E = mc^2^ and H~2~O.
 | Current status | E-3 visa |
 ```
 
-## リンクと画像
+## リンクと画像 [#links-and-images]
 
 他のページや外部サイトにリンクします。画像には、コンテンツの隣にあるファイルへの相対パス、`public/` 以下の任意のパス（サイトルートで配信されます）、またはリモート URL を指定できます。
 
@@ -157,7 +157,7 @@ Read the [quickstart](/docs/quickstart) to get started.
 
 コンテンツ内の画像はデフォルトでクリックしてズームできます — 読者は任意の画像をクリックしてライトボックスで開けます。これをオフにするには `blume.config.ts` で `markdown: { imageZoom: false }` を指定するか、`data-no-zoom` で個別の画像だけ除外します。
 
-## 水平線
+## 水平線 [#horizontal-rule]
 
 長いページの中で、話題が大きく切り替わる箇所を区切ります。
 
@@ -167,7 +167,7 @@ Read the [quickstart](/docs/quickstart) to get started.
 ---
 ```
 
-## コードブロック
+## コードブロック [#code-blocks]
 
 フェンス付きコードブロックは構文ハイライトされ、言語を示すヘッダー（認識された言語にはブランドアイコン付き）とコピーボタンが表示されます。言語の後に**タイトル** — 通常はファイル名 — を追加すると、ヘッダーの言語ラベルの代わりに表示されます。
 
@@ -217,7 +217,7 @@ export default defineConfig({
 });
 ```
 
-### 行番号
+### 行番号 [#line-numbers]
 
 `lineNumbers` を付けると行番号の余白がレンダリングされます — 単独でも、タイトルと併用しても使えます：
 
@@ -235,7 +235,7 @@ serve({ port: 3000 });
 ```
 ````
 
-### ハイライト
+### ハイライト [#highlighting]
 
 GitHub 形式のコメントでコードに注釈を付け、行・単語・変更点に注目を集めます。コメントはレンダリング結果から取り除かれるので、コードはコピー＆ペーストしてもきれいなままです。4 種類すべてデフォルトで有効です — 設定は不要です。
 
@@ -295,7 +295,7 @@ export default defineConfig({
 ```
 ````
 
-### 表示タイプ
+### 表示タイプ [#display-types]
 
 TypeScript のブロックに `twoslash` を付けると、コンパイラから直接得られた実際の型が表示されます — [Twoslash](https://shiki.style/packages/twoslash) によるものです。任意のトークンにホバーすると推論された型が表示され、インラインの `^?` クエリを追加すると、その行の下に型を固定表示できます。
 
@@ -318,7 +318,7 @@ config.title;
 ```
 ````
 
-### TypeScript と JavaScript のタブ
+### TypeScript と JavaScript のタブ [#typescript-and-javascript-tabs]
 
 `ts` または `tsx` のブロックに `ts2js` を付けると、タブの組としてレンダリングされます：あなたの TypeScript と、自動生成された JavaScript 版が並ぶので、スニペットは 1 つだけ保守すれば、読者は自分の方言を選べます。変換では型構文と型のみのインポートが取り除かれ、書式・コメント・JSX は書いたとおりに保たれます — さらにタブは同期するため、一度 JavaScript を選ぶとページ上のすべての組が切り替わります。図表や数式と同様に、これは MDX 専用の機能です — `.md` ファイルではこのブロックは通常の TypeScript フェンスとしてレンダリングされます。
 
@@ -358,7 +358,7 @@ export default defineConfig({
 言語アイコンを非表示にしたり、長い行をスクロールさせる代わりに折り返したりするには、`blume.config.ts` で `markdown: { code: { icons: false, wrap: true } }` を指定します。
 :::
 
-## パッケージインストール
+## パッケージインストール [#package-install]
 
 `package-install` ブロックは、1 つのインストールコマンドを npm、pnpm、yarn、bun、nub、aube のタブ付きスニペットに変換します — 読者は自分の環境に合ったものをコピーできます。図表や数式と同様に、これは MDX 専用の機能です — `.md` ファイルではこのブロックは通常のコードフェンスとしてレンダリングされます。
 
@@ -372,7 +372,7 @@ npm i blume
 ```
 ````
 
-## 図表
+## 図表 [#diagrams]
 
 `mermaid` ブロックは、テキストから直接 [Mermaid](https://mermaid.js.org) の図をレンダリングします。フェンスの内容はそのまま Mermaid に渡されるため、Mermaid がサポートするあらゆる図の種類がここで使えます。図はアクティブなカラーテーマに従い、テーマが変わると再レンダリングされます。ソースを `mermaid` でフェンスして記述します：
 
@@ -387,7 +387,7 @@ flowchart LR
 
 図はクライアント側でレンダリングされるため、これは MDX 専用の機能であり、Mermaid ライブラリは図を含むページでのみ読み込まれます。このセクションの残りは代表的な種類のギャラリーです — 全一覧は [Mermaid のドキュメント](https://mermaid.js.org/intro/)を参照してください。
 
-### フローチャート
+### フローチャート [#flowchart]
 
 ```mermaid
 flowchart LR
@@ -396,7 +396,7 @@ flowchart LR
   B --> D[llms.txt]
 ```
 
-### シーケンス図
+### シーケンス図 [#sequence-diagram]
 
 ```mermaid
 sequenceDiagram
@@ -406,7 +406,7 @@ sequenceDiagram
   B-->>R: Prerendered HTML
 ```
 
-### クラス図
+### クラス図 [#class-diagram]
 
 ```mermaid
 classDiagram
@@ -419,7 +419,7 @@ classDiagram
   Page <|-- Changelog
 ```
 
-### 状態遷移図
+### 状態遷移図 [#state-diagram]
 
 ```mermaid
 stateDiagram-v2
@@ -428,7 +428,7 @@ stateDiagram-v2
   Published --> [*]
 ```
 
-### ER 図
+### ER 図 [#entity-relationship]
 
 ```mermaid
 erDiagram
@@ -439,7 +439,7 @@ erDiagram
   }
 ```
 
-### ユーザージャーニー
+### ユーザージャーニー [#user-journey]
 
 ```mermaid
 journey
@@ -451,7 +451,7 @@ journey
     Deploy: 3: Author
 ```
 
-### ガントチャート
+### ガントチャート [#gantt]
 
 ```mermaid
 gantt
@@ -462,7 +462,7 @@ gantt
     Review  :after a1, 3d
 ```
 
-### Git グラフ
+### Git グラフ [#git-graph]
 
 ```mermaid
 gitGraph
@@ -475,7 +475,7 @@ gitGraph
   commit
 ```
 
-### 円グラフ
+### 円グラフ [#pie-chart]
 
 ```mermaid
 pie title Content types
@@ -484,7 +484,7 @@ pie title Content types
   "Changelog" : 10
 ```
 
-### マインドマップ
+### マインドマップ [#mindmap]
 
 ```mermaid
 mindmap
@@ -497,7 +497,7 @@ mindmap
       llms.txt
 ```
 
-### タイムライン
+### タイムライン [#timeline]
 
 ```mermaid
 timeline
@@ -506,7 +506,7 @@ timeline
   2026 : 1.0 release
 ```
 
-## コールアウト
+## コールアウト [#callouts]
 
 コールアウトは、背景情報・助言・リスクに読者の注意を向けます。`:::type` ディレクティブとして書き、`:::warning[Heads up]` のように角括弧でタイトルを追加できます。ディレクティブは MDX 専用の機能です — `.md` ファイルでは `:::note` の行はそのまま文字列として残ります。
 
@@ -596,7 +596,7 @@ The core theme ships no client framework JS.
 
 `caution`、`error`、`important`、`warn` という名前は、それぞれ `warning`、`danger`、`note`、`warning` のエイリアスとして使えます。
 
-## 数式
+## 数式 [#math]
 
 KaTeX で LaTeX を中央揃えのブロックとしてレンダリングします — 数式の多いドキュメントや科学系のドキュメントに便利です。数式を `$$…$$` で囲みます：
 
@@ -614,7 +614,7 @@ $$
 数式はブロック専用で、自動的に有効になります — `$$…$$` と書けばレンダリングされ、書かなければ KaTeX のスタイルシートは一切配信されません。インラインの `$…$` 数式はありません：単独の `$`（通貨、シェル変数、コード）は常にそのままの文字列として扱われるため、エスケープすべき区切り文字も、切り替える設定もありません。数式は MDX 専用の機能です。レンダリングされたマークアップ内のクラス名（`.katex-html`、`.katex-base` など）は KaTeX 自身の内部実装であり、Blume が保証するスタイリングの契約ではありません — KaTeX のアップグレードで変わる可能性があるため、カスタムスタイルは `.katex-display` のラッパーを対象にしてください。
 :::
 
-## スマート句読点
+## スマート句読点 [#smart-punctuation]
 
 Blume は、書いているそばから直線的な引用符やダッシュを組版上の等価な記号に変換するため、特殊文字を使わなくても、組版されたかのように文章が読めます。
 

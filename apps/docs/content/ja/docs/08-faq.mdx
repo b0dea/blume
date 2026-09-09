@@ -7,7 +7,7 @@ sidebar:
 
 よく寄せられる質問への回答です。載っていないものがありますか？[Issue を作成](https://github.com/haydenbleasel/blume/issues)するか、ページ内アシスタントにお尋ねください。
 
-## Blume は Mintlify や Fumadocs などとどう違いますか？
+## Blume は Mintlify や Fumadocs などとどう違いますか？ [#how-is-blume-different-from-mintlify-fumadocs-and-others]
 
 ほとんどのドキュメントツールは、2 つの両極端のどちらかに位置しています。Mintlify のような**マネージドプラットフォーム**は洗練された結果をすばやく得られますが、ビルドとホスティングは彼らのサービスです — 彼らのシステム内で執筆し、彼らのインフラにデプロイすることになります。Fumadocs、Nextra、Docusaurus のような**コンポーネントライブラリやスターター**はオープンソースで柔軟ですが、渡されるのはアプリケーション（Next.js や React のプロジェクト）であり、一文字書く前も後も、スキャフォールドし、配線し、メンテナンスし続ける必要があります。
 
@@ -35,31 +35,31 @@ Blume は第三の道を選びます: **フレームワークがテンプレー�
 
 より詳しい説明は [Blume が存在する理由](/docs) をご覧ください。
 
-## Blume は無料でオープンソースですか？
+## Blume は無料でオープンソースですか？ [#is-blume-free-and-open-source]
 
 はい — Blume は MIT ライセンスで無料です。`blume` パッケージをインストールし、コンテンツは自分のリポジトリに置き、ビルド結果は好きな場所でホストできます。有料プランも、シートごとの課金も、サインアップするアカウントもありません。ソースは [GitHub](https://github.com/haydenbleasel/blume) にあります。
 
-## Astro、React、Tailwind を知っている必要はありますか？
+## Astro、React、Tailwind を知っている必要はありますか？ [#do-i-need-to-know-astro-react-or-tailwind]
 
 いいえ。Markdown のフォルダがそのまま完全なサイトになります — ナビゲーション、検索、テーマ設定は推論されるか、ごくわずかなトークンで設定できます。基盤となるスタックに触れるのは、カスタマイズしたいときだけです: [インタラクティブなアイランド](/docs/content/islands)（React）、[コンポーネントのオーバーライド](/docs/configuration/customization)、[テーマトークン](/docs/configuration/theming)（Tailwind）。その場合でも、[`blume.config.ts`](/docs/configuration) は型付けされているので、エディタが導いてくれます。
 
-## React コンポーネントや MDX は使えますか？
+## React コンポーネントや MDX は使えますか？ [#can-i-use-react-components-and-mdx]
 
 はい。どのページも `.md` でも `.mdx` でも構いません。MDX なら、インポートなしで[組み込みコンポーネント](/docs/content/components)を挿入できます。独自の `.tsx`/`.jsx` [アイランド](/docs/content/islands)を追加することもできます — Blume はそれらを使うページでのみ React を自動的に有効化するので、他のすべての場所でコアテーマは JavaScript フリーのままです。
 
-## どこにデプロイできますか？
+## どこにデプロイできますか？ [#where-can-i-deploy-it]
 
 どこにでも。`blume build` はデフォルトで静的 HTML を出力するので、任意の静的ホストや CDN — Vercel、Netlify、Cloudflare Pages、GitHub Pages、S3、あるいは自前のサーバー — から配信できます。サーバー専用の機能（Ask AI、MCP サーバー、オンデマンドレンダリング）を使うと、Vercel、Node、Netlify、Cloudflare 向けのアダプタを通じて、ビルドがサーバー関数へと切り替わります。[デプロイ](/docs/deployment)をご覧ください。
 
-## 検索にはホスト型サービスが必要ですか？
+## 検索にはホスト型サービスが必要ですか？ [#does-search-need-a-hosted-service]
 
 いいえ。[Orama](/docs/configuration/search) は開発環境でも本番環境でも動作するローカルインデックスを構築し、ホストするものも支払うものもありません。非常に大規模なサイトでは、[Pagefind](/docs/configuration/search) がフラグ 1 つで使えます。いずれの場合も、インデックスはサイトの一部として配信されます。
 
-## 見た目はどうカスタマイズしますか？
+## 見た目はどうカスタマイズしますか？ [#how-do-i-customize-the-look]
 
 まずは[テーマトークン](/docs/configuration/theming)から — アクセントカラー、フォント、角丸、そして Tailwind で表現できるその他すべてのための `theme.css` です。さらに進めるなら、[組み込みコンポーネントのオーバーライド](/docs/configuration/customization)や[カスタムページ](/docs/configuration/customization#custom-pages)の追加があります。Astro プロジェクトそのものが欲しくなったら、[`blume eject`](/docs/reference/cli) が、引き続き `blume` パッケージを使うスタンドアロンのアプリを渡してくれます。
 
-## なぜ oxfmt / Ultracite がディレクティブを潰すのですか？
+## なぜ oxfmt / Ultracite がディレクティブを潰すのですか？ [#why-is-oxfmt--ultracite-collapsing-my-directives]
 
 Markdown を [Ultracite](https://www.ultracite.ai)（oxlint + [oxfmt](https://oxc.rs) を実行します）でフォーマットしている場合 — Blume 自身もそうしています — フォーマット後にコンテナディレクティブが 1 行に平坦化されることに気づくかもしれません:
 
@@ -77,13 +77,13 @@ Regenerate the project with blume dev.
 
 開始の `:::note` フェンスが本文と結合されてしまうと、それはもうディレクティブではなくなるため、[コールアウト](/docs/content/syntax#callouts)ではなくそのままのテキストとしてレンダリングされます。
 
-### なぜ起きるのか
+### なぜ起きるのか [#why-it-happens]
 
 これは oxfmt の Markdown フォーマッタのバグです（Prettier の Markdown プリンタから受け継いだもの — [prettier/prettier#19040](https://github.com/prettier/prettier/pull/19040) を参照）。本文を折り返す際に、`:::` のフェンス行を通常のテキストとして扱い、隣接する行と結合してしまうため、ディレクティブが壊れます。これはすべてのコンテナディレクティブの種類 — `:::note`、`:::tip`、`:::info`、`:::warning`、`:::danger`、`:::success` — に影響します。
 
 私たちは [oxc-project/oxc#24096](https://github.com/oxc-project/oxc/issues/24096) で上流に報告しました。そちらで修正されるまでは、以下のパッチが回避策です。
 
-### 修正方法
+### 修正方法 [#the-fix]
 
 `:::` フェンスに直接隣接する改行を保持するように oxfmt にパッチを当てます。Blume は自身のリポジトリでも同じ修正を配布しており、どんなプロジェクトにも適用できます。
 

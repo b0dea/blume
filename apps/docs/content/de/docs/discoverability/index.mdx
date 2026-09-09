@@ -25,7 +25,7 @@ ai: {
 
 Das meiste davon wird mit einer absoluten Site-URL deutlich schärfer — setze [`deployment.site`](/docs/deployment), damit Feeds, OG-Bilder, Canonicals, die Sitemap, JSON-LD und jedes Agent-Manifest vollständige URLs ausgeben können. Ein paar Oberflächen (Open-Graph-Bilder, die Sitemap) bleiben deaktiviert, bis sie gesetzt ist.
 
-## Was der Build ausgibt
+## Was der Build ausgibt [#what-the-build-emits]
 
 | Oberfläche | Wo | Standard | Guide |
 | --- | --- | --- | --- |
@@ -44,6 +44,6 @@ Jede generierte Datei weicht einer, die du selbst mitlieferst: Lege eine `robots
 
 Der **Ask AI**-Assistent auf der Seite ist das eine KI-Feature, das anderswo dokumentiert ist: Es ist eher ein Produktfeature für Leser als eine Discovery-Oberfläche und liegt deshalb unter [Konfiguration](/docs/configuration/ask-ai).
 
-## Deine Arbeit prüfen
+## Deine Arbeit prüfen [#checking-your-work]
 
 [`blume audit`](/docs/reference/cli#auditing-the-built-site) crawlt die gebaute Site und berichtet über Titel, Beschreibungen, Canonicals, Open-Graph- und X-Cards, hreflang, die Sitemap, `robots.txt` und strukturierte Daten. Richte es mit `--url` auf ein Deployment, um zusätzlich Response-Header und [DNS-basierte Agent-Discovery](/docs/discoverability/agent-discovery#dns-based-discovery-dns-aid) zu prüfen.

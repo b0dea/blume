@@ -6,7 +6,7 @@ description: >-
 
 HTML ist für Browser. Agenten und LLMs kommen besser mit dem Markdown zurecht, in dem deine Seiten geschrieben sind — weniger Tokens, kein Drumherum und Komponenten in einer Form, die ein Modell lesen kann. Blume liefert dieses Markdown für jede Seite aus, in der Entwicklung wie in der Produktion, ganz ohne Konfiguration.
 
-## Rohes Markdown
+## Rohes Markdown [#raw-markdown]
 
 Hänge `.md` oder `.mdx` an die URL einer beliebigen Seite an, um ihren rohen Markdown-Quelltext abzurufen — perfekt für LLMs, Coding-Agenten und „Als Markdown kopieren"-Workflows.
 
@@ -26,7 +26,7 @@ Agenten müssen die `.md`-Konvention nicht kennen: Ruft man die eigene URL einer
 
 Auch fehlende Seiten verhandeln. Jeder Build erzeugt eine Markdown-[404-Seite](/docs/advanced/custom-pages#404-page) unter `/404.md` — die Nicht-gefunden-Meldung, gefolgt von Wiederherstellungslinks zu jedem Abschnitt der obersten Ebene, zur Sitemap und zu `llms.txt` — und auf Vercel erhält eine Anfrage an eine nicht existierende URL, die Markdown bevorzugt, oder jede `.md`-URL ohne dahinterliegende Seite, diesen Inhalt mit einem echten `404`-Status statt der HTML-Hülle.
 
-### Eigene Komponenten-Serializer
+### Eigene Komponenten-Serializer [#custom-component-serializers]
 
 Gib deinen eigenen Komponenten eine Markdown-Form mit `ai.markdownComponents` — einer Zuordnung von JSX-Name zu Serializer. Jeder Serializer erhält die `props` der Komponente (statisch aus den MDX-Attributen ausgewertet, mit dem `frontmatter` der Seite im Scope), ihre `children` (bereits auf Markdown reduziert) und die `frontmatter`-Daten der Seite und gibt den Ersatz zurück — oder `null`, um das JSX unverändert zu lassen:
 
@@ -50,13 +50,13 @@ Für Container-Komponenten extrahiert `childComponents("Name")` direkte Kinder a
 
 Serializer leben in `blume.config.ts`, nicht in `components.tsx`: Die Konfigurationsdatei wird zur Build-Zeit ausgeführt, während die Komponentendatei nur statisch analysiert wird (sie darf `.astro`-Dateien importieren, die außerhalb des Site-Builds nicht laufen können). Deine Komponenten selbst bleiben exakt wie zuvor in `components.tsx` registriert — `markdownComponents` fügt nur ihre an Agenten gerichtete Markdown-Form hinzu.
 
-## Als Markdown kopieren
+## Als Markdown kopieren [#copy-as-markdown]
 
 Jede Seite trägt eine Aktion **Als Markdown kopieren** — in den [Seitenaktionen](/docs/content/navigation#page-actions) unterhalb des Inhaltsverzeichnisses —, die das rohe Markdown der Seite in die Zwischenablage kopiert. Es ist derselbe Quelltext, der unter der [`.md`-URL](#raw-markdown) oben ausgeliefert wird, bereit zum Einfügen in ein LLM, ein Issue oder deine Notizen. Sie ist auf jeder Seite verfügbar, in der Entwicklung wie in der Produktion, ganz ohne Konfiguration.
 
 Wo die Clipboard-API nicht verfügbar ist oder der Browser sie verweigert — In-App-Browser, WebViews, unsichere Origins —, fällt die Aktion auf den alten Kopierbefehl zurück, und wenn nichts in der Zwischenablage landet, meldet der Button **Kopieren fehlgeschlagen** (lokalisiert über `actions.copyFailed`), statt stumm zu bleiben. Derselbe Fallback steht hinter jedem Kopier-Button, den Blume rendert.
 
-## Im Chat öffnen
+## Im Chat öffnen [#open-in-chat]
 
 Die Aktion **Im Chat öffnen** öffnet die aktuelle Seite in einem KI-Assistenten — v0, ChatGPT, Claude, T3 Chat, Scira oder Cursor — vorausgefüllt mit einem Prompt, der ihn auf das rohe Markdown der Seite verweist, damit er Fragen zu dem beantworten kann, was du gerade liest:
 

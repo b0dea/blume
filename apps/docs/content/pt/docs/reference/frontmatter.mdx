@@ -39,7 +39,7 @@ Todas as páginas aceitam o frontmatter a seguir. Todos os campos são opcionais
   }}
 />
 
-## Barra lateral
+## Barra lateral [#sidebar]
 
 ```yaml lineNumbers
 sidebar:
@@ -64,7 +64,7 @@ seo:
   noindex: false
 ```
 
-## Pesquisa
+## Pesquisa [#search]
 
 ```yaml lineNumbers
 search:
@@ -86,7 +86,7 @@ changelog:
 
 `date` pode ficar aqui ou no nível superior — ambos alimentam o [feed RSS do changelog](/docs/content#feeds). Consulte [Changelog](/docs/advanced/changelog) para a página de linha do tempo gerada e o feed.
 
-## Chaves personalizadas
+## Chaves personalizadas [#custom-keys]
 
 Qualquer chave fora desta referência faz a build falhar, então erros de digitação são detectados cedo. Projetos que carregam seus próprios metadados podem incluir chaves extras via [`frontmatter.extend`](/docs/configuration#frontmatter) em `blume.config.ts`, cada uma validada por um schema fornecido pelo projeto:
 
@@ -114,7 +114,7 @@ reviewedAt: 2026-06-20
 
 Os schemas são aceitos pela interface [Standard Schema](https://standardschema.dev), então Zod (qualquer que seja a versão instalada pelo seu projeto), Valibot e ArkType funcionam. Toda chave declarada é validada em cada página — inclusive as ausentes — de modo que um schema obrigatório impõe a chave em todo o site; marque-a como `.optional()` para validar apenas onde estiver presente. Todas as demais chaves permanecem estritamente validadas, e os campos integrados não podem ser redeclarados.
 
-### Chaves por tipo
+### Chaves por tipo [#per-type-keys]
 
 Para exigir chaves apenas em um tipo de conteúdo — o `status` de uma RFC, a `severity` de um relatório de incidente — declare-as em [`content.types`](/docs/configuration#content), organizadas pelo `type` do frontmatter ao qual se aplicam:
 

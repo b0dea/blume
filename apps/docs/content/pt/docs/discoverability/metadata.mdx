@@ -14,7 +14,7 @@ Toda página renderiza as tags `<head>` padrão a partir da sua config e do fron
 - `og:image` — a [imagem OG](/docs/discoverability/open-graph) da página. Um card gerado também declara seus `og:image:width`, `og:image:height`, `og:image:type` e `og:image:alt`, para que um crawler consiga montar o layout do card sem precisar buscá-lo antes; um `seo.image` que você mesmo fornece não declara nenhum desses, já que seu tamanho e formato são desconhecidos.
 - `twitter:card`, `twitter:title`, `twitter:description`, `twitter:image` — o card do X. Páginas com imagem recebem a variante larga `summary_large_image`; páginas sem imagem ainda recebem o card compacto `summary` em vez de aparecerem como um link simples.
 
-## Atribuição no X
+## Atribuição no X [#x-attribution]
 
 O X lê todo o resto do card a partir das tags `og:*`, então os únicos valores que ele não consegue inferir são as contas a creditar. Defina-as sob `seo.x` e o Blume emite `twitter:site` (a conta do seu site) e `twitter:creator` (a do autor). O `@` é opcional — `acme` e `@acme` funcionam do mesmo jeito.
 
@@ -35,7 +35,7 @@ seo:
 ---
 ```
 
-## Sobrescritas por página
+## Sobrescritas por página [#per-page-overrides]
 
 Sobrescreva qualquer uma das outras tags por página com o frontmatter `seo`:
 

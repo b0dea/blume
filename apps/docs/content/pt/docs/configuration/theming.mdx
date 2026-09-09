@@ -6,7 +6,7 @@ description: >-
 
 O tema do Blume é orientado a tokens e funciona nos modos claro e escuro por padrão. Use tão pouco ou tanto quanto precisar: alguns tokens de configuração para os casos comuns, um `theme.css` para sobrescrever qualquer token de design ou utilitários do Tailwind para componentes personalizados.
 
-## Tokens de configuração
+## Tokens de configuração [#config-tokens]
 
 Os controles do dia a dia ficam em `theme` na sua configuração:
 
@@ -23,7 +23,7 @@ theme: {
 }
 ```
 
-### Cor de destaque
+### Cor de destaque [#accent]
 
 A cor de destaque tinge elementos interativos e realçados — marcadores de etapa, abas ativas, selos, hovers de cartões e mais. Use uma predefinição nomeada ou qualquer cor CSS:
 
@@ -37,11 +37,11 @@ Predefinições nomeadas: `blue` (padrão), `green`, `orange`, `pink`, `purple`,
 
 Uma string se aplica a ambos os modos de cor; passe um objeto para [uma cor de destaque diferente por modo](#dark-mode-colors).
 
-### Raio
+### Raio [#radius]
 
 `radius` define o arredondamento dos cantos compartilhado por cartões, blocos de código, avisos e campos de entrada — `none`, `sm`, `md` (padrão) ou `lg`.
 
-### Modo de cor
+### Modo de cor [#color-mode]
 
 `mode` define o esquema de cores inicial:
 
@@ -50,7 +50,7 @@ Uma string se aplica a ambos os modos de cor; passe um objeto para [uma cor de d
 
 Um alternador no cabeçalho sempre permite que os leitores mudem, e a escolha deles é lembrada entre as visitas. O modo escuro é aplicado com um atributo `data-theme="dark"` no elemento `<html>`.
 
-### Fontes
+### Fontes [#fonts]
 
 `fonts` define os tipos de letra para três funções:
 
@@ -90,7 +90,7 @@ Uma string simples é um slug do Google Fonts do conjunto selecionado abaixo:
 | Com serifa | `ibm-plex-serif` `lora` `merriweather` `playfair-display` `source-serif-4` |
 | Monoespaçada | `fira-code` `geist-mono` `ibm-plex-mono` `jetbrains-mono` `roboto-mono` `source-code-pro` `space-mono` |
 
-#### Qualquer família de qualquer provedor
+#### Qualquer família de qualquer provedor [#any-provider-family]
 
 Precisa de uma família que não está no conjunto selecionado — digamos, uma que cubra um sistema de escrita não latino? Passe um objeto com o nome exato da família. Ela é auto-hospedada e otimizada da mesma forma:
 
@@ -109,7 +109,7 @@ theme: {
 - **`subsets`** — os subconjuntos de caracteres a carregar, pelos nomes do provedor (`latin`, `latin-ext`, `vietnamese`, `cyrillic`, `greek`, …). O padrão é `latin` mais o que os idiomas configurados precisarem — veja abaixo.
 - **`fallback`** — a pilha de fontes do sistema exibida enquanto a fonte carrega e para glifos ausentes: `sans`, `serif` ou `mono`. O padrão é `mono` para a função mono e `sans` nos demais casos.
 
-#### Subconjuntos e idiomas
+#### Subconjuntos e idiomas [#subsets-and-locales]
 
 Google, Bunny e Fontsource dividem cada família em subconjuntos por sistema de escrita, e apenas os subconjuntos que você carrega recebem um `@font-face`. O Blume deriva a lista a partir do seu [`i18n.locales`](/docs/content/i18n): um site com idiomas vietnamita, polonês, russo ou grego carrega `vietnamese`, `latin-ext`, `cyrillic` ou `greek` junto com `latin`, para que diacríticos e letras não latinas sejam renderizados na fonte escolhida em vez do fallback do sistema. Sites sem um bloco `i18n`, ou apenas com idiomas Latin-1, carregam somente `latin`. Os navegadores baixam um subconjunto apenas quando uma página usa seus caracteres, e os preloads seguem a mesma lista.
 
@@ -125,7 +125,7 @@ theme: {
 
 Slugs selecionados como `inter` seguem a lista derivada dos idiomas; use a forma de objeto para fixar subconjuntos nessas famílias também.
 
-#### Arquivos de fonte locais
+#### Arquivos de fonte locais [#local-font-files]
 
 Para uma fonte que você possui (ou que nenhum provedor serve), aponte uma função para arquivos de fonte no seu projeto. Cada variante se torna um `@font-face`:
 
@@ -151,7 +151,7 @@ Quando você define `theme.fonts` explicitamente, suas fontes display e body tam
 
 Quer voltar para a pilha de fontes do sistema? Sobrescreva os tokens `--blume-font-*` diretamente em [`theme.css`](#themecss).
 
-### Cores do modo escuro
+### Cores do modo escuro [#dark-mode-colors]
 
 `accent` e `background` seguem uma regra: uma string se aplica a ambos os modos de cor, e um objeto `{ light, dark }` define cada modo individualmente:
 
@@ -167,7 +167,7 @@ theme: {
 
 Cada cor aceita uma predefinição nomeada ou qualquer cor CSS. Para `background` (e `backgroundImage`), qualquer uma das chaves pode ser omitida para sobrescrever apenas um modo — `background: { dark: "#0a0a0a" }` mantém o fundo claro padrão.
 
-### Cor de ação
+### Cor de ação [#action-color]
 
 `action` é uma cor de destaque secundária para chamadas para ação principais e para os utilitários `action` do Tailwind (`bg-action`, `text-action`). Seu padrão é o seu `accent`:
 
@@ -177,7 +177,7 @@ theme: {
 }
 ```
 
-### Imagem de fundo
+### Imagem de fundo [#background-image]
 
 Defina uma imagem de fundo atrás do seu conteúdo com `backgroundImage` — uma URL ou um caminho dentro de `public/`. Assim como nas cores, uma string se aplica a ambos os modos e um objeto `{ light, dark }` define a imagem de cada modo:
 
@@ -213,7 +213,7 @@ O `theme.css` é embutido no ponto de entrada do Tailwind do site, então direti
 @source "../../packages/ui/src";
 ```
 
-### Tokens de design
+### Tokens de design [#design-tokens]
 
 | Token | Controla |
 | --- | --- |
@@ -239,7 +239,7 @@ Defina um token `--blume-font-*` com qualquer pilha de fontes para usar uma font
 }
 ```
 
-## Utilitários do Tailwind
+## Utilitários do Tailwind [#tailwind-utilities]
 
 O tema do Blume é construído internamente com o Tailwind v4, e os arquivos `.astro`, `.tsx` e `.jsx` do seu projeto também são analisados — assim você pode estilizar componentes e páginas personalizados com classes utilitárias, sem precisar configurar o Tailwind. Cada token é exposto como um utilitário, então seus componentes acompanham o tema automaticamente:
 
@@ -258,7 +258,7 @@ O tema do Blume é construído internamente com o Tailwind v4, e os arquivos `.a
 | `--blume-font-body`         | `font-sans`                |
 | `--blume-font-mono`         | `font-mono`                |
 
-## Ordem da cascata
+## Ordem da cascata [#cascade-order]
 
 Os estilos são resolvidos em três camadas, cada uma sobrescrevendo a anterior:
 

@@ -6,7 +6,7 @@ description: >-
 
 Blume サイトの大部分は Markdown ですが、ドキュメント*ではない* ルートが必要になることもあります — ランディングページ、料金ページ、手作りのブログやチェンジログのインデックス、あるいはインタラクティブなダッシュボードなどです。**pages** フォルダに `.astro` ファイルを置けば、Blume がそれをコンテンツと並ぶ実際のルートとしてマウントします。
 
-## ページを追加する
+## ページを追加する [#add-a-page]
 
 プロジェクトルートに `pages/` フォルダを作成し、`.astro` ファイルを追加します:
 
@@ -22,7 +22,7 @@ import data from "blume:data";
 
 カスタムページはディスク上の元の場所を保持するため、相対インポート、コンポーネントのインポート、[`getStaticPaths`](https://docs.astro.build/en/reference/routing-reference/#getstaticpaths) はすべて、素の Astro プロジェクトとまったく同じように動作します — Blume は各ファイルをコピーするのではなく、それがある場所にマウントします。
 
-## ファイルとルート
+## ファイルとルート [#files-and-routes]
 
 pages フォルダ配下の各ファイルのパスがそのルートになります。`index` は親フォルダに対応し、動的な `[param]` セグメントはそのまま保持されます:
 
@@ -35,7 +35,7 @@ pages フォルダ配下の各ファイルのパスがそのルートになり�
 
 同じパスに生成されたルートがある場合、カスタムページが**優先されます**。たとえば `pages/changelog.astro` を追加すると、Blume の[生成されるチェンジログのタイムライン](/docs/advanced/changelog)が自作のものに置き換わります。
 
-## サイトデータの読み取り
+## サイトデータの読み取り [#reading-site-data]
 
 `blume:data` をインポートすると、サイトの他の部分が使っているのと同じ解決済みの設定、ナビゲーション、ルート、フィードを読み取れます:
 
@@ -152,7 +152,7 @@ const posts = (await getCollection("docs"))
 </ul>
 ```
 
-## ランタイムヘルパー
+## ランタイムヘルパー [#runtime-helpers]
 
 `blume/runtime` は一般的なデータパターンをまとめて提供するため、`blume:data` の内部に手を伸ばす必要がありません。
 
@@ -189,7 +189,7 @@ const [intro] = getBlumeCollection(data, { prefix: "/docs" });
 
 独自のオーバーライドやアイランド（生成されたランタイム内に存在し、デフォルトではインポートされません）を追加するには `components` を、`"docs"` 以外のコレクションから読み取るには `collection` を渡します。
 
-## サイトレイアウトを使う
+## サイトレイアウトを使う [#using-the-site-layout]
 
 `RootLayout` は、生成されたページが使うのと同じ 3 カラムグリッドでラップすることで、カスタムページに完全なドキュメントのクローム — ヘッダー、サイドバー、検索、目次、テーマ — を与えます。ランディングページやマーケティングページではそのグリッドが邪魔になるので、代わりに **`PageLayout`** を使いましょう: これはドキュメントのシェル、ヘッダー、テーマ、フォントに加えて、単一の全幅 `<slot />` を提供します（サイドバーなし、prose なし、目次なし）。オプションの `footer` スロットは `<main>` の後にレンダリングされます:
 
@@ -271,7 +271,7 @@ import data from "blume:data";
 `RootLayout` は生成されるランタイムの一部であるため、その props はリリース間で変更される可能性があります。完全に自分のものとなるレイアウトが欲しい場合は、[`blume eject`](/docs/configuration/customization#eject) で `.blume/` を完全に自分が所有する標準の Astro プロジェクトに変換できます。
 :::
 
-## 404 ページ
+## 404 ページ [#404-page]
 
 Blume はデフォルトの **not found** ページを標準で同梱しています: サイトのクローム（ヘッダー、検索、テーマ）でラップされた中央揃えの「404」メッセージで、マッチしないあらゆる URL に対して配信されます。`blume build` はこれを `404.html` に書き出し、静的ホストが自動的に配信します。また `blume dev` は不明なルートに対してこれを表示します。メッセージの下には **Where to look next** のリストがあり、すべてのトップレベルセクションに加えて、存在する場合は `sitemap.xml` と [`llms.txt`](/docs/discoverability/llms-txt) のインデックスへのリンクが並ぶため、読者 — あるいは古い URL をたどったエージェント — が戻る道を持てます。
 
@@ -303,7 +303,7 @@ import data from "blume:data";
 
 デフォルトのデザインは保ちつつ文言だけを変更する場合 — 他の言語向けも含めて — は、`i18n.ui` で `notFound` の [UI 文字列](/docs/content/i18n)（`title`、`description`、`home`）を上書きしてください。
 
-## インタラクティブなページ
+## インタラクティブなページ [#interactive-pages]
 
 カスタムページは通常の Astro なので、ハイドレーションディレクティブを付けて React（や任意のフレームワーク）の[アイランド](/docs/configuration/customization#interactive-islands)を組み込めます。プロジェクトに `.tsx` または `.jsx` ファイルが含まれた時点で、React は自動的に有効になります。
 

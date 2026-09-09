@@ -20,7 +20,7 @@ blume translate  3 item(s) · 2 locale(s) · Claude Code
   Translated 3 files into 2 locales · 1 adopted · 14 already up to date · 51.1s · $0.22
 ```
 
-## Como funciona
+## Como funciona [#how-it-works]
 
 O Blume é o dono do pipeline; o agente só traduz texto. Para cada arquivo que precisa de trabalho, o Blume monta um prompt de tradução, executa a CLI do agente em modo headless com as ferramentas de arquivo, shell e web desativadas, valida a estrutura da resposta e escreve ele mesmo o arquivo de destino — [Claude Code](https://claude.com/claude-code) com `--claude`, ou [Codex](https://developers.openai.com/codex/cli) com `--codex`. O Blume não guarda chaves de API e não chama nenhum modelo por conta própria.
 
@@ -32,14 +32,14 @@ As novas execuções são incrementais: uma origem que não mudou desde a últim
 
 Uma primeira tradução não tem precedente para seguir, então fixe a escolha desde o início com [`style` no locale](/docs/content/i18n) (`{ code: "pt", label: "Português", style: "Brazilian Portuguese, informal você" }`). Essa orientação acompanha todo prompt de tradução e, quando uma tradução existente discorda dela, o `style` vence — assim, uma retradução também empurra as páginas mais antigas na direção do estilo configurado.
 
-## O que é traduzido
+## O que é traduzido [#what-gets-translated]
 
 - **Páginas** — arquivos `.md`/`.mdx` no locale padrão. O agente traduz a prosa e apenas os valores de frontmatter visíveis para humanos (`title`, `description`, `sidebar.label`, `sidebar.badge`, `seo.title`, `seo.description`). Os destinos seguem o seu parser: `fr/guides/install.mdx` com `dir`, `guides/install.fr.mdx` com `dot`.
 - **Títulos de navegação de pastas** — com o parser `dir`, os títulos [`meta.ts`](/docs/content/meta) necessários de cada locale são traduzidos em uma única chamada em lote, e o `meta.ts` gerado por locale copia todas as outras chaves (`order`, `pages`, `icon`, `collapsed`) sem alteração, para que a barra lateral do locale mantenha sua ordenação.
 
 As traduções que você escreveu à mão são **adotadas, nunca sobrescritas**: uma tradução que existe mas não tem entrada no livro de registro é marcada como atual e deixada intacta. Só o `--force` a retraduz.
 
-## Validação
+## Validação [#validation]
 
 A estrutura nunca é confiada ao agente. Antes de escrever, o Blume verifica cada resposta e reconstrói o arquivo a partir da origem:
 
@@ -48,7 +48,7 @@ A estrutura nunca é confiada ao agente. Antes de escrever, o Blume verifica cad
 
 Uma resposta que falha na validação não escreve nada — o item é reportado como falho e a execução segue em frente. Tudo o que teve sucesso permanece registrado no livro de registro, então uma nova execução repete apenas as falhas.
 
-## Falhar o CI
+## Falhar o CI [#failing-ci]
 
 O `blume translate --check` é o portão somente leitura: ele reporta todos os pares faltando e desatualizados e sai com código diferente de zero quando há dessincronização, sem executar um agente nem escrever nada.
 
@@ -63,7 +63,7 @@ blume translate --check --json    # machine-readable drift report on stdout
 
 O relatório JSON tem o mesmo formato `diagnostics` + `summary` que o `blume validate --json`, o `blume audit --json` e o `blume eval --json`, com a dessincronização agrupada por locale. As traduções escritas à mão (não registradas) nunca fazem o portão falhar.
 
-## Limitações
+## Limitações [#limitations]
 
 - A tradução de títulos de meta existe apenas no parser `dir` — o parser `dot` não tem mecanismo de `meta.ts` por locale. Um `meta.ts` que exporta uma função como default é ignorado com um aviso; escreva a cópia desse locale à mão.
 - As origens remotas e vindas de CMS são ignoradas: não existe um arquivo local onde escrever a tradução.

@@ -20,7 +20,7 @@ seo: {
 
 [`deployment.site`](/docs/deployment) が設定されている場合、URL は絶対 URL になります。[`seo.noindex`](/docs/discoverability/metadata#per-page-overrides) が指定されたページはスキップされます。[`lastModified`](/docs/configuration#last-modified) が有効な場合、各ページの日付は `dateModified` としても出力されます。
 
-## サイトのアイデンティティ
+## サイトのアイデンティティ [#site-identity]
 
 WebSite ノードはサイトが存在することを示すだけで、それが _何_ であるか、_誰_ が運営しているかは示しません — AI エージェントがあなたを推薦したり引用したりする前に JSON-LD を読む目的は、まさにそこにあります。2 つのオプションブロックがそれを補います。どちらも `deployment.site` が必要です (これらのノードは絶対識別子を持つため):
 
@@ -47,6 +47,6 @@ seo: {
 
 `software` は、ホームページに **SoftwareApplication** ノードを追加します: 製品の名前と説明 (デフォルトはサイトの値)、`applicationCategory` (デフォルトは `"DeveloperApplication"`)、オペレーティングシステム、ライセンス、`price` が設定されている場合は `Offer`、そして `sameAs` にレジストリまたはリポジトリの URL が含まれます。すべてデフォルト値を使用するには `software: true` を指定してください。organization が設定されている場合は、その `publisher` として参照されます。
 
-## カスタムページ
+## カスタムページ [#custom-pages]
 
 `PageLayout` を通してレンダリングされるカスタム [`.astro` ページ](/docs/advanced/custom-pages) も同じ `WebSite` グラフを出力するため、マーケティング用のホームページだけが構造化データを持たない URL になることはありません。この設定と同期させるには `structuredDataEnabled={config.structuredData}` を渡し、そのページだけ無効にするには `structuredDataEnabled={false}` を渡してください。

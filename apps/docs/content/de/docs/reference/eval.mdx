@@ -23,7 +23,7 @@ blume eval  3 question(s) · Claude Code
   2 passed · 1 failed · 1 skipped · 1m 42s · $0.45
 ```
 
-## Funktionsweise
+## Funktionsweise [#how-it-works]
 
 Jede Frage durchläuft zwei Agent-Sitzungen und nutzt dabei eine Agent-CLI, die du bereits installiert hast – standardmäßig [Claude Code](https://claude.com/claude-code) oder [Codex](https://developers.openai.com/codex/cli) mit `--agent codex`. Blume hält keine API-Schlüssel vor und ruft selbst kein Modell auf.
 
@@ -34,7 +34,7 @@ Der MCP-Snapshot wird direkt aus deinen Content-Quellen erstellt, sodass du `blu
 
 Eine Antwort, die die Dokumentation _nicht_ stützen kann, fällt selbst dann durch, wenn das Vorwissen des Agenten zufällig richtig ist – genau darum geht es. Deine Dokumentation ist die einzige Quelle, die ausgeliefert wird.
 
-## Evals schreiben
+## Evals schreiben [#writing-evals]
 
 Die Fragen liegen in `evals.yaml` im Projektstammverzeichnis. Damit ein Agent aus deiner bestehenden Dokumentation eine Startdatei entwirft:
 
@@ -72,7 +72,7 @@ questions:
 
 Schreibe Fragen, die deine Nutzer tatsächlich stellen – die aus Support-Threads, GitHub-Issues und Onboarding-Gesprächen. Die besten Evals codieren ein Versprechen deiner Dokumentation („Deployments ohne Konfiguration“) als Frage, die bricht, sobald ein PR das Versprechen bricht.
 
-## CI zum Fehlschlagen bringen
+## CI zum Fehlschlagen bringen [#failing-ci]
 
 Der Exit-Code ist der Vertrag: Jede fehlgeschlagene Frage führt zu einem Exit-Code ungleich null. `--threshold` lockert die Schranke auf einen bestandenen Anteil, wenn du dich aus einem Rückstand herausarbeitest:
 
@@ -86,7 +86,7 @@ Der JSON-Bericht hat dieselbe Struktur aus `diagnostics` + `summary` wie `blume 
 
 Da jede Frage zwei Modellsitzungen bedeutet, kostet ein Eval-Lauf echtes Geld und echte Minuten – die Ausgaben pro Frage werden während des Laufs ausgegeben. Ein sinnvolles CI-Setup führt `blume eval` bei Änderungen an der Dokumentation aus statt bei jedem Push.
 
-## Die Befunde beheben
+## Die Befunde beheben [#fixing-the-findings]
 
 Jeder Fehlschlag benennt die fehlenden Fakten und die Seite, die sie nennen sollte. Um stattdessen den gesamten Bericht an den Agenten zu übergeben:
 

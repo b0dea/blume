@@ -6,7 +6,7 @@ description: >-
 
 O Blume monta sua barra lateral a partir do sistema de arquivos e depois permite refiná-la tanto — ou tão pouco — quanto você quiser: página por página, pasta por pasta ou com uma configuração explícita. Trilhas de navegação, links de anterior/próximo e o sumário da página derivam todos do mesmo modelo, sem nada para conectar manualmente.
 
-## A barra lateral gerada
+## A barra lateral gerada [#the-generated-sidebar]
 
 Por padrão, a barra lateral espelha a sua árvore de conteúdo:
 
@@ -16,7 +16,7 @@ Por padrão, a barra lateral espelha a sua árvore de conteúdo:
 
 Isso já basta para muitos sites — tudo abaixo é opcional.
 
-## Rótulo, ícone e selo da página
+## Rótulo, ícone e selo da página [#page-label-icon-and-badge]
 
 Ajuste como uma única página aparece na barra lateral a partir do seu frontmatter, sob `sidebar`:
 
@@ -30,7 +30,7 @@ sidebar:
 
 Veja [Frontmatter](/docs/reference/frontmatter) para o esquema completo da página.
 
-## Grupos de pastas
+## Grupos de pastas [#folder-groups]
 
 Cada pasta vira um grupo na barra lateral. Coloque um [`meta.ts`](/docs/content/meta) junto às suas páginas para definir o título, o ícone, a ordem do grupo e a ordem dos seus filhos:
 
@@ -50,7 +50,7 @@ O `meta.title` de uma pasta e o `title` do frontmatter da sua própria página `
 
 Para agrupar páginas _sem_ adicionar um segmento de URL, use um nome de pasta entre parênteses — veja [Páginas](/docs/content#group-folders).
 
-## Modos de exibição
+## Modos de exibição [#display-modes]
 
 `navigation.sidebar.display` define como cada grupo da barra lateral é renderizado:
 
@@ -70,7 +70,7 @@ navigation: {
 O modo `page` mantém seções profundas organizadas — use-o quando os grupos tiverem muitos filhos e você preferir navegar dentro deles a rolar por eles.
 :::
 
-### Substituições por grupo
+### Substituições por grupo [#per-group-overrides]
 
 Qualquer grupo gerado pode abrir mão do modo global — sem precisar de uma barra lateral explícita. Defina `display` no [`meta.ts`](/docs/content/meta) da pasta ou — quando a pasta tem uma página `index` — sob `sidebar` no frontmatter dessa página, e apenas aquele grupo muda:
 
@@ -104,7 +104,7 @@ O `display` de um grupo se aplica somente àquele grupo — subgrupos aninhados 
 
 Um grupo em uma [barra lateral explícita](#explicit-sidebar) substitui o modo global com seu próprio `display`, exatamente como antes.
 
-## Ordenação
+## Ordenação [#ordering]
 
 Quando a barra lateral é gerada, a ordem é resolvida da maior prioridade para a menor:
 
@@ -124,7 +124,7 @@ Quando a barra lateral é gerada, a ordem é resolvida da maior prioridade para 
 
 Dois irmãos que acabam com a mesma ordem explícita ou numérica recorrem à ordem alfabética entre si — o Blume emite um aviso `BLUME_DUPLICATE_SIDEBAR_ORDER` para que o empate não passe despercebido.
 
-## Páginas ocultas
+## Páginas ocultas [#hidden-pages]
 
 Oculte uma página da barra lateral — e da paginação de anterior/próximo — mantendo-a construída e acessível pela sua URL:
 
@@ -133,7 +133,7 @@ sidebar:
   hidden: true
 ```
 
-## Abas
+## Abas [#tabs]
 
 Renderize seções de nível superior como abas no cabeçalho, útil para dividir um site grande em áreas distintas — digamos, adaptadores, uma API e guias de IA. Uma aba fica destacada quando a rota atual está sob o seu `path`:
 
@@ -184,7 +184,7 @@ As abas também **delimitam a barra lateral**: quando a rota atual está sob o `
 
 Em uma rota que não está sob nenhuma aba (ou sob uma aba cujo `path` é `/`), a barra lateral mostra as páginas que _não_ pertencem a uma aba — a pasta de cada aba fica oculta dela, já que aquela seção já tem sua própria aba no cabeçalho. Assim, uma página inicial na raiz lista suas páginas soltas de nível superior enquanto o conteúdo seccionado permanece atrás da sua aba, espelhando as pastas raiz do Fumadocs. Se uma rota não tiver páginas próprias para mostrar dessa forma, a árvore completa é exibida em vez disso, de modo que a barra lateral nunca fica em branco.
 
-## Seletores
+## Seletores [#selectors]
 
 Para alternar entre partições inteiras de um site — um produto, uma versão ou qualquer conjunto agrupado de destinos — adicione um `selector`. Cada um é renderizado como um dropdown no cabeçalho, mostrando a opção cujo `path` corresponde à rota atual:
 
@@ -207,7 +207,7 @@ Cada item recebe um `label`, um `path` e, opcionalmente, `icon`, `description` e
 
 Com [versionamento](/docs/content/versioning) configurado, o Blume renderiza um seletor de versão automaticamente — declarar aqui o seu próprio seletor `kind: "version"` substitui o automático, então configurações feitas à mão continuam funcionando.
 
-## Links em destaque
+## Links em destaque [#featured-links]
 
 Fixe links no topo da barra lateral, acima de todas as seções — um blog, um changelog, uma página de contato ou suporte que deva estar sempre a um clique de distância. Diferentemente da árvore gerada, os links em destaque **não são delimitados por aba**: eles aparecem em todas as rotas, em todos os breakpoints.
 
@@ -222,7 +222,7 @@ navigation: {
 
 Cada link recebe um `label`, um `href` e um `icon` opcional (um nome de [ícone integrado](/docs/content/components#icon), caminho/URL de imagem ou SVG inline — o mesmo que em qualquer outro lugar). Um `href` pode apontar para qualquer lugar: uma URL externa abre em uma nova aba, enquanto uma rota interna (`/contact`) é validada contra as suas páginas no momento da build, avisando você se nada corresponder.
 
-## Barra lateral explícita
+## Barra lateral explícita [#explicit-sidebar]
 
 Para controle total, liste itens explícitos em `navigation.sidebar` — um array simples é um atalho para `sidebar.items`, e a forma de objeto os combina com um [`display`](#display-modes) global. Quando os itens são definidos, o Blume os usa literalmente e pula a geração pelo sistema de arquivos:
 
@@ -242,7 +242,7 @@ navigation: {
 
 Cada item é uma rota de página (uma string), um grupo (`label` + `items`) ou um link (`label` + `href`). Grupos podem ser aninhados, substituir o [modo `display`](#display-modes) global e começar `collapsed`.
 
-## Ações do cabeçalho
+## Ações do cabeçalho [#header-actions]
 
 `navigation.actions` coloca links simples no cabeçalho, à esquerda dos botões de ícone, e `navigation.cta` é o único botão preenchido:
 
@@ -257,7 +257,7 @@ navigation: {
 
 Um href `http(s)` ou relativo ao protocolo abre em uma nova aba; uma rota permanece na aba e é validada contra as suas páginas no momento da build, como um link `featured` — então uma página servida por outro app no mesmo host (`/signup` no produto, digamos) deve ser escrita como uma URL absoluta. As `actions` ficam ocultas abaixo do breakpoint `sm`, onde o cabeçalho tem espaço para o logo e o alternador de navegação e nada mais. O `cta` também se oculta ali, exceto em uma página sem alternador de navegação — uma landing page em `PageLayout` sem abas — onde ele permanece, já que nada mais pode exibi-lo em um celular.
 
-## Link do repositório
+## Link do repositório [#repository-link]
 
 Quando você define [`github`](/docs/configuration) na sua configuração, o Blume mostra um ícone do GitHub no cabeçalho — ao lado do alternador de tema — que leva ao seu repositório. Ele vem ativado por padrão; oculte-o com `navigation.repo`:
 
@@ -279,18 +279,18 @@ navigation: {
 
 Isso é para um projeto cujo repositório de documentação é privado. O `github` controla junto o link de edição de cada página, a marca do cabeçalho e o repositório do [manifesto de agente](/docs/discoverability/agent-discovery), então um projeto assim precisa deixar `github` sem definir — e uma URL é o que permite que ele ainda exiba uma marca apontando para algo público. O ícone continua sendo a marca do GitHub, então um link para outro host pertence a [`actions`](#header-actions).
 
-## Trilhas de navegação e paginação
+## Trilhas de navegação e paginação [#breadcrumbs-and-pagination]
 
 Elas vêm de graça a partir da árvore da barra lateral — sem configuração:
 
 - **Trilhas de navegação** mostram o grupo pai da página atual acima do título.
 - **Links de anterior e próximo** no rodapé de cada página seguem a ordem da barra lateral, pulando páginas ocultas.
 
-## Nesta página
+## Nesta página [#on-this-page]
 
 Um sumário na coluna direita é gerado automaticamente a partir dos títulos `##` e `###` de cada página, para que páginas longas continuem fáceis de escanear. Em telas mais estreitas, onde a coluna direita fica oculta, ele se recolhe em um dropdown “Nesta página” acima do conteúdo.
 
-## Ações da página
+## Ações da página [#page-actions]
 
 Abaixo do sumário, toda página exibe um conjunto de ações rápidas:
 

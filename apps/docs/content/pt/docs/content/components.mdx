@@ -6,7 +6,7 @@ description: >-
 
 O Blume vem com um conjunto de componentes acessível e personalizável, disponível em qualquer página `.mdx` **sem imports**. Cada um é mostrado abaixo com uma prévia ao vivo e seu código-fonte. Os componentes são vanilla e não usam React; o React só entra em ação se você adicionar sua própria ilha.
 
-## Card e CardGroup
+## Card e CardGroup [#card-and-cardgroup]
 
 Os cards apontam para um destino com um ícone, um título e um breve resumo. Agrupe-os com `CardGroup` para obter uma grade responsiva. Use-os em páginas iniciais, índices de seção e “próximos passos” — em qualquer lugar em que você esteja guiando o leitor adiante.
 
@@ -92,7 +92,7 @@ Grupos com abas de mesmo título alternam juntos — escolha “macOS” em um e
 
 Um pequeno rótulo em linha para status ou metadados — tags de versão, marcadores de “novo” ou “beta”, níveis de estabilidade. O `variant` ajusta a cor ao significado.
 
-### Padrão
+### Padrão [#default]
 
 Metadados neutros, sem ênfase específica.
 
@@ -102,7 +102,7 @@ Metadados neutros, sem ênfase específica.
 <Badge>Stable</Badge>
 ```
 
-### Destaque
+### Destaque [#accent]
 
 Chama a atenção usando a cor de destaque do seu tema — bom para marcadores de “novo” ou de destaque.
 
@@ -112,7 +112,7 @@ Chama a atenção usando a cor de destaque do seu tema — bom para marcadores d
 <Badge variant="accent">New</Badge>
 ```
 
-### Sucesso
+### Sucesso [#success]
 
 Um estado positivo ou aprovado.
 
@@ -122,7 +122,7 @@ Um estado positivo ou aprovado.
 <Badge variant="success">Passing</Badge>
 ```
 
-### Aviso
+### Aviso [#warning]
 
 Algo a ser usado com cautela, como um recurso experimental.
 
@@ -132,7 +132,7 @@ Algo a ser usado com cautela, como um recurso experimental.
 <Badge variant="warning">Beta</Badge>
 ```
 
-### Perigo
+### Perigo [#danger]
 
 Um estado negativo ou incompatível, como uma descontinuação.
 
@@ -156,7 +156,7 @@ O Blume usa somente o Lucide — um nome simples é resolvido no Lucide, e você
 
 Os ícones são resolvidos no momento do build e embutidos como SVG sem JS — nada é buscado em tempo de execução.
 
-## Árvore de arquivos
+## Árvore de arquivos [#file-tree]
 
 Ilustre a estrutura de um projeto ou de uma pasta. Envolva uma lista normal em Markdown e o Blume a estiliza como uma árvore — útil para explicar a estrutura em guias de configuração e instalação.
 
@@ -458,11 +458,11 @@ Mostre ou oculte conteúdo de acordo com o público. `for="web"` renderiza somen
 <Visibility for="agents">Shown only in the generated Markdown.</Visibility>
 ```
 
-## Tabelas de tipos
+## Tabelas de tipos [#type-tables]
 
 Tabelas para documentar as propriedades de um objeto — suas props, tipos e valores padrão. Escreva as linhas manualmente com `TypeTable`, ou gere-as diretamente a partir de uma interface ou alias de tipo do TypeScript com `AutoTypeTable`.
 
-### Tabela de tipos
+### Tabela de tipos [#type-table]
 
 Uma grade **Prop / Tipo** em que cada linha se expande para revelar sua descrição e detalhes. Passe um mapa `type` indexado pelo nome da propriedade; cada entrada recebe um `type`, além de `description`, `default`, o sinalizador `required`, `typeDescription` e `typeDescriptionLink` opcionais. Props opcionais (`required` não definido) exibem um `?` após o nome.
 
@@ -500,7 +500,7 @@ Uma grade **Prop / Tipo** em que cada linha se expande para revelar sua descriç
 />
 ```
 
-### Tabela de tipos automática
+### Tabela de tipos automática [#auto-type-table]
 
 Gere uma tabela de tipos a partir de um tipo do TypeScript, para que a documentação permaneça em sincronia com o código-fonte. Aponte o `AutoTypeTable` para um arquivo com `path` (resolvido a partir da raiz do seu projeto) e um `name` de tipo. As descrições vêm de comentários JSDoc, os valores padrão de tags `@default`, e as propriedades opcionais (`?`) são marcadas conforme o caso.
 
@@ -546,7 +546,7 @@ export interface ButtonProps {
 />
 ```
 
-## Informações do GitHub
+## Informações do GitHub [#github-info]
 
 Um card com link para um repositório do GitHub com suas contagens de estrelas e forks em tempo real. As contagens são buscadas no momento do build — sem JavaScript no cliente — e o card continua sendo renderizado se a API estiver inacessível. Passe `owner` e `repo`, ou omita-os para usar o repositório do seu `blume.config`. Defina uma variável de ambiente `GITHUB_TOKEN` para elevar o limite de requisições da API.
 

@@ -27,7 +27,7 @@ navigation: {
 Operationen werden für die Suche anhand ihrer **Zusammenfassung und ihres Tags** indexiert. Die gerenderten Schema-Tabellen und Codebeispiele werden nicht per Volltext indexiert; die Suche findet Titel und Abschnitt einer Operation und verlinkt dann auf deren eigene Seite.
 :::
 
-## Eine lokale Spezifikation
+## Eine lokale Spezifikation [#a-local-spec]
 
 Ein relativer Pfad wird ausgehend vom Projektstammverzeichnis aufgelöst und zur Build-Zeit gelesen. Sowohl JSON als auch YAML funktionieren:
 
@@ -50,7 +50,7 @@ openapi: {
 }
 ```
 
-## Codebeispiele und Schemata
+## Codebeispiele und Schemata [#code-samples-and-schemas]
 
 `codeSamples` bestimmt, welche Sprachen pro Operation gerendert werden (eingebaut: `curl`, `js`, `python`); `expandSchemas` zeigt verschachtelte Schema-Zeilen von Anfang an ausgeklappt statt eingeklappt:
 
@@ -65,7 +65,7 @@ openapi: {
 
 ## „Try it“-Playground
 
-Nativ gerenderte Operationsseiten liefern standardmäßig ein interaktives **Try it**-Panel. Blume erzeugt das Formular aus der Operation selbst: ein Eingabefeld pro Pfad-, Query- und Header-Parameter, ein Body-Editor auf Basis des Request-Body-Schemas, alles mit den Beispielen aus der Spezifikation vorbelegt. Eine Server-Auswahl listet die `servers` der Spezifikation auf, mit einem Freitextfeld für jede andere Basis-URL, und die Auth-Eingaben richten sich nach der [aufgelösten Sicherheit](#autorisierung) der Operation – Bearer-Token, API-Key und Basic-Anmeldeinformationen, OAuth2 als Feld zum Einfügen eines Tokens (bring einen Access Token mit; Blume führt den Flow nicht aus).
+Nativ gerenderte Operationsseiten liefern standardmäßig ein interaktives **Try it**-Panel. Blume erzeugt das Formular aus der Operation selbst: ein Eingabefeld pro Pfad-, Query- und Header-Parameter, ein Body-Editor auf Basis des Request-Body-Schemas, alles mit den Beispielen aus der Spezifikation vorbelegt. Eine Server-Auswahl listet die `servers` der Spezifikation auf, mit einem Freitextfeld für jede andere Basis-URL, und die Auth-Eingaben richten sich nach der [aufgelösten Sicherheit](#authorization) der Operation – Bearer-Token, API-Key und Basic-Anmeldeinformationen, OAuth2 als Feld zum Einfügen eines Tokens (bring einen Access Token mit; Blume führt den Flow nicht aus).
 
 Panel und Codebeispiele bleiben im Gleichschritt: Werte, die du ins Formular tippst, aktualisieren die generierten Beispiele live, sodass ein kopierter curl-Befehl immer exakt dem entspricht, was **Send** tun würde. Und es drängt sich nicht auf – das Panel wird serverseitig eingeklappt gerendert, und sein JavaScript wird erst geladen, wenn Lesende es zum ersten Mal öffnen. Wer es nie anfasst, lädt auch nichts davon herunter.
 
@@ -79,13 +79,13 @@ openapi: {
 }
 ```
 
-### Anmeldeinformationen
+### Anmeldeinformationen [#credentials]
 
 In die Auth-Felder eingegebene Anmeldeinformationen bleiben im Arbeitsspeicher und verschwinden beim Neuladen. Mit **Remember on this device** werden sie im `localStorage` gespeichert, begrenzt auf den Origin der Doku – sie werden nirgendwo anders hingeschickt als an die aufgerufene API. Codebeispiele zeigen weiterhin Platzhalter (`YOUR_TOKEN` und Konsorten), egal was eingegeben wurde, sofern nicht **Include my values in samples** aktiviert wird.
 
-### CORS und der Proxy
+### CORS und der Proxy [#cors-and-the-proxy]
 
-Wie beim [Scalar-Renderer](#der-scalar-renderer) gehen Anfragen **direkt aus dem Browser** an die Ziel-API, daher muss die API Cross-Origin-Anfragen von der Doku-Website zulassen (`Access-Control-Allow-Origin`). Für APIs, die das nicht können, setzt du `playground.proxy`: Eine URL leitet Anfragen über einen von dir gehosteten Proxy, und `true` aktiviert die eingebaute Route `/_api-proxy` – die einen Server-Build braucht und daher [`deployment.output: "server"`](/docs/deployment#server-rendering) voraussetzt:
+Wie beim [Scalar-Renderer](#the-scalar-renderer) gehen Anfragen **direkt aus dem Browser** an die Ziel-API, daher muss die API Cross-Origin-Anfragen von der Doku-Website zulassen (`Access-Control-Allow-Origin`). Für APIs, die das nicht können, setzt du `playground.proxy`: Eine URL leitet Anfragen über einen von dir gehosteten Proxy, und `true` aktiviert die eingebaute Route `/_api-proxy` – die einen Server-Build braucht und daher [`deployment.output: "server"`](/docs/deployment#server-rendering) voraussetzt:
 
 ```ts blume.config.ts lineNumbers
 openapi: {
@@ -99,7 +99,7 @@ openapi: {
 
 Der eingebaute Proxy leitet nur Anfragen an die Origins weiter, die deine Spezifikationen in `servers` deklarieren – auch über Redirects hinweg –, sodass eine öffentliche Doku-Bereitstellung nicht auf andere Hosts in ihrem Netzwerk gerichtet werden kann. Eine ins Panel getippte **Custom base URL** ist kein dokumentierter Server: Bei aktiviertem Proxy werden Anfragen an sie mit einem 403 abgelehnt.
 
-## Mehrere Spezifikationen
+## Mehrere Spezifikationen [#multiple-specs]
 
 Verwende `sources`, um mehr als eine Spezifikation zu veröffentlichen. Jede Quelle erhält ihre eigene Übersichtsroute, Operationsseiten und einen Header-Tab. Gib jeder ein `label` (wird für den Tab und zur Ableitung ihrer Route verwendet) oder setze eine explizite `route`:
 
@@ -115,7 +115,7 @@ openapi: {
 
 `spec` ist eine Kurzform für ein `sources` mit einem einzigen Eintrag, du greifst also nur dann zu `sources`, wenn du mehr als eine hast.
 
-### Indexierung pro Quelle
+### Indexierung pro Quelle [#per-source-indexing]
 
 Generierte Seiten nehmen standardmäßig an der Suche, an `llms.txt` und an der Crawler-Indexierung teil. Eine sekundäre oder überlappende Spezifikation kann sich von jeder dieser Oberflächen abmelden, ohne ihre Seiten zu verstecken oder sie aus der Navigation zu entfernen:
 
@@ -149,9 +149,9 @@ openapi: {
 }
 ```
 
-Beim [Scalar-Renderer](#der-scalar-renderer) gilt nur `noindex` – eine von Scalar gerenderte Referenz liegt ohnehin außerhalb von Blumes Suche und `llms.txt`, sodass die beiden `include*`-Einstellungen dort nichts bewirken können.
+Beim [Scalar-Renderer](#the-scalar-renderer) gilt nur `noindex` – eine von Scalar gerenderte Referenz liegt ohnehin außerhalb von Blumes Suche und `llms.txt`, sodass die beiden `include*`-Einstellungen dort nichts bewirken können.
 
-## Autorisierung
+## Autorisierung [#authorization]
 
 Operationen, die [Sicherheitsanforderungen](https://spec.openapis.org/oas/v3.1.0#security-requirement-object) deklarieren, rendern oberhalb ihrer Parameter einen Abschnitt **Authorization**, und die generierten Codebeispiele senden eine Platzhalter-Anmeldeinformation (`Authorization: Bearer YOUR_TOKEN`, einen API-Key-Header oder einen Query-Key – je nachdem, was das Schema verlangt). Es gibt nichts zu konfigurieren: Blume liest `security` aus der Spezifikation, sodass die Referenz immer dem entspricht, was die API tatsächlich durchsetzt.
 
@@ -162,7 +162,7 @@ Die OpenAPI-Semantik wird unverändert übernommen:
 - Ein leerer `{}`-Eintrag bedeutet, dass die Authentifizierung für diese Operation **optional** ist, und der Abschnitt weist darauf hin.
 - OAuth2-Scopes werden pro Schema aufgelistet; `description`s der Schemata aus `components.securitySchemes` werden inline gerendert.
 
-## Der Scalar-Renderer
+## Der Scalar-Renderer [#the-scalar-renderer]
 
 Der native Renderer ist die Standardeinstellung – die Operationsseiten, die Suchintegration und der [„Try it“-Playground](#try-it-playground) weiter oben sind alle sein Werk. Wenn du stattdessen lieber die eigenständige API-Referenz von [Scalar](https://scalar.com) einbetten möchtest – mit eigener Seitenleiste, Suche, eigenem Theme und eigenem Request-Client auf einer einzigen Route – setze `renderer: "scalar"`:
 
@@ -177,7 +177,7 @@ openapi: {
 
 Eine von Scalar gerenderte Referenz ist ein eigenständiges Embed auf einer eigenen Route – sie fügt sich nicht in Blumes Seitenleiste, Suche oder `llms.txt` ein, und Blumes [`playground`](#try-it-playground)-Konfiguration gilt für sie nicht. Blumes Hell-/Dunkel-Umschalter folgt sie allerdings sehr wohl: Das Embed wird beim Einbinden auf das Theme der Seite festgelegt und wechselt mit ihm mit, sodass Scalars eigener Theme-Umschalter ausgeblendet wird (setze `scalar.forceDarkModeState` oder `scalar.darkMode`, um den Farbmodus wieder an Scalar zu übergeben). Scalar bringt einen eigenen Request-Client mit, der deine **Ziel-API direkt aus dem Browser** aufruft (die Route `playground.proxy` steht hier nicht zur Verfügung), daher muss die API Cross-Origin-Anfragen von der Doku-Website zulassen (`Access-Control-Allow-Origin`). `theme` gilt nur für den Scalar-Renderer.
 
-### Scalar-Optionen übergeben
+### Scalar-Optionen übergeben [#passing-scalar-options]
 
 `theme` ist eine Kurzform für die Option, zu der die meisten greifen, aber Scalar unterstützt noch viele weitere. Ein `scalar`-Objekt leitet jede beliebige [Scalar-Konfiguration](https://github.com/scalar/scalar/blob/main/documentation/configuration.md) direkt an die eingebettete Referenz weiter – Blume schränkt die Schlüssel nicht ein, sodass alles durchgereicht wird, was Scalar akzeptiert:
 
@@ -199,7 +199,7 @@ Blumes eigenes [`i18n`](/docs/content/i18n) übersetzt die Doku-Oberfläche, abe
 
 ## AsyncAPI
 
-Ereignisgesteuerte APIs verwenden einen gleichrangigen `asyncapi`-Block mit derselben Struktur – und demselben nativen Renderer. Jede `send`-/`receive`-Operation wird zu einer echten Seite mit Schema-Tabellen für Message-Payload und -Header, Channel-Parametern, Protokoll-Bindings, einem Authorization-Abschnitt, der aus den `securitySchemes` der Spezifikation abgeleitet wird (auf Server- und Operationsebene, Alternativen als „oder“-Gruppen), und einem [„Try it“](#try-it-für-events)-Message-Composer. Nur die Standardroute unterscheidet sich (`/events`):
+Ereignisgesteuerte APIs verwenden einen gleichrangigen `asyncapi`-Block mit derselben Struktur – und demselben nativen Renderer. Jede `send`-/`receive`-Operation wird zu einer echten Seite mit Schema-Tabellen für Message-Payload und -Header, Channel-Parametern, Protokoll-Bindings, einem Authorization-Abschnitt, der aus den `securitySchemes` der Spezifikation abgeleitet wird (auf Server- und Operationsebene, Alternativen als „oder“-Gruppen), und einem [„Try it“](#try-it-for-events)-Message-Composer. Nur die Standardroute unterscheidet sich (`/events`):
 
 ```ts blume.config.ts lineNumbers
 asyncapi: {
@@ -212,11 +212,11 @@ AsyncAPI-**2.x-Spezifikationen werden automatisch auf 3.x normalisiert** – mit
 
 Codebeispiele sind **protokollbewusst** und richten sich nach dem Binding der Operation (oder dem Protokoll ihrer Server): `wscat` und ein Browser-`WebSocket`-Snippet für WebSockets, `kcat` für Kafka, `mosquitto_pub`/`mosquitto_sub` für MQTT. `codeSamples` filtert diese Auswahl – genauso, wie es beim `openapi`-Block die Sprachen auswählt; ein Protokoll ohne unterstütztes Tool rendert nur das Message-Payload-Beispiel statt eines erfundenen Clients.
 
-Alles oben Dokumentierte gilt unverändert weiter, [`playground`](#try-it-für-events) eingeschlossen: `route`, `sources` mit `label`/`route`, `expandSchemas`, die Flags für die [Indexierung pro Quelle](#indexierung-pro-quelle) (`seoDescriptionSuffix` inklusive – der generierte Satz benennt statt eines Endpunkts den Channel und die Aktion) sowie die Suchindexierung nach Zusammenfassung und Tag der Operation.
+Alles oben Dokumentierte gilt unverändert weiter, [`playground`](#try-it-for-events) eingeschlossen: `route`, `sources` mit `label`/`route`, `expandSchemas`, die Flags für die [Indexierung pro Quelle](#per-source-indexing) (`seoDescriptionSuffix` inklusive – der generierte Satz benennt statt eines Endpunkts den Channel und die Aktion) sowie die Suchindexierung nach Zusammenfassung und Tag der Operation.
 
 Mit `renderer: "scalar"` wechselst du zurück zur eingebetteten Scalar-SPA, wo – wie bei OpenAPI – nur `noindex` gilt. Scalar hat keinen eigenen AsyncAPI-Playground; das Embed erkennt den Dokumenttyp automatisch und rendert Channels, Operationen, Messages und einen Models-Abschnitt, dieser Tausch kostet dich also den Composer.
 
-### „Try it“ für Events
+### „Try it“ für Events [#try-it-for-events]
 
 Nativ gerenderte Operationsseiten liefern auch hier ein **Try it**-Panel, zu denselben Bedingungen wie beim [OpenAPI-Panel](#try-it-playground): serverseitig eingeklappt gerendert, mit JavaScript, das erst geladen wird, wenn Lesende es zum ersten Mal öffnen.
 

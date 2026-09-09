@@ -102,6 +102,12 @@ Fallback pages are excluded from the search index and aren't advertised as real 
 Start by translating your most important pages — the homepage, quickstart, and top guides — and let the rest fall back. You can fill in translations over time without breaking any links.
 :::
 
+## Links across locales
+
+Write internal links the way you would in the default locale — `[Setup](/guides/setup)`, `<Card href="/guides/setup">` — in every language, including translated pages. When a page renders under a locale prefix, Blume moves each root-relative page link into that locale (`/fr/guides/setup`) as long as the route is served there, as a real translation or as a fallback page. A link with no per-locale variant — a custom page, a generated route, or a missing translation on a site with fallbacks disabled — keeps its authored target rather than pointing at a 404, and a link that already carries a locale prefix (`/de/guides/setup`) is left alone, so cross-locale links stay explicit.
+
+Anchors travel with the link, so heading ids have to agree across languages. [`blume translate`](/docs/reference/translate) takes care of that: every translated heading is pinned to its source heading's id with a trailing `[#id]` marker. In a translation you write by hand, pin the headings yourself with the same [`[#custom-id]` marker](/docs/content/syntax#custom-anchors) — otherwise `#ordering` won't match the French page's auto-generated `#ordre`, and `blume validate` reports the mismatch against the translated page a reader actually lands on.
+
 ## Translating with an agent
 
 You don't have to fill in the locales by hand. [`blume translate`](/docs/reference/translate) finds every page that's missing or outdated in each locale and translates it with a local agent CLI ([Claude Code](https://claude.com/claude-code) or [Codex](https://developers.openai.com/codex/cli)):

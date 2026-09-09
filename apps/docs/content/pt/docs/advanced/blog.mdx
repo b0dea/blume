@@ -6,7 +6,7 @@ description: >-
 
 Um blog no Blume é apenas conteúdo com um tipo. Marque uma página com `type: blog` e o Blume lhe dá automaticamente um feed RSS e metadados de artigo mais ricos. Diferentemente do [changelog](/docs/advanced/changelog), não há página de índice gerada — você compõe a página inicial por conta própria, o que mantém o design inteiramente em suas mãos.
 
-## Escreva um post
+## Escreva um post [#write-a-post]
 
 Um post é uma página `.md` ou `.mdx` comum com `type: blog` em seu frontmatter. Por convenção, os posts ficam em `blog/`, mas o que importa é o tipo — não a pasta:
 
@@ -23,7 +23,7 @@ Documentation should be fast, AI-ready, and zero-config — down to not needing 
 
 Dê a cada post uma `date` para que os itens do feed sejam ordenados do mais recente para o mais antigo e carreguem uma `pubDate`, e uma `description` — ela é usada tanto no resumo do feed quanto no SEO.
 
-## O feed RSS
+## O feed RSS [#the-rss-feed]
 
 O Blume cria um feed do blog em **`/blog/rss.xml`**, ordenado do mais recente para o mais antigo por `date`. Feeds precisam de uma URL absoluta do site, então defina [`deployment.site`](/docs/deployment); o Blume então injeta uma tag `<link rel="alternate">` em todas as páginas para que os leitores a descubram automaticamente.
 
@@ -41,11 +41,11 @@ seo: {
 
 Remova `"blog"` de `rss.types` para dispensar o feed.
 
-## Dados estruturados
+## Dados estruturados [#structured-data]
 
 Quando os [dados estruturados](/docs/discoverability/structured-data) estão ativados, cada post é emitido como um **`BlogPosting`** do schema.org com sua descrição e data de publicação — o tipo de artigo mais rico que os mecanismos de busca esperam para conteúdo de blog.
 
-## Criando um índice
+## Criando um índice [#building-an-index]
 
 O Blume não gera uma página inicial `/blog`, então você a constrói. A opção mais simples é uma página de conteúdo que liga a cada post manualmente:
 

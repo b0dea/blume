@@ -20,7 +20,7 @@ blume translate  3 item(s) · 2 locale(s) · Claude Code
   Translated 3 files into 2 locales · 1 adopted · 14 already up to date · 51.1s · $0.22
 ```
 
-## Funktionsweise
+## Funktionsweise [#how-it-works]
 
 Blume besitzt die Pipeline; der Agent übersetzt nur Text. Für jede Datei, die Arbeit erfordert, baut Blume einen Übersetzungs-Prompt, führt die Agent-CLI headless mit deaktivierten Datei-, Shell- und Web-Tools aus, validiert die Struktur der Antwort und schreibt die Zieldatei selbst – [Claude Code](https://claude.com/claude-code) mit `--claude` oder [Codex](https://developers.openai.com/codex/cli) mit `--codex`. Blume hält keine API-Schlüssel und ruft selbst kein Modell auf.
 
@@ -32,14 +32,14 @@ Erneute Läufe sind inkrementell: Eine Quelle, die sich seit ihrer letzten Über
 
 Eine Erstübersetzung hat keinen Präzedenzfall, an dem sie sich orientieren könnte – lege die Wahl deshalb vorab mit [`style` auf der Locale](/docs/content/i18n) fest (`{ code: "pt", label: "Português", style: "Brazilian Portuguese, informal você" }`). Die Vorgabe wandert in jeden Übersetzungs-Prompt mit, und wo eine vorhandene Übersetzung ihr widerspricht, gewinnt `style` – eine Neuübersetzung schiebt ältere Seiten also ebenfalls in Richtung des konfigurierten Stils.
 
-## Was übersetzt wird
+## Was übersetzt wird [#what-gets-translated]
 
 - **Seiten** – `.md`/`.mdx`-Dateien in der Standard-Locale. Der Agent übersetzt die Prosa und nur die für Menschen sichtbaren Frontmatter-Werte (`title`, `description`, `sidebar.label`, `sidebar.badge`, `seo.title`, `seo.description`). Die Ziele richten sich nach deinem Parser: `fr/guides/install.mdx` bei `dir`, `guides/install.fr.mdx` bei `dot`.
 - **Navigationstitel von Ordnern** – beim `dir`-Parser werden die benötigten [`meta.ts`](/docs/content/meta)-Titel jeder Locale in einem gebündelten Aufruf übersetzt, und die generierte `meta.ts` pro Locale übernimmt jeden anderen Schlüssel (`order`, `pages`, `icon`, `collapsed`) wortwörtlich, damit die Sidebar der Locale ihre Reihenfolge behält.
 
 Übersetzungen, die du von Hand geschrieben hast, werden **übernommen, niemals überschrieben**: Eine Übersetzung, die existiert, aber keinen Ledger-Eintrag hat, wird als aktuell gestempelt und unangetastet gelassen. Nur `--force` übersetzt sie erneut.
 
-## Validierung
+## Validierung [#validation]
 
 Dem Agenten wird bei der Struktur nie vertraut. Vor dem Schreiben prüft Blume jede Antwort und baut die Datei aus der Quelle neu auf:
 
@@ -48,7 +48,7 @@ Dem Agenten wird bei der Struktur nie vertraut. Vor dem Schreiben prüft Blume j
 
 Eine Antwort, die die Validierung nicht besteht, schreibt nichts – das Element wird als fehlgeschlagen gemeldet und der Lauf fährt fort. Alles Erfolgreiche bleibt im Ledger gestempelt, sodass ein erneuter Lauf nur die Fehlschläge wiederholt.
 
-## CI zum Fehlschlagen bringen
+## CI zum Fehlschlagen bringen [#failing-ci]
 
 `blume translate --check` ist die schreibgeschützte Schranke: Sie meldet jedes fehlende und veraltete Paar und beendet sich mit einem Exit-Code ungleich null, wenn es Abweichungen gibt – ohne einen Agenten auszuführen oder irgendetwas zu schreiben.
 
@@ -63,7 +63,7 @@ blume translate --check --json    # machine-readable drift report on stdout
 
 Der JSON-Bericht trägt dieselbe `diagnostics`- + `summary`-Struktur wie `blume validate --json`, `blume audit --json` und `blume eval --json`, wobei die Abweichungen pro Locale gruppiert sind. Von Hand verfasste (nicht erfasste) Übersetzungen lassen die Schranke nie fehlschlagen.
 
-## Einschränkungen
+## Einschränkungen [#limitations]
 
 - Die Übersetzung von Meta-Titeln gibt es nur beim `dir`-Parser – der `dot`-Parser hat keinen Mechanismus für `meta.ts` pro Locale. Eine `meta.ts`, die per Default eine Funktion exportiert, wird mit einer Warnung übersprungen; verfasse die Kopie für diese Locale von Hand.
 - Remote- und CMS-gestützte Quellen werden übersprungen: Es gibt keine lokale Datei, in die die Übersetzung geschrieben werden könnte.

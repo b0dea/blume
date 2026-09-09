@@ -5,7 +5,7 @@ description: 投稿をコンテンツとして公開し、RSS フィードと記
 
 Blume におけるブログとは、型を持ったコンテンツにすぎません。ページに `type: blog` を指定すれば、Blume が RSS フィードとより充実した記事メタデータを自動的に付与します。[チェンジログ](/docs/advanced/changelog)とは異なり、インデックスページは生成されません。ランディングページは自分で組み立てるため、デザインを完全に手中に収められます。
 
-## 投稿を書く
+## 投稿を書く [#write-a-post]
 
 投稿とは、フロントマターに `type: blog` を指定した通常の `.md` または `.mdx` ページです。慣例として投稿は `blog/` 配下に置かれますが、重要なのはフォルダではなく型です。
 
@@ -22,7 +22,7 @@ Documentation should be fast, AI-ready, and zero-config — down to not needing 
 
 すべての投稿に `date` を指定してください。フィードの項目が新しい順に並び、`pubDate` が付与されます。また `description` も指定してください。フィードの概要と SEO の両方に使われます。
 
-## RSS フィード
+## RSS フィード [#the-rss-feed]
 
 Blume は **`/blog/rss.xml`** にブログフィードを生成し、`date` の新しい順に並べます。フィードには絶対サイト URL が必要なので、[`deployment.site`](/docs/deployment) を設定してください。設定すると、Blume がすべてのページに `<link rel="alternate">` タグを挿入し、リーダーが自動的にフィードを検出できるようになります。
 
@@ -40,11 +40,11 @@ seo: {
 
 フィードを生成したくない場合は、`rss.types` から `"blog"` を削除してください。
 
-## 構造化データ
+## 構造化データ [#structured-data]
 
 [構造化データ](/docs/discoverability/structured-data)が有効な場合、各投稿は説明文と公開日を伴う schema.org の **`BlogPosting`** として出力されます。これは検索エンジンがブログコンテンツに期待する、より充実した記事型です。
 
-## インデックスページを構築する
+## インデックスページを構築する [#building-an-index]
 
 Blume は `/blog` のランディングページを生成しないため、自分で構築します。最も簡単な方法は、各投稿へのリンクを手動で記述したコンテンツページです。
 

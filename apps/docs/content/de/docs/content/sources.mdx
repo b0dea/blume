@@ -6,7 +6,7 @@ description: >-
 
 Standardmäßig liest Blume einen Ordner mit `.md`/`.mdx`-Dateien. **Inhaltsquellen** ermöglichen es dir, Seiten von woanders zu beziehen – aus einem entfernten Repository, einem CMS oder einem beliebigen eigenen Backend – und mehrere Quellen zu einer einzigen Website zu kombinieren. Quellen werden zur Build-Zeit gelesen; Blume bleibt static-first.
 
-## Die Voreinstellung
+## Die Voreinstellung [#the-default]
 
 Ohne Konfiguration durchsucht Blume dein Inhaltsverzeichnis (standardmäßig `docs`) als eine implizite Dateisystemquelle. Die Optionen `content.root`/`include`/`exclude` auf oberster Ebene funktionieren weiterhin genau wie zuvor – es muss nichts geändert werden.
 
@@ -18,7 +18,7 @@ export default defineConfig({
 });
 ```
 
-## Mehrere Quellen
+## Mehrere Quellen [#multiple-sources]
 
 Füge ein `content.sources`-Array hinzu, um Quellen zusammenzustellen. Jeder Eintrag erhält über ein optionales `prefix` einen eigenen Namensraum, sodass seine Routen unter `/<prefix>/…` liegen. Wenn `sources` vorhanden ist, ersetzt es die implizite Voreinstellung – nimm daher einen `filesystem`-Eintrag für deine lokale Dokumentation auf.
 
@@ -83,7 +83,7 @@ Punkt-Ordner werden übersprungen, einschließlich Obsidians eigenem Konfigurati
 
 Noch nicht überführt: Callouts (`> [!note]`) werden als einfache Blockzitate gerendert, Einbettungen (`![[image.png]]`) werden unverändert durchgereicht, mehrzeilige `%%comments%%` bleiben stehen, und es gibt keinen Backlink-Graphen.
 
-## Entferntes MDX
+## Entferntes MDX [#remote-mdx]
 
 Die eingebaute Quelle `mdx-remote` lädt rohe `.md`/`.mdx`-Dateien über HTTP. Zähle die Dateien entweder über einen Teilbaum eines GitHub-Repositorys (`github`) oder explizit gegenüber einer Raw-Basis-URL (`url` + `files`) auf:
 
@@ -100,7 +100,7 @@ Das Token eines privaten Repositorys wird aus der Umgebungsvariable `GITHUB_TOKE
 
 Entfernte Seiten werden mit voller MDX-plus-Komponenten-Treue gerendert: Ihre Inhalte werden in einem versteckten Staging-Verzeichnis materialisiert und zusammen mit deiner lokalen Dokumentation über Astro gerendert, sodass Callouts, Tabs und alle anderen Blume-Komponenten weiterhin funktionieren.
 
-### Caching und Offline-Builds
+### Caching und Offline-Builds [#caching-and-offline-builds]
 
 Jede entfernte Quelle hält einen Snapshot unter `.blume/cache/<source>/` vor. Wenn ein Abruf fehlschlägt – eine Netzwerkstörung oder ein CMS-Ausfall –, liefert Blume den letzten funktionierenden Snapshot mit einer Warnung aus, anstatt den Build fehlschlagen zu lassen. Der Cache liegt innerhalb von `.blume/` und wird neu erzeugt, niemals eingecheckt.
 
@@ -188,7 +188,7 @@ export default defineConfig({
 
 Das Integrationstoken stammt aus der Umgebungsvariable `NOTION_TOKEN` (teile die Datenbank mit deiner Integration). Standardmäßig wird jede Seite importiert; setze `publishedValue`, um die Eigenschaft `Status` zu einer Veröffentlichungssperre zu machen – jeder andere Wert wird dann auf `draft: true` abgebildet, was Produktions-Builds verwerfen. **Notion-Bild-URLs sind signiert und laufen ab**, daher lädt der Adapter sie zur Build-Zeit in die Assets der Website herunter und schreibt die Verweise um – so verdirbt ein CMS-Bild niemals einen statischen Build. API-Aufrufe werden über einen kleinen Request-Pool getaktet (3 gleichzeitig, passend zum Rate-Limit pro Integration bei Notion), sodass sich Datenbanken mit Hunderten von Seiten importieren lassen, ohne `429`-Antworten auszulösen; setze `concurrency` an der Quelle, um das anzupassen.
 
-## Preview und Sync
+## Preview und Sync [#preview-and-sync]
 
 Zwei Flags steuern, wie entfernte Inhalte abgerufen werden und was enthalten ist:
 
@@ -202,7 +202,7 @@ blume sync               # refresh remote content now
 blume sync --force       # ...ignoring any cached snapshot
 ```
 
-## Eigene Quellen
+## Eigene Quellen [#custom-sources]
 
 Jedes Objekt, das die `ContentSource`-Schnittstelle implementiert, kann direkt übergeben werden. So lässt sich ein Adapter mit eigenen Serializern – oder ein beliebiges nicht eingebautes Backend – einbinden, ohne dass dessen SDK die Kerninstallation berührt:
 

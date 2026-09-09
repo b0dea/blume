@@ -6,7 +6,7 @@ description: >-
 
 `llms.txt`、Markdown ミラー、JSON API、MCP サーバーを公開しても、それは仕事の半分に過ぎません — エージェントはそれらを見つけなければならないからです。Blume は、エージェントが実際に探索する規約を通じてサーフェス全体を告知します。サイトルートのマニフェスト、`Link` ヘッダーと `<link>` タグ、well-known ファイル、そしてブラウザ自身のモデルコンテキストです。ここに書かれているものはすべてデフォルトで有効になっており、すでに有効にしている機能から導出されます。
 
-## エージェント可読性
+## エージェント可読性 [#agent-readability]
 
 Blume はサイトルートに **`/agent-readability.json`** マニフェストを書き出し、このセクション全体で説明されているエージェント向けサーフェスをインデックス化します — これにより、エージェントは規約を推測したり HTML をスクレイピングしたりせず、単一のフェッチで検出できます。`llms.txt` と同様に、デフォルトで有効です:
 
@@ -50,7 +50,7 @@ seo: {
 
 `seo.agentReadability` を `false` に設定するとスキップされます。また、独自の `public/agent-readability.json` を配置すれば、それが使われます — Blume が `public/` に置いたファイルを上書きすることはありません。
 
-## 検出用の Link ヘッダー
+## 検出用の Link ヘッダー [#discovery-link-header]
 
 サイトを探索するエージェントは、マニフェストを探すべきだとは知りません — そのため Blume は、IANA 登録済みのリレーションタイプを使って、ホームページの [RFC 8288](https://www.rfc-editor.org/rfc/rfc8288) `Link` レスポンスヘッダーでもマニフェストを告知します:
 
@@ -78,7 +78,7 @@ Link: </.well-known/api-catalog>; rel="api-catalog"; type="application/linkset+j
 
 ここでの `alternate` リンクは*そのページ自身*の[生の Markdown ミラー](/docs/discoverability/markdown)を指すため、エージェントは着地した HTML からトークン効率の良いバージョンへ直接ジャンプできます。head 内のリンクはプリレンダリングされた HTML と一緒に配信されるため、`_headers` を無視しカスタムレスポンスヘッダーをまったく送信できないホスト（GitHub Pages、S3）でも機能します — エージェントがどのページから入ってきても同様です。
 
-## API カタログ
+## API カタログ [#api-catalog]
 
 サイトが API を公開している場合、Blume は `/.well-known/api-catalog` に [RFC 9727](https://www.rfc-editor.org/rfc/rfc9727) API カタログを生成します — これはエージェントがドメインだけから API を列挙できるようにする[リンクセット](https://www.rfc-editor.org/rfc/rfc9264)で、すべてのビルドサーフェスで登録済みの `application/linkset+json` メディアタイプとともに配信されます。設定は不要です: カタログは `blume.config.ts` にすでにある内容から導出されます。各 [OpenAPI または AsyncAPI リファレンス](/docs/advanced/api-reference)は、レンダリングされたドキュメントのルートをアンカーとするエントリになり、`service-doc` がそのドキュメントを指し、仕様がフェッチ可能な URL にある場合は `service-desc` がその仕様を指します。サイト自身の [JSON API](/docs/discoverability/json-api) は `/openapi.json` によって記述されるエントリになり、[MCP サーバー](/docs/discoverability/mcp)はその検出ドキュメントをサービス記述とするエントリになります:
 
@@ -134,7 +134,7 @@ ai: {
 }
 ```
 
-## スキルの検出
+## スキルの検出 [#skills-discovery]
 
 プロジェクトが[エージェントスキル](https://agentskills.io)を同梱している場合 — [Blume リポジトリ自体がそうです](/docs/advanced/skills) — `ai.skills` をそれらを含むディレクトリに向けると、ビルドは [Agent Skills Discovery RFC](https://github.com/cloudflare/agent-skills-discovery-rfc) に従ってそれらを検出用に公開します:
 
@@ -148,7 +148,7 @@ ai: {
 
 `name`/`description` が欠けている、または仕様に反しているスキルは、壊れた状態で公開される代わりにビルド警告とともにスキップされます。また、自分で配置した `public/.well-known/agent-skills/index.json` はサーフェス全体を引き継ぎます。公開されたスキルは [`llms.txt`](/docs/discoverability/llms-txt#generated-sections) にも列挙されます。
 
-## DNS ベースの検出（DNS-AID）
+## DNS ベースの検出（DNS-AID） [#dns-based-discovery-dns-aid]
 
 [DNS for AI Discovery](https://datatracker.ietf.org/doc/draft-mozleywilliams-dnsop-dnsaid/) は、well-known な DNS エントリポイントで ServiceMode の [SVCB/HTTPS レコード](https://www.rfc-editor.org/rfc/rfc9460)を照会することで、HTTP リクエストを一度も送らずにエージェントがサイトの AI サーフェスを検出できるようにする、新興の IETF ドラフトです。DNS レコードはビルドではなくゾーンに存在するため、これは Blume が代わりに公開できない唯一の検出サーフェスです — 代わりに、DNS プロバイダーでレコードを追加してください:
 

@@ -42,7 +42,7 @@ Relative Bildreferenzen innerhalb eines Partials funktionieren weiterhin: Sie we
 
 Wenn du ein Partial bearbeitest, während `blume dev` läuft, wird jede Seite neu geladen, die es einbindet.
 
-## Code-Dateien einbinden
+## Code-Dateien einbinden [#including-code-files]
 
 Ein Ziel, das nicht `.md`/`.mdx` ist, wird als umschlossener Code-Block eingebettet, wobei die Sprache aus der Dateiendung abgeleitet wird. Verwende `lang`, um die Sprache zu überschreiben (oder um eine Markdown-Datei als Quelltext anzuzeigen, statt sie einzufügen), und `meta`, um einen Fence-Meta-String wie einen Titel zu übergeben:
 
@@ -56,7 +56,7 @@ Ein Ziel, das nicht `.md`/`.mdx` ist, wird als umschlossener Code-Block eingebet
 <include lang="mdx">./_snippets/prerequisites.mdx</include>
 ```
 
-## Regeln und Diagnosen
+## Regeln und Diagnosen [#rules-and-diagnostics]
 
 Include-Anweisungen müssen in einer eigenen Zeile stehen — sie sind block-level, nicht inline. Anweisungen innerhalb von umschlossenen Code-Blöcken bleiben unangetastet, sodass du die Syntax selbst dokumentieren kannst (so wie diese Seite es tut).
 

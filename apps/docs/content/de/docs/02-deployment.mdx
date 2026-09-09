@@ -7,7 +7,7 @@ sidebar:
   order: 2
 ---
 
-## Überall bereitstellen (statisch)
+## Überall bereitstellen (statisch) [#deploy-anywhere-static]
 
 `blume build` kompiliert deine Dokumentation zu reinem HTML, CSS und einem lokalen Suchindex in `dist/`. Es muss kein Server betrieben werden — richte einfach einen beliebigen statischen Host auf den Ordner aus.
 
@@ -28,7 +28,7 @@ Ein statischer Build enthält:
 - Weiterleitungsseiten
 - vorgerenderte [Open-Graph-Bilder](/docs/discoverability/open-graph), wenn `seo.og.enabled` aktiviert ist
 
-### Deine Site-URL festlegen
+### Deine Site-URL festlegen [#set-your-site-url]
 
 Sitemaps, Canonical-Tags, RSS und Open-Graph-Bilder benötigen einen absoluten Origin. Auf **Vercel**, **Netlify** und **Cloudflare Pages** erkennt Blume ihn zur Build-Zeit aus der Umgebung der Plattform — keine Konfiguration erforderlich.
 
@@ -44,7 +44,7 @@ Bei der automatischen Erkennung bevorzugt Blume deine stabile Produktionsdomain 
 
 Während `blume dev` fällt die Site-URL auf deinen lokalen Dev-Server zurück (z. B. `http://localhost:4321`), wenn keine gesetzt ist, damit Site-abhängige Funktionen — Open-Graph-Bilder, Canonicals, die Sitemap — sofort funktionieren. Builds verwenden diesen Fallback nie, sodass die Produktionsausgabe niemals auf localhost verweist.
 
-## Lokale Vorschau
+## Lokale Vorschau [#preview-locally]
 
 Bevor du veröffentlichst, kannst du den Produktions-Build genau so in der Vorschau ansehen, wie ihn ein statischer Host ausliefern würde:
 
@@ -53,7 +53,7 @@ blume build
 blume preview
 ```
 
-## Deployments unter einem Unterpfad
+## Deployments unter einem Unterpfad [#subpath-deploys]
 
 Du lieferst deine Dokumentation unter einem Pfad wie `example.com/docs` aus? Setze `deployment.base` — üblich für GitHub-Pages-Projektseiten. Die gesamte Site, einschließlich der Wurzel, wird unter die Basis verschoben, und interne Links sowie Assets werden so umgeschrieben, dass sie die Basis enthalten.
 
@@ -63,7 +63,7 @@ deployment: {
 }
 ```
 
-## Die Dokumentation unter einem Pfad einhängen
+## Die Dokumentation unter einem Pfad einhängen [#mount-the-docs-under-a-path]
 
 `basePath` hängt jede generierte Route unter ein Segment (`/docs/getting-started`), lässt die Seitenleiste dabei aber unverändert — die oberste Ebene sind deine Abschnitte, keine umschließende Gruppe. Verwende es, wenn die Dokumentation unter `/docs/*` liegt, die Site-Wurzel aber dir gehört (wie `routeBasePath` bei Docusaurus oder `baseUrl` bei Fumadocs).
 
@@ -108,7 +108,7 @@ Auf Vercel und Cloudflare aktiviert ein Server-Build außerdem die [Content Nego
 Serverfunktionen haben ihre eigene Konfiguration — Ask AI benötigt beispielsweise einen API-Schlüssel für ein Modell. Zur Einrichtung siehe den [KI-Leitfaden](/docs/configuration/ask-ai).
 :::
 
-## Weiterleitungen
+## Weiterleitungen [#redirects]
 
 Ordne alte URLs in `blume.config.ts` neuen zu:
 
@@ -126,11 +126,11 @@ redirects: [{ from: "/old", to: "/new", status: 301 }];
 Schreibe sowohl `from` als auch `to` so, als wären sie an der Wurzel eingehängt — sowohl unter [`deployment.base`](#subpath-deploys) als auch unter [`basePath`](#mount-the-docs-under-a-path) schreibt Blume beide Seiten für dich um, sodass eine Weiterleitung innerhalb der Basis landet. Eine Basis, die du bereits von Hand in `to` geschrieben hast, bleibt erhalten und wird nicht verdoppelt.
 :::
 
-## Inhaltstypen
+## Inhaltstypen [#content-types]
 
 Ein statischer Build erzeugt außerdem eine `_headers`-Datei, die `charset=utf-8` an die rohen, KI-tauglichen Endpunkte heftet — `/<route>.md`, `/<route>.mdx` und die `.txt`-Dateien (`llms.txt`, `llms-full.txt`). Diese Antworten sind gültiges UTF-8, doch viele statische Hosts liefern sie als `text/markdown` / `text/plain` **ohne** Charset aus, und Browser fallen dann auf Windows-1252 zurück — sodass Dokumentation mit Nicht-ASCII-Zeichen (Japanisch, akzentuiertes Latein, …) beim direkten Öffnen der Roh-URL als Zeichensalat dargestellt wird. HTML-Seiten sind davon nicht betroffen, da sie `<meta charset>` mitführen. Netlify und Cloudflare (statische Assets von Pages/Workers) lesen `_headers`; Hosts, die das nicht tun (Vercel, S3), ignorieren die Datei folgenlos. Eine `_headers`-Datei, die du in `public/` mitlieferst, bleibt unangetastet.
 
-## Umgebungsvariablen
+## Umgebungsvariablen [#environment-variables]
 
 Wenn eine Funktion ein Laufzeit-Secret benötigt, warnt Blume bei `blume dev`/`build`, falls es fehlt — so tritt das Problem früh zutage statt erst bei der ersten Anfrage:
 
@@ -142,6 +142,6 @@ Wenn eine Funktion ein Laufzeit-Secret benötigt, warnt Blume bei `blume dev`/`b
 
 Setze sie in `.env.local` für die lokale Entwicklung und in der Umgebung deines Hosts für die Produktion. Vor fehlenden Build-Zeit-Secrets für die Synchronisierung des Suchindex (Algolia, Orama Cloud, Typesense) wird separat während des Sync-Schritts gewarnt.
 
-## Build-Zusammenfassung
+## Build-Zusammenfassung [#build-summary]
 
 Jeder Build gibt eine Zusammenfassung aus — Ausgabemodus, Adapter, aufgelöste Site-URL, Suchanbieter, Anzahl der Weiterleitungen, Status von Sitemap und `llms.txt` sowie alle aktivierten Serverfunktionen — damit du vor dem Deployment prüfen kannst, was ausgeliefert wurde (einschließlich aller automatisch erkannten Werte).

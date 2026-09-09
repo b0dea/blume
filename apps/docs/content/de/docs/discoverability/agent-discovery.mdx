@@ -78,7 +78,7 @@ Nicht jeder Agent betritt die Site jedoch über das Root — wer einem Suchergeb
 
 Hier zeigt der `alternate`-Link auf den _seiteneigenen_ [Roh-Markdown-Spiegel](/docs/discoverability/markdown), sodass ein Agent direkt von dem HTML, auf dem er gelandet ist, zur token-effizienten Version springen kann. Da die Head-Links mit dem vorgerenderten HTML mitreisen, funktionieren sie auch auf Hosts, die `_headers` ignorieren und überhaupt keine eigenen Response-Header senden können (GitHub Pages, S3) — ganz gleich, auf welcher Seite der Agent einsteigt.
 
-## API-Katalog
+## API-Katalog [#api-catalog]
 
 Wenn die Site APIs veröffentlicht, generiert Blume unter `/.well-known/api-catalog` einen [RFC 9727](https://www.rfc-editor.org/rfc/rfc9727)-API-Katalog — ein [Linkset](https://www.rfc-editor.org/rfc/rfc9264), mit dem Agenten deine APIs allein anhand der Domain aufzählen können, ausgeliefert mit seinem registrierten Medientyp `application/linkset+json` auf jeder Build-Oberfläche. Es gibt nichts zu konfigurieren: Der Katalog wird aus dem abgeleitet, was ohnehin in `blume.config.ts` steht. Jede [OpenAPI- oder AsyncAPI-Referenz](/docs/advanced/api-reference) wird zu einem Eintrag, verankert an ihrer gerenderten Docs-Route, wobei `service-doc` auf diese Docs zeigt und `service-desc` auf die Spezifikation, sofern sie unter einer abrufbaren URL liegt; die [JSON-API](/docs/discoverability/json-api) der Site selbst wird zu einem Eintrag, der durch ihre `/openapi.json` beschrieben wird; und der [MCP-Server](/docs/discoverability/mcp) wird zu einem Eintrag mit seinem Discovery-Dokument als Service-Beschreibung:
 
@@ -148,7 +148,7 @@ Der Pfad wird relativ zu deinem Projekt-Root aufgelöst, und jedes Unterverzeich
 
 Skills mit fehlendem oder spezifikationswidrigem `name`/`description` werden mit einer Build-Warnung übersprungen, statt kaputt veröffentlicht zu werden, und eine `public/.well-known/agent-skills/index.json`, die du selbst ausliefest, übernimmt die gesamte Oberfläche. Veröffentlichte Skills werden außerdem in [`llms.txt`](/docs/discoverability/llms-txt#generated-sections) aufgeführt.
 
-## DNS-basierte Discovery (DNS-AID)
+## DNS-basierte Discovery (DNS-AID) [#dns-based-discovery-dns-aid]
 
 [DNS for AI Discovery](https://datatracker.ietf.org/doc/draft-mozleywilliams-dnsop-dnsaid/) ist ein aufkommender IETF-Draft, mit dem Agenten die KI-Oberfläche einer Site entdecken können, bevor sie auch nur einen einzigen HTTP-Request stellen — indem sie ServiceMode-[SVCB/HTTPS-Records](https://www.rfc-editor.org/rfc/rfc9460) an einem Well-Known-DNS-Einstiegspunkt abfragen. DNS-Records liegen in deiner Zone, nicht im Build, daher ist dies die eine Discovery-Oberfläche, die Blume nicht für dich veröffentlichen kann — stattdessen legst du bei deinem DNS-Anbieter einen Record an:
 

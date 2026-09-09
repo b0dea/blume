@@ -18,31 +18,31 @@ Leg Markdown oder MDX in einen Ordner, führe `blume dev` aus und erhalte eine p
   </Card>
 </CardGroup>
 
-## Warum es Blume gibt
+## Warum es Blume gibt [#why-blume-exists]
 
 Dokumentation sollte schnell, KI-fähig und konfigurationsfrei sein — bis dahin, dass gar kein Starter-Template nötig ist. Manche Dokumentationswerkzeuge übergeben dir eine komplette Codebasis zur Pflege, bevor du überhaupt ein Wort geschrieben hast. Andere bauen das Template um deine Inhalte herum, binden dich aber an ihren gehosteten Dienst.
 
 Blume vereint das Beste aus beiden Welten. Das Framework ist das Template, sodass du nur deine Inhalte anfasst. Wenn du anpassen möchtest, kannst du zunächst die eingebauten Komponenten ersetzen, die einzelne Konfigurationsdatei ändern oder sogar ejecten, wenn du die Astro-Website direkt haben möchtest. Die [FAQ](/docs/faq) erläutert, wie sich das im Vergleich zu Mintlify, Fumadocs und den übrigen verhält.
 
-## Was Blume anders macht
+## Was Blume anders macht [#what-makes-blume-different]
 
-### Standardmäßig schnell
+### Standardmäßig schnell [#fast-by-default]
 
 Blume baut auf Astro und Vite auf und rendert standardmäßig statisches HTML — schnell, cachebar und günstig zu hosten. Das Kern-Theme liefert kein Client-Framework-JS aus, sodass Seiten von Haus aus bei den Core Web Vitals gut abschneiden. Dev-Start und Hot Reload fühlen sich Vite-nativ an, und du aktivierst Server-Funktionen nur dann, wenn du sie brauchst.
 
-### Sofort KI-fähig
+### Sofort KI-fähig [#ai-ready-out-of-the-box]
 
 Jede Blume-Website spricht fließend Maschine. Sie gibt [`llms.txt` und `llms-full.txt`](/docs/discoverability/llms-txt) aus, liefert das rohe Markdown jeder Seite, indem du `.md` an deren URL anhängst, stellt eine [von OpenAPI beschriebene JSON-API](/docs/discoverability/json-api) bereit und bietet Lesern auf jeder Seite die Aktionen **Copy as Markdown** und **Open in chat**. Ergänze einen optionalen **Ask AI**-Assistenten auf der Seite oder hoste einen [**MCP-Server**](/docs/discoverability/mcp), damit Coding-Agenten wie Claude Code und Cursor deine Dokumentation direkt durchsuchen und lesen können — kein Scraping, kein gehosteter Dienst. Dein Markdown ist die maßgebliche Quelle für Menschen wie für Modelle.
 
-### Keine Konfiguration — nicht einmal das Template
+### Keine Konfiguration — nicht einmal das Template [#zero-configuration--even-the-template]
 
 Ein Ordner mit Dokumentation ist ein vollständiges Projekt. Es gibt keinen Starter zum Klonen, kein Astro oder Tailwind einzurichten und kein Template zu pflegen. Die Navigation wird aus deinen Dateien abgeleitet, die [Suche](/docs/configuration/search) funktioniert in Dev und Produktion ohne gehosteten Dienst, und Theming besteht aus einer Handvoll Tokens. Alles hat einen sinnvollen Standardwert; Konfiguration ist etwas, worauf du zurückgreifst, nicht etwas, womit du anfängst.
 
-### Typsicher bis ins Mark
+### Typsicher bis ins Mark [#type-safe-to-the-core]
 
 Deine [`blume.config.ts`](/docs/configuration) und jede [`meta.ts`](/docs/content/meta) sind echtes TypeScript — validiert durch ein Schema und geschrieben mit `defineConfig` und `defineMeta`. Dein Editor vervollständigt jede Option automatisch und erkennt Tippfehler, ungültige Werte und fehlende Felder schon während des Tippens, lange vor einem Build. Konfiguration ist Code, den du refaktorieren, berechnen und dem du vertrauen kannst — kein lose typisiertes YAML.
 
-## Alles inklusive
+## Alles inklusive [#everything-included]
 
 - **Komponenten** — Callouts, Cards, Steps, Tabs, Accordions, Badges, Dateibäume und Parametertabellen, in MDX nutzbar [ohne Imports](/docs/content/components).
 - **Lokale Suche** — Orama funktioniert in Dev und Produktion; Pagefind ist für große Websites nur ein Flag entfernt. Kein gehosteter Index.
@@ -52,11 +52,11 @@ Deine [`blume.config.ts`](/docs/configuration) und jede [`meta.ts`](/docs/conten
 - **Anpassung** — Komponenten-Overrides, React-Islands, eigene Seiten, Theme-Tokens und eine Registry für Quellkomponenten über `blume add`.
 - **Eject** — `blume eject` erzeugt ein eigenständiges Astro-Projekt, das weiterhin das `blume`-Paket verwendet.
 
-## Wie es funktioniert
+## Wie es funktioniert [#how-it-works]
 
 Die Blume-CLI findet deine Inhalte, baut einen Content-Graphen auf und generiert ein verstecktes Astro-Projekt unter `.blume/`, das sie für Dev und Build steuert. Die generierte Laufzeitumgebung ist ein Implementierungsdetail — du schreibst Markdown, Blume erledigt den Rest — bis du dich entscheidest zu ejecten und sie selbst zu übernehmen.
 
-## Nächste Schritte
+## Nächste Schritte [#next-steps]
 
 <CardGroup cols={2}>
   <Card title="Konfiguration" href="/docs/configuration" icon="file">

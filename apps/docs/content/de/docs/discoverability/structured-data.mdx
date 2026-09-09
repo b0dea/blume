@@ -20,7 +20,7 @@ Jede Seite enthält:
 
 URLs sind absolut, wenn [`deployment.site`](/docs/deployment) gesetzt ist. Seiten, die mit [`seo.noindex`](/docs/discoverability/metadata#per-page-overrides) markiert sind, werden übersprungen. Wenn [`lastModified`](/docs/configuration#last-modified) aktiv ist, wird das Datum jeder Seite zusätzlich als `dateModified` ausgegeben.
 
-## Identität der Website
+## Identität der Website [#site-identity]
 
 Der WebSite-Knoten sagt, dass eine Website existiert; er sagt nicht, _was_ sie ist oder _wer_ sie betreibt – und genau dafür lesen KI-Agents JSON-LD, bevor sie dich empfehlen oder zitieren. Zwei optionale Blöcke füllen das auf, beide brauchen `deployment.site` (die Knoten tragen absolute Identifier):
 
@@ -47,6 +47,6 @@ seo: {
 
 `software` fügt der Startseite einen **SoftwareApplication**-Knoten hinzu: Name und Beschreibung des Produkts (standardmäßig die der Website), `applicationCategory` (Standard `"DeveloperApplication"`), Betriebssystem, Lizenz, ein `Offer`, wenn `price` gesetzt ist, sowie die Registry- oder Repository-URLs in `sameAs`. Übergib `software: true`, um alle Standardwerte zu übernehmen. Die Organisation wird, sofern konfiguriert, als deren `publisher` angegeben.
 
-## Eigene Seiten
+## Eigene Seiten [#custom-pages]
 
 Eine eigene [`.astro`-Seite](/docs/advanced/custom-pages), die über `PageLayout` gerendert wird, gibt denselben `WebSite`-Graphen aus, damit eine Marketing-Startseite nicht die eine URL ohne strukturierte Daten ist. Übergib `structuredDataEnabled={config.structuredData}`, um sie mit dieser Einstellung synchron zu halten, oder `structuredDataEnabled={false}`, um sie nur für diese Seite abzuschalten.

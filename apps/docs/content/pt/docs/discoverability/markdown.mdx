@@ -6,7 +6,7 @@ description: >-
 
 HTML é para navegadores. Agentes e LLMs se dão melhor com o Markdown em que suas páginas são escritas — menos tokens, sem elementos de interface e componentes renderizados em um formato que um modelo consegue ler. O Blume serve esse Markdown para cada página, em desenvolvimento e em produção, sem nenhuma configuração.
 
-## Markdown bruto
+## Markdown bruto [#raw-markdown]
 
 Adicione `.md` ou `.mdx` à URL de qualquer página para buscar seu código-fonte Markdown bruto — perfeito para LLMs, agentes de codificação e fluxos de trabalho de "copiar como Markdown".
 
@@ -20,13 +20,13 @@ Rotas aninhadas funcionam da mesma forma (`/content/syntax.md`), e a página ini
 
 A variante `.md` _rebaixa_ os componentes para Markdown simples, para consumidores que não conseguem interpretar JSX: `<TypeTable>` vira uma tabela Markdown, `<Callout>` uma citação com rótulo, `<Steps>` uma lista ordenada, `<Tabs>` seções com rótulos em negrito, `<Card>` seu título como um link acima do corpo (e `<CardGroup>` os cards que ele contém), e `<YouTube>` um link. Os componentes que formam uma página de [referência de API](/docs/advanced/api-reference) gerada também são rebaixados: `<Operation>` vira o endpoint na notação da própria especificação (`GET /pets/{id}`, `SEND user/signup`, `query pets`) com um marcador de descontinuação, `<ApiTagOperations>` uma lista desses endpoints com links para suas páginas e seus resumos, e `<ApiOverview>` a versão da API e as URLs base — então um agente lendo uma página de referência sabe o que chamar, e a busca do site encontra o caminho de um endpoint. As props são avaliadas com o `frontmatter` da página em escopo, então uma prop como `title={frontmatter.status}` resolve para o mesmo valor que a página renderizada mostra. Qualquer coisa que não possa ser convertida fielmente — um componente personalizado, ou uma prop calculada a partir de um import — é mantida como está, e a marcação de componentes dentro de blocos de código cercados nunca é tocada. A mesma conversão se aplica ao [`llms-full.txt`](/docs/discoverability/llms-txt) e à ferramenta `get_page` do [servidor MCP](/docs/discoverability/mcp), então toda superfície voltada a agentes lê Markdown limpo. Quando você quiser o código-fonte sem transformações, use a variante `.mdx`.
 
-### Negociação de conteúdo
+### Negociação de conteúdo [#content-negotiation]
 
 Agentes não precisam conhecer a convenção `.md`: requisitar a URL da própria página com um cabeçalho [`Accept: text/markdown`](https://acceptmarkdown.com) serve a variante Markdown no mesmo endereço, com `Vary: Accept` para que os caches mantenham as duas separadas. O servidor de desenvolvimento respeita o cabeçalho por padrão, e um [build de servidor na Vercel ou Cloudflare](/docs/deployment#server-rendering) conecta a mesma negociação ao deploy automaticamente — regras de roteamento na Vercel, um Worker gerado na Cloudflare — sem nenhuma configuração necessária. A página inicial sempre negocia, mesmo quando é uma landing page personalizada em vez de uma página de conteúdo: seu espelho em Markdown recorre ao índice [`llms.txt`](/docs/discoverability/llms-txt), então um agente que pede Markdown para a raiz do site recebe o mapa legível por máquina do site. As respostas em Markdown também carregam um cabeçalho `x-markdown-tokens` — uma contagem estimada de tokens (~4 caracteres por token), seguindo a convenção do [Markdown for Agents da Cloudflare](https://developers.cloudflare.com/fundamentals/reference/markdown-for-agents/) — em toda superfície onde o Blume controla os cabeçalhos de resposta: o servidor de desenvolvimento, respostas renderizadas no servidor e a página inicial negociada na Vercel e na Cloudflare. Outros destinos de deploy servem páginas pré-renderizadas a partir de uma camada estática sem hook em tempo de requisição, então agentes ali buscam a URL `.md` diretamente; o [manifesto de legibilidade para agentes](/docs/discoverability/agent-discovery#agent-readability) anuncia `contentNegotiation` apenas em deployments que respeitam o cabeçalho.
 
 Páginas inexistentes também negociam. Todo build emite uma [página 404](/docs/advanced/custom-pages#404-page) em Markdown em `/404.md` — a mensagem de não encontrado seguida por links de recuperação para cada seção de nível superior, o sitemap e o `llms.txt` — e, na Vercel, uma requisição para uma URL inexistente que prefere Markdown, ou qualquer URL `.md` sem página por trás, recebe esse corpo com um status `404` real em vez do shell HTML.
 
-### Serializadores de componentes personalizados
+### Serializadores de componentes personalizados [#custom-component-serializers]
 
 Dê aos seus próprios componentes uma forma em Markdown com `ai.markdownComponents` — um mapa de nome JSX para serializador. Cada serializador recebe as `props` do componente (avaliadas estaticamente a partir dos atributos MDX, com o `frontmatter` da página em escopo), seus `children` (já rebaixados para Markdown) e os dados de `frontmatter` da página, e retorna a substituição — ou `null` para deixar o JSX como está:
 
@@ -50,13 +50,13 @@ Para componentes contêineres, `childComponents("Name")` extrai filhos diretos p
 
 Os serializadores ficam em `blume.config.ts`, não em `components.tsx`: o arquivo de configuração é executado em tempo de build, enquanto o arquivo de componentes é apenas analisado estaticamente (ele pode importar arquivos `.astro`, que não podem rodar fora do build do site). Seus componentes em si continuam registrados em `components.tsx` exatamente como antes — `markdownComponents` apenas adiciona a forma em Markdown deles voltada a agentes.
 
-## Copiar como Markdown
+## Copiar como Markdown [#copy-as-markdown]
 
 Toda página traz uma ação **Copiar como Markdown** — nas [ações de página](/docs/content/navigation#page-actions) abaixo do sumário — que copia o Markdown bruto da página para a área de transferência. É o mesmo código-fonte servido na [URL `.md`](#raw-markdown) acima, pronto para colar em uma LLM, em uma issue ou nas suas anotações. Está disponível em todas as páginas, em desenvolvimento e em produção, sem nenhuma configuração.
 
 Onde a Clipboard API não estiver disponível ou o navegador a negar — navegadores dentro de apps, WebViews, origens inseguras — a ação recorre ao comando de cópia legado e, se nada chegar à área de transferência, o botão informa **Falha ao copiar** (localizado via `actions.copyFailed`) em vez de ficar em silêncio. O mesmo fallback dá suporte a todo botão de cópia que o Blume renderiza.
 
-## Abrir no chat
+## Abrir no chat [#open-in-chat]
 
 A ação **Abrir no chat** abre a página atual em um assistente de IA — v0, ChatGPT, Claude, T3 Chat, Scira ou Cursor — pré-preenchida com um prompt que o aponta para o Markdown bruto da página, para que ele possa responder perguntas sobre o que você está lendo:
 

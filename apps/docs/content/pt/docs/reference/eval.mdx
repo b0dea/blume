@@ -23,7 +23,7 @@ blume eval  3 question(s) · Claude Code
   2 passed · 1 failed · 1 skipped · 1m 42s · $0.45
 ```
 
-## Como funciona
+## Como funciona [#how-it-works]
 
 Cada pergunta passa por duas sessões de agente, usando uma CLI de agente que você já tem instalada — [Claude Code](https://claude.com/claude-code) por padrão, ou [Codex](https://developers.openai.com/codex/cli) com `--agent codex`. O Blume não guarda nenhuma chave de API e não chama nenhum modelo por conta própria.
 
@@ -34,7 +34,7 @@ O snapshot do MCP é construído diretamente a partir das suas fontes de conteú
 
 Uma resposta que a documentação _não_ consegue sustentar falha mesmo quando o conhecimento prévio do agente por acaso está correto — esse é justamente o ponto. Sua documentação é a única fonte que vai para produção.
 
-## Escrevendo avaliações
+## Escrevendo avaliações [#writing-evals]
 
 As perguntas ficam em `evals.yaml` na raiz do projeto. Para que um agente rascunhe um arquivo inicial a partir da sua documentação existente:
 
@@ -72,7 +72,7 @@ questions:
 
 Escreva as perguntas que seus usuários realmente fazem — as que vêm de tópicos de suporte, issues no GitHub e chamadas de onboarding. As melhores avaliações codificam uma promessa que sua documentação faz ("deploys sem configuração") como uma pergunta que quebra quando um PR quebra a promessa.
 
-## Fazendo a CI falhar
+## Fazendo a CI falhar [#failing-ci]
 
 O código de saída é o contrato: qualquer pergunta que falhe sai com código diferente de zero. O `--threshold` afrouxa a barreira para uma fração de aprovação quando você está saindo de um acúmulo de pendências:
 
@@ -86,7 +86,7 @@ O relatório JSON tem o mesmo formato de `diagnostics` + `summary` que `blume va
 
 Como cada pergunta são duas sessões de modelo, uma execução de avaliação custa dinheiro e minutos reais — o gasto por pergunta é exibido conforme a execução acontece. Uma configuração sensata de CI roda o `blume eval` em mudanças na documentação, e não a cada push.
 
-## Corrigindo os achados
+## Corrigindo os achados [#fixing-the-findings]
 
 Cada falha indica os fatos ausentes e a página que deveria declará-los. Para entregar o relatório inteiro ao agente em vez disso:
 

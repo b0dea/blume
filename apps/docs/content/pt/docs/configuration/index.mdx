@@ -17,7 +17,7 @@ export default defineConfig({
 });
 ```
 
-## Um exemplo completo
+## Um exemplo completo [#a-complete-example]
 
 Um exemplo mais abrangente que aborda as opções mais comuns (consulte o guia de cada funcionalidade para as demais):
 
@@ -102,7 +102,7 @@ export default defineConfig({
 | `logo` | — | Marca gráfica e/ou logotipo textual exibido no cabeçalho. |
 | `banner` | — | Barra de anúncios para todo o site, acima do cabeçalho. |
 
-### Logotipo
+### Logotipo [#logo]
 
 Aponte o `logo` para um SVG e o Blume o incorpora inline, para que um logotipo com `currentColor` acompanhe automaticamente o tema claro e escuro:
 
@@ -153,7 +153,7 @@ my-docs/
 
 Só o irmão do ícone que o Blume escolheu é usado — um arquivo `-dark` com um nome diferente continua ignorado, então um arquivo sem relação não pode se emparelhar com a sua marca por acidente. O arquivo escuro é opcional; com apenas um ícone, o Blume emite uma única tag como antes. A marca de fallback do próprio Blume inclui as duas variantes.
 
-### Ícone Apple touch
+### Ícone Apple touch [#apple-touch-icon]
 
 O ícone que o iOS usa quando alguém adiciona seu site à tela de início é detectado da mesma forma. Coloque um arquivo `apple-icon` (`.png`, `.jpg` ou `.jpeg`) — ou um `apple-touch-icon.png`, o nome que a maioria dos geradores de favicons produz — na raiz do seu projeto ou no diretório `public/` e o Blume cuida de configurar `<link rel="apple-touch-icon">` para você. Não há padrão; se nenhum arquivo for encontrado, nenhuma tag é emitida.
 
@@ -166,7 +166,7 @@ my-docs/
 
 Coloque o arquivo em `public/` em vez da raiz do projeto: o iOS ignora o URI de dados incorporado que o Blume usa para um ícone no nível da raiz, então só um arquivo em `public/` (servido em `/apple-icon.png`) chega de forma confiável à tela de início. Diferentemente do favicon, aqui não existe um irmão `-dark` — o iOS ignora media queries nos ícones da tela de início, então uma variante escura nunca poderia ser servida.
 
-### Faixa
+### Faixa [#banner]
 
 Mostre uma barra de anúncios para todo o site acima do cabeçalho. Passe uma string, ou um objeto com um link e um botão para dispensar:
 
@@ -185,7 +185,7 @@ banner: {
 
 Quando `dismissible` está ativo, a barra mostra um botão de fechar e permanece oculta para aquele visitante daí em diante. A chave de dispensa assume por padrão o texto do conteúdo, então editar a mensagem faz a faixa reaparecer; defina um `id` estável para mantê-la dispensada entre edições.
 
-## Conteúdo
+## Conteúdo [#content]
 
 Onde seu conteúdo fica e como o Blume o descobre. Consulte [Páginas](/docs/content) para saber como os arquivos viram rotas.
 
@@ -206,7 +206,7 @@ content: {
 
 Os recursos estáticos ficam em `public/` — um arquivo em `public/logo.png` é servido em `/logo.png`, então uma referência como `![](/images/create.png)` é resolvida a partir de `public/images/create.png`. As imagens referenciadas por **caminho relativo** (`![](./diagram.png)`) ficam junto ao seu conteúdo e são [otimizadas no momento da build](/docs/content/syntax#links-and-images).
 
-## Imagens
+## Imagens [#images]
 
 As imagens locais referenciadas por caminho relativo são otimizadas automaticamente no momento da build — comprimidas, convertidas para WebP e com atributos `width`/`height` intrínsecos, para que o layout não se desloque enquanto elas carregam. Não há nada a configurar; consulte [Links e imagens](/docs/content/syntax#links-and-images) para orientações de escrita.
 
@@ -311,7 +311,7 @@ Uma instância acessível apenas por HTTP simples ainda renderiza suas contagens
 `host` cobre os links que o Blume deriva de `github`. Para apontar só a marca do cabeçalho para outro lugar — uma organização, digamos, quando o próprio repositório das docs é privado — use [`navigation.repo`](/docs/content/navigation#repository-link) com uma URL absoluta.
 :::
 
-## Última modificação
+## Última modificação [#last-modified]
 
 Mostre uma linha "Última atualização em …" no rodapé de cada página. Desativado por padrão; defina `lastModified` como `true` para derivar a data de cada página do respectivo histórico do git:
 
@@ -337,7 +337,7 @@ lastModified: 2026-06-20
 
 Quando ativada, a data também é emitida como `dateModified` do schema.org nos dados estruturados da página.
 
-## Formato de data
+## Formato de data [#date-format]
 
 Tanto a marca de "Última atualização" quanto a linha do tempo do [changelog](/docs/advanced/changelog) exibem suas datas através do mesmo `dateFormat`, para que elas sejam lidas do mesmo jeito. As datas são sempre exibidas no locale do site; o `dateFormat` controla o _formato_. Por padrão ele usa a forma longa (`July 21, 2026`, `2026年7月21日`):
 
@@ -364,7 +364,7 @@ dateFormat: { year: "numeric", month: "2-digit", day: "2-digit" },
 | `timeZone` | Fuso horário IANA. Por padrão é `UTC`, para que uma data seja lida da mesma forma independentemente de onde o site é buildado. |
 | `calendar`, `numberingSystem` | Sistema de calendário (p. ex. `"japanese"`) e sistema de numeração (p. ex. `"arab"`). |
 
-## SEO e IA
+## SEO e IA [#seo-and-ai]
 
 Metadados, imagens Open Graph, feeds RSS, JSON-LD, o sitemap e o `robots.txt` ficam em `seo`; o `llms.txt`, o Markdown bruto, a API JSON e o servidor MCP ficam em `ai`. Os dois são abordados página a página na seção [Descoberta](/docs/discoverability), que trata os buscadores e os agentes de IA como dois públicos da mesma camada legível por máquina.
 
@@ -390,7 +390,7 @@ seo: {
 
 Eles funcionam melhor com um [`deployment.site`](/docs/deployment) absoluto, para URLs completas.
 
-## Sumário da página
+## Sumário da página [#table-of-contents]
 
 O esquema "nesta página" está ativo por padrão e lista os títulos `H2`–`H3`. Desative-o, ou altere o intervalo de títulos, com `toc`:
 
@@ -408,7 +408,7 @@ export default defineConfig({
 });
 ```
 
-## Opções de funcionalidades
+## Opções de funcionalidades [#feature-options]
 
 Cada uma delas tem seu próprio guia. O campo de configuração é o ponto de entrada:
 
@@ -426,7 +426,7 @@ Cada uma delas tem seu próprio guia. O campo de configuração é o ponto de en
 | `redirects` | Redirecionamentos permanentes e temporários | [Deploy](/docs/deployment#redirects) |
 | `integrations` | Integrações do Astro adicionadas depois das integradas do Blume | [Personalização](/docs/configuration/customization#astro-integrations) |
 
-## Precedência
+## Precedência [#precedence]
 
 As configurações são resolvidas da prioridade mais baixa para a mais alta, então você só precisa substituir o que quiser:
 

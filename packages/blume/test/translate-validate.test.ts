@@ -196,7 +196,8 @@ Lancez npm install blume.
   it("round-trips a frontmatter-less source as a bare body", () => {
     const source = "# Install\n\nRun the installer.\n";
     const text = okText(source, "# Installation\n\nLancez l'installateur.");
-    expect(text).toBe("# Installation\n\nLancez l'installateur.\n");
+    // The heading is pinned to the source id so `#install` links resolve.
+    expect(text).toBe("# Installation [#install]\n\nLancez l'installateur.\n");
     // Frontmatter the agent invents on a frontmatter-less source is dropped.
     const stripped = okText(
       source,

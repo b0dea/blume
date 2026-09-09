@@ -20,7 +20,7 @@ blume translate  3 item(s) · 2 locale(s) · Claude Code
   Translated 3 files into 2 locales · 1 adopted · 14 already up to date · 51.1s · $0.22
 ```
 
-## 仕組み
+## 仕組み [#how-it-works]
 
 パイプラインは Blume が管理し、エージェントはテキストを翻訳するだけです。作業が必要なファイルごとに、Blume は翻訳プロンプトを組み立て、ファイル・シェル・ウェブの各ツールを無効化した状態でエージェント CLI をヘッドレスに実行し、応答の構造を検証したうえで、ターゲットファイルを自ら書き込みます。`--claude` では [Claude Code](https://claude.com/claude-code)、`--codex` では [Codex](https://developers.openai.com/codex/cli) を使います。Blume は API キーを一切保持せず、自身でモデルを呼び出すこともありません。
 
@@ -32,14 +32,14 @@ blume translate  3 item(s) · 2 locale(s) · Claude Code
 
 初回の翻訳には合わせるべき前例がないため、[ロケールの `style`](/docs/content/i18n) で方針を最初に固定してください（`{ code: "pt", label: "Português", style: "Brazilian Portuguese, informal você" }`）。この指示はすべての翻訳プロンプトに同梱され、既存の翻訳と食い違う場合は `style` が優先されます。そのため、再翻訳は古いページも設定済みのスタイルへと近づけていきます。
 
-## 翻訳される対象
+## 翻訳される対象 [#what-gets-translated]
 
 - **ページ** — デフォルトロケールの `.md`/`.mdx` ファイル。エージェントは本文と、人間が目にするフロントマターの値（`title`、`description`、`sidebar.label`、`sidebar.badge`、`seo.title`、`seo.description`）のみを翻訳します。出力先はパーサーに従います。`dir` では `fr/guides/install.mdx`、`dot` では `guides/install.fr.mdx` です。
 - **フォルダーのナビゲーションタイトル** — `dir` パーサーでは、各ロケールで必要な [`meta.ts`](/docs/content/meta) のタイトルが 1 回のバッチ呼び出しで翻訳され、生成されるロケールごとの `meta.ts` はその他のキー（`order`、`pages`、`icon`、`collapsed`）をそのままコピーするため、そのロケールのサイドバーは並び順を保ちます。
 
 手作業で書いた翻訳は**採用され、上書きされることはありません**。翻訳が存在するのに台帳エントリがない場合は、最新としてスタンプされ、そのまま残されます。再翻訳するのは `--force` のときだけです。
 
-## 検証
+## 検証 [#validation]
 
 構造の面でエージェントが信頼されることはありません。書き込む前に、Blume は各応答をチェックし、ソースからファイルを再構築します。
 
@@ -48,7 +48,7 @@ blume translate  3 item(s) · 2 locale(s) · Claude Code
 
 検証に失敗した応答は何も書き込みません。その項目は失敗として報告され、実行は次へ進みます。成功したものはすべて台帳にスタンプされたまま残るため、再実行では失敗分だけが再試行されます。
 
-## CI を失敗させる
+## CI を失敗させる [#failing-ci]
 
 `blume translate --check` は読み取り専用のゲートです。不足・古くなったペアをすべて報告し、ずれがあれば非ゼロで終了します。エージェントの実行も書き込みも行いません。
 
@@ -63,14 +63,14 @@ blume translate --check --json    # machine-readable drift report on stdout
 
 JSON レポートは `blume validate --json`、`blume audit --json`、`blume eval --json` と同じ `diagnostics` + `summary` の形式で、ずれはロケールごとにグループ化されます。手作業で書かれた（追跡対象外の）翻訳がゲートを失敗させることはありません。
 
-## 制限事項
+## 制限事項 [#limitations]
 
 - メタタイトルの翻訳は `dir` パーサー専用です。`dot` パーサーにはロケールごとの `meta.ts` の仕組みがありません。関数をデフォルトエクスポートしている `meta.ts` は警告付きでスキップされるため、そのロケール用のファイルは手作業で書いてください。
 - リモートおよび CMS 由来のソースはスキップされます。翻訳を書き込むローカルファイルが存在しないためです。
 - ヘッダーのタブラベルはコンテンツではなく `blume.config.ts` にあります。[ロケールごとのラベルマップ](/docs/content/navigation#tabs)でそちらをローカライズしてください。
 - 翻訳の品質はエージェント次第です。他のコントリビューションと同じように出力をレビューしてください。台帳が保証するのは鮮度だけであり、流暢さではありません。
 
-## フラグ
+## フラグ [#flags]
 
 - `--claude` / `--codex` — どのエージェント CLI で翻訳するか。ちょうど 1 つの指定が必須です（`--check` の場合を除く）。
 - `--check` — ずれを報告して非ゼロで終了します。何も書き込みません。

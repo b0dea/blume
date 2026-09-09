@@ -4,7 +4,7 @@ description: >-
   Substitua componentes, adicione ilhas interativas, monte páginas personalizadas, instale componentes do registro ou faça eject completo quando precisar de controle total.
 ---
 
-## Substituições de componentes
+## Substituições de componentes [#component-overrides]
 
 Adicione um `components.ts` (ou `components.tsx`) à raiz do seu projeto e exporte `defineComponents`. O mapa `mdx` **substitui** um componente integrado ou **adiciona** um novo — disponível em todas as páginas `.mdx` sem nenhum import.
 
@@ -23,7 +23,7 @@ export default defineComponents({
 
 As chaves são os nomes que você escreve no MDX (`<Callout>`, `<Pricing>`). Use o nome de arquivo `.tsx` quando importar componentes React.
 
-### Forma de referência
+### Forma de referência [#reference-form]
 
 Toda substituição — em `mdx`, `layout` ou `islands` — aceita três formas:
 
@@ -52,7 +52,7 @@ A forma de **descritor** adiciona um modo de hidratação para que um componente
 
 Para componentes interativos que você usa em muitas páginas, o [grupo `islands`](/docs/content/islands#registering-islands-in-componentsts) é um atalho para a forma de descritor com `client: "visible"`.
 
-### Tipando uma substituição
+### Tipando uma substituição [#typing-an-override]
 
 Ao substituir um componente integrado, importe o tipo das suas props de `blume/components` para que seu componente respeite o contrato — os tipos derivam dos próprios componentes, então nunca ficam defasados:
 
@@ -66,7 +66,7 @@ export default function Callout(props: CalloutProps) {
 
 Os tipos de props são exportados para os componentes de conteúdo (`CalloutProps`, `CardProps`, `TabsProps`, `StepsProps`, `BadgeProps` e outros).
 
-## Slots de layout
+## Slots de layout [#layout-slots]
 
 O mapa `layout` substitui uma parte da estrutura visual do Blume pelo seu próprio componente. Cada substituição recebe as mesmas props do componente integrado que ela substitui, então você pode envolver o padrão ou começar do zero.
 
@@ -104,7 +104,7 @@ Slots conectados:
 
 Os slots de layout aceitam as mesmas [três formas de referência](#reference-form) das substituições MDX, então um slot pode ser uma string de caminho ou um descritor hidratado (`{ component, client }`) quando você quiser um cabeçalho ou rodapé interativo.
 
-## Ilhas interativas
+## Ilhas interativas [#interactive-islands]
 
 Para UI interativa (React, Vue ou Svelte), coloque um componente em uma pasta `islands/` e use-o em qualquer página MDX — o Blume o hidrata para você, sem necessidade de wrapper ou registro:
 
@@ -123,13 +123,13 @@ Use it anywhere: <Counter />
 
 Veja [Ilhas](/docs/content/islands) para estratégias de hidratação e configuração de frameworks.
 
-## Páginas personalizadas
+## Páginas personalizadas [#custom-pages]
 
 Adicione arquivos `.astro` dentro da sua pasta `pages/` para montar rotas totalmente personalizadas ao lado da sua documentação — uma landing page, uma página de preços ou um índice feito à mão. Elas mantêm sua localização, então imports relativos e `getStaticPaths` funcionam normalmente, e podem ler sua configuração, navegação e rotas a partir do módulo `blume:data`.
 
 Veja [Páginas Personalizadas](/docs/advanced/custom-pages) para o guia completo.
 
-## Registro
+## Registro [#registry]
 
 O `blume add` copia um componente mantido pelo Blume para o seu projeto como **código-fonte** — ele é seu e você pode editá-lo livremente. Execute-o sem argumentos para listar o que está disponível:
 
@@ -146,7 +146,7 @@ blume add pagination
 
 A cópia importa o restante do framework de `blume/*`, então ela renderiza exatamente como a versão integrada até você alterá-la. O `blume add` exibe o trecho de `defineComponents` para registrá-la — componentes de conteúdo em `mdx`, peças de layout em `layout`.
 
-## Integrações do Astro
+## Integrações do Astro [#astro-integrations]
 
 Adicione qualquer integração do Astro a partir do array `integrations` de nível superior em `blume.config.ts`. Instale a integração no seu site primeiro; o Blume não a adiciona às dependências do runtime gerado nem gerencia sua compatibilidade com o Astro.
 
@@ -183,7 +183,7 @@ blume eject --yes
 
 O eject é um passo sem volta: o runtime oculto `.blume/` se torna um aplicativo Astro normal que é seu e que você pode modificar diretamente. O pacote `blume` continua importável, então você mantém seus componentes, tema e processadores de Markdown.
 
-### O que o eject deixa para trás
+### O que o eject deixa para trás [#what-eject-leaves-behind]
 
 Depois do eject, seu script `build` executa um `astro build` puro — o site em si é compilado da mesma forma, mas os artefatos que o `blume build` adicionava por cima não são mais produzidos. O comando de eject avisa sobre aqueles que sua configuração de fato utiliza. Para mantê-los:
 

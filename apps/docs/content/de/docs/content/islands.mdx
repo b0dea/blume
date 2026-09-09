@@ -6,7 +6,7 @@ description: >-
 
 Blume rendert deine Dokumentation standardmäßig als statisches HTML mit **null JavaScript**. Wenn du etwas Interaktives brauchst — eine Live-Demo, ein Diagramm, einen Playground — fügst du eine **Island** hinzu: eine Framework-Komponente, die JS nur für sich selbst ausliefert, und nur auf den Seiten, die sie verwenden.
 
-## Die `islands/`-Konvention
+## Die `islands/`-Konvention [#the-islands-convention]
 
 Lege eine Komponente in einen `islands/`-Ordner im Stammverzeichnis deines Projekts. Ihr Dateiname wird zu einer Komponente, die du in **jeder** `.mdx`-Seite verwenden kannst, ganz ohne Import:
 
@@ -29,7 +29,7 @@ Der Dateiname ist der Komponentenname, er **muss also ein PascalCase-Bezeichner 
 Islands sind für **interaktive** UI gedacht. Für eine statische Komponente, die du seitenübergreifend wiederverwendest (ein gestalteter Hinweis, eine Preistabelle), nutze stattdessen ein [MDX-Override](/docs/configuration/customization) — es liefert kein JavaScript aus.
 :::
 
-## Islands in `components.ts` registrieren
+## Islands in `components.ts` registrieren [#registering-islands-in-componentsts]
 
 Wenn du Islands lieber bei deinen übrigen Komponenten aufbewahren möchtest — oder ihnen einen anderen Namen als der Datei geben willst — registriere sie mit `defineComponents`. Die Gruppe `islands` verhält sich genau wie der `islands/`-Ordner: Jeder Eintrag steht in jeder MDX-Seite zur Verfügung und wird hydriert (standardmäßig mit `client: "visible"`).
 
@@ -54,7 +54,7 @@ export default defineComponents({
 });
 ```
 
-## Hydrierung
+## Hydrierung [#hydration]
 
 Standardmäßig nutzt eine Island `client:visible`: Sie hydriert, sobald die lesende Person sie in den sichtbaren Bereich scrollt, sodass auch eine Seite voller Islands sofort lädt. Entscheide dich mit einem `export const client` in der Island-Datei für eine andere Strategie:
 

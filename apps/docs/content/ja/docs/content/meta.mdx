@@ -6,7 +6,7 @@ description: >-
 
 コンテンツツリー内のすべてのフォルダーはサイドバーグループになります。ページと同じ階層に `meta.ts` を置くと、そのグループの見た目と子要素の並び順を制御できます。これは完全に任意です。ファイルがない場合、グループのラベルはフォルダー名を人間が読みやすい形にしたものになり、ページは[インデックス、数値プレフィックス、その後アルファベット順](/docs/content/navigation#ordering)で並びます。
 
-## メタの定義
+## メタの定義 [#defining-meta]
 
 完全に型付けされた設定にするには `defineMeta` オブジェクトをエクスポートします。設定対象のフォルダーのルートにファイルを配置してください — `guides/meta.ts` は **Guides** グループを設定します:
 
@@ -24,7 +24,7 @@ export default defineMeta({
 
 すべてのフィールドは任意です — 上書きしたいものだけを設定してください。
 
-## フィールド
+## フィールド [#fields]
 
 | フィールド | 型 | 説明 |
 | --- | --- | --- |
@@ -39,7 +39,7 @@ export default defineMeta({
 
 グループの描画方法 — フラットなヘッダー、折りたたみ可能な開閉要素、ドリルインパネル — はデフォルトでサイドバー全体の `navigation.sidebar.display` に従います。このグループだけで上書きするには、ここで `display` を設定してください。フォルダーの `index` ページもフロントマターからこれを設定でき、そちらが `meta.ts` よりも優先されます — [グループごとの上書き](/docs/content/navigation#per-group-overrides)を参照してください。
 
-## 計算されたメタ
+## 計算されたメタ [#computed-meta]
 
 `meta.ts` は実際のモジュールなので、メタを計算できます — オブジェクトの代わりに関数（同期または `async`）を渡すと、スキャン時に構築されます。外部ソースからページの順序を取得する場合に便利です:
 
@@ -52,13 +52,13 @@ export default defineMeta(async () => ({
 }));
 ```
 
-## グループ内での並び順
+## グループ内での並び順 [#ordering-within-a-group]
 
 `pages` 配列はグループの子要素の順序を設定します。そこで省略されたものは、各ページのフロントマターの `sidebar.order`、次にファイルシステム（最初に `index` ページ、次に数値プレフィックス、その後アルファベット順）にフォールバックします。明示的な設定サイドバーを含む、サイドバーの優先順位の全体については、[ナビゲーション › 並び順](/docs/content/navigation#ordering)を参照してください。
 
 URL セグメントを追加*せずに*ページをグループ化したい場合、`meta.ts` はまったく必要ありません。括弧付きのフォルダー名を使用してください — [ページ › グループフォルダー](/docs/content#group-folders)を参照してください。
 
-## 国際化
+## 国際化 [#internationalization]
 
 [i18n](/docs/content/i18n) では、フォルダーメタはロケールごとに解決されます。`fr/guides/` の下に `meta.ts` を置くと、フランス語のグループを独立して並べ替えられます。
 
@@ -70,7 +70,7 @@ docs/guides/meta.$.ts   (folder meta applied to every locale)
 
 ロケール固有の `meta.ts` は、その言語について共有の `meta.$.ts` を引き続き上書きします。
 
-## 次はどこへ
+## 次はどこへ [#where-to-next]
 
 <CardGroup cols={2}>
   <Card title="ナビゲーション" href="/docs/content/navigation" icon="menu">

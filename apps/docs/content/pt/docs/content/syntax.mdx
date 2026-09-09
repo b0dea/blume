@@ -6,7 +6,7 @@ description: >-
 
 O Blume renderiza Markdown e MDX padrão com um conjunto de recursos curado, no estilo GitHub — sem imports, sem configuração. Escreva conteúdo do jeito que você já escreve; esta página mostra tudo o que é suportado, com uma pré-visualização ao vivo e o código-fonte de cada recurso.
 
-## Títulos
+## Títulos [#headings]
 
 Estruture uma página com títulos. O Blume renderiza o `title` do frontmatter como o título da página, então comece seu conteúdo em `##` — `##` e `###` viram entradas no índice. Todo título de `##` a `######` também é envolvido em um link para sua própria âncora, para que os leitores possam clicar em um título para copiar, salvar nos favoritos ou compartilhar um link permanente direto para aquela seção (passe o cursor para revelar o `#`). Desative isso com `markdown: { headingAnchors: false }` no `blume.config.ts`.
 
@@ -18,7 +18,7 @@ Estruture uma página com títulos. O Blume renderiza o `title` do frontmatter c
 #### Detail
 ```
 
-### Âncoras personalizadas
+### Âncoras personalizadas [#custom-anchors]
 
 Os ids das âncoras são gerados a partir do texto do título, então um título reescrito ganha uma âncora nova. Acrescente `[#custom-id]` para fixar a âncora — o marcador nunca é renderizado, e os links continuam funcionando independentemente de como o título estiver escrito. Âncoras fixadas também permanecem idênticas entre [locales traduzidos](/docs/content/i18n), onde ids gerados automaticamente seriam diferentes em cada idioma.
 
@@ -36,7 +36,7 @@ A forma `{#custom-id}`, usada pelo Pandoc, pelo kramdown e por toolchains de esp
 
 Links de fragmento também podem apontar para um elemento HTML puro com um `id` (`<a id="setup"></a>`); o `blume validate` aceita esses casos junto com as âncoras de título.
 
-### Marcadores do índice
+### Marcadores do índice [#table-of-contents-markers]
 
 Outros dois marcadores finais controlam como um título aparece no índice. `[!toc]` mantém o título na página, mas fora do índice; `[toc]` faz o contrário — o título aparece apenas no índice, como um alvo de âncora invisível, o que é útil para rotular seções construídas com componentes em vez de prosa. Os marcadores podem ser encadeados em qualquer ordem. Uma exceção, herdada do CommonMark: um colchete final cujo rótulo tenha uma definição de referência de link em qualquer lugar da página (`[toc]: /url`) é um link de referência abreviado, não um marcador, e permanece no texto do título.
 
@@ -50,7 +50,7 @@ Outros dois marcadores finais controlam como um título aparece no índice. `[!t
 
 Os marcadores são sempre interpretados — um título que termine literalmente com um texto no formato de marcador seria tratado como marcado. Escapar com barra invertida não ajuda (o Markdown resolve `\[` para `[` antes de a análise do marcador rodar); para exibir o texto literal de um marcador no fim de um título, coloque-o em código inline: `` ## Using `[toc]` ``.
 
-## Ênfase
+## Ênfase [#emphasis]
 
 Formatação inline para enfatizar palavras, marcar exclusões e mostrar código ou teclas no meio da frase.
 
@@ -60,7 +60,7 @@ Formatação inline para enfatizar palavras, marcar exclusões e mostrar código
 **Bold**, _italic_, ~~strikethrough~~, and `inline code`.
 ```
 
-## Sobrescrito e subscrito
+## Sobrescrito e subscrito [#superscript-and-subscript]
 
 Para marcadores de nota de rodapé, ordinais e notação científica ou química inline.
 
@@ -71,7 +71,7 @@ E = mc^2^ e H~2~O.
 E = mc^2^ and H~2~O.
 ```
 
-## Citações
+## Citações [#blockquotes]
 
 Destaque uma citação, um aparte de atenção ou uma nota editorial do texto ao redor.
 
@@ -81,7 +81,7 @@ Destaque uma citação, um aparte de atenção ou uma nota editorial do texto ao
 > Documentation that's fast, AI-ready, and zero-config — down to the template.
 ```
 
-## Listas
+## Listas [#lists]
 
 Use listas não ordenadas para conjuntos sem ordem, listas ordenadas para sequências e listas de tarefas para checklists e roadmaps.
 
@@ -111,7 +111,7 @@ Use listas não ordenadas para conjuntos sem ordem, listas ordenadas para sequê
 - [ ] Write the first guide
 ```
 
-## Tabelas
+## Tabelas [#tables]
 
 Tabule dados estruturados — opções de configuração, matrizes de comparação, listas de parâmetros. Use dois-pontos na linha divisória para alinhar colunas.
 
@@ -135,7 +135,7 @@ Para uma tabela sem linha de cabeçalho — pares chave–valor, por exemplo —
 | Current status | E-3 visa |
 ```
 
-## Links e imagens
+## Links e imagens [#links-and-images]
 
 Crie links para outras páginas ou sites externos. As imagens aceitam um caminho relativo para um arquivo ao lado do seu conteúdo, qualquer caminho dentro de `public/` (servido na raiz do site) ou uma URL remota.
 
@@ -157,7 +157,7 @@ Caminhos absolutos dentro de `public/` (`![Alt text](/screenshot.png)`) são ser
 
 As imagens de conteúdo têm zoom por clique por padrão — os leitores podem clicar em qualquer imagem para abri-la em um lightbox. Desative isso com `markdown: { imageZoom: false }` no `blume.config.ts`, ou exclua uma única imagem com `data-no-zoom`.
 
-## Linha horizontal
+## Linha horizontal [#horizontal-rule]
 
 Separe grandes mudanças de assunto dentro de uma página longa.
 
@@ -167,7 +167,7 @@ Separe grandes mudanças de assunto dentro de uma página longa.
 ---
 ```
 
-## Blocos de código
+## Blocos de código [#code-blocks]
 
 Blocos de código delimitados por cercas recebem realce de sintaxe com um cabeçalho mostrando a linguagem — com um ícone da marca para linguagens reconhecidas — e um botão de copiar. Adicione um **título** depois da linguagem — normalmente um nome de arquivo — e ele substitui o rótulo da linguagem no cabeçalho.
 
@@ -217,7 +217,7 @@ export default defineConfig({
 });
 ```
 
-### Números de linha
+### Números de linha [#line-numbers]
 
 Acrescente `lineNumbers` para renderizar uma coluna com números de linha — sozinho ou junto de um título:
 
@@ -235,7 +235,7 @@ serve({ port: 3000 });
 ```
 ````
 
-### Realce
+### Realce [#highlighting]
 
 Anote o código com comentários no estilo GitHub para chamar atenção para linhas, palavras e alterações. Os comentários são removidos da saída renderizada, então o código continua limpo para copiar e colar. Todos os quatro estão ativos por padrão — sem configuração.
 
@@ -295,7 +295,7 @@ export default defineConfig({
 ```
 ````
 
-### Tipos exibidos
+### Tipos exibidos [#display-types]
 
 Marque um bloco TypeScript com `twoslash` para exibir tipos reais direto do compilador — com tecnologia do [Twoslash](https://shiki.style/packages/twoslash). Passe o cursor sobre qualquer token para ver seu tipo inferido e adicione uma consulta inline `^?` para fixar um tipo abaixo da linha.
 
@@ -318,7 +318,7 @@ config.title;
 ```
 ````
 
-### Abas de TypeScript e JavaScript
+### Abas de TypeScript e JavaScript [#typescript-and-javascript-tabs]
 
 Marque um bloco `ts` ou `tsx` com `ts2js` para renderizá-lo como um par de abas: seu TypeScript ao lado de uma variante JavaScript gerada automaticamente, para que você mantenha um único trecho e os leitores escolham seu dialeto. A conversão remove a sintaxe de tipos e os imports somente de tipos, mantendo sua formatação, seus comentários e o JSX exatamente como você escreveu — e as abas são sincronizadas, então escolher JavaScript uma vez troca todos os pares da página. Como os diagramas e a matemática, este é um recurso exclusivo do MDX — em um arquivo `.md` o bloco é renderizado como uma cerca de código TypeScript comum.
 
@@ -358,7 +358,7 @@ Outros metadados da cerca se combinam: um `title="..."` aparece nas duas abas, e
 Oculte os ícones de linguagem ou quebre linhas longas em vez de rolar com `markdown: { code: { icons: false, wrap: true } }` no `blume.config.ts`.
 :::
 
-## Instalação de pacotes
+## Instalação de pacotes [#package-install]
 
 Um bloco `package-install` transforma um único comando de instalação em um trecho com abas para npm, pnpm, yarn, bun, nub e aube — assim os leitores copiam o que corresponde à sua configuração. Como os diagramas e a matemática, este é um recurso exclusivo do MDX — em um arquivo `.md` o bloco é renderizado como uma cerca de código comum.
 
@@ -372,7 +372,7 @@ npm i blume
 ```
 ````
 
-## Diagramas
+## Diagramas [#diagrams]
 
 Um bloco `mermaid` renderiza um diagrama do [Mermaid](https://mermaid.js.org) direto do texto. O conteúdo da cerca é passado ao Mermaid literalmente, então todo tipo de diagrama suportado pelo Mermaid funciona aqui. Os diagramas seguem o tema de cores ativo e são renderizados novamente quando ele muda. Crie um delimitando o código-fonte com `mermaid`:
 
@@ -387,7 +387,7 @@ flowchart LR
 
 Os diagramas são renderizados no cliente, então este é um recurso exclusivo do MDX, e a biblioteca Mermaid é carregada apenas em páginas que incluem um. O restante desta seção é uma galeria de tipos comuns — veja a [documentação do Mermaid](https://mermaid.js.org/intro/) para a lista completa.
 
-### Fluxograma
+### Fluxograma [#flowchart]
 
 ```mermaid
 flowchart LR
@@ -396,7 +396,7 @@ flowchart LR
   B --> D[llms.txt]
 ```
 
-### Diagrama de sequência
+### Diagrama de sequência [#sequence-diagram]
 
 ```mermaid
 sequenceDiagram
@@ -406,7 +406,7 @@ sequenceDiagram
   B-->>R: Prerendered HTML
 ```
 
-### Diagrama de classes
+### Diagrama de classes [#class-diagram]
 
 ```mermaid
 classDiagram
@@ -419,7 +419,7 @@ classDiagram
   Page <|-- Changelog
 ```
 
-### Diagrama de estados
+### Diagrama de estados [#state-diagram]
 
 ```mermaid
 stateDiagram-v2
@@ -428,7 +428,7 @@ stateDiagram-v2
   Published --> [*]
 ```
 
-### Entidade-relacionamento
+### Entidade-relacionamento [#entity-relationship]
 
 ```mermaid
 erDiagram
@@ -439,7 +439,7 @@ erDiagram
   }
 ```
 
-### Jornada do usuário
+### Jornada do usuário [#user-journey]
 
 ```mermaid
 journey
@@ -462,7 +462,7 @@ gantt
     Review  :after a1, 3d
 ```
 
-### Grafo do Git
+### Grafo do Git [#git-graph]
 
 ```mermaid
 gitGraph
@@ -475,7 +475,7 @@ gitGraph
   commit
 ```
 
-### Gráfico de pizza
+### Gráfico de pizza [#pie-chart]
 
 ```mermaid
 pie title Content types
@@ -484,7 +484,7 @@ pie title Content types
   "Changelog" : 10
 ```
 
-### Mapa mental
+### Mapa mental [#mindmap]
 
 ```mermaid
 mindmap
@@ -497,7 +497,7 @@ mindmap
       llms.txt
 ```
 
-### Linha do tempo
+### Linha do tempo [#timeline]
 
 ```mermaid
 timeline
@@ -506,11 +506,11 @@ timeline
   2026 : 1.0 release
 ```
 
-## Avisos
+## Avisos [#callouts]
 
 Os avisos chamam a atenção do leitor para contexto, conselhos ou riscos. Escreva-os como diretivas `:::type`; adicione um título entre colchetes, como `:::warning[Atenção]`. As diretivas são um recurso exclusivo do MDX — em um arquivo `.md` uma linha `:::note` permanece como texto literal.
 
-### Nota
+### Nota [#note]
 
 Contexto neutro e complementar que o leitor deve ter em mente.
 
@@ -524,7 +524,7 @@ Blume regenerates `.blume/` on every run — never edit it by hand.
 :::
 ```
 
-### Dica
+### Dica [#tip]
 
 Um atalho útil ou uma boa prática que não é obrigatória, mas facilita a vida.
 
@@ -538,7 +538,7 @@ Set `deployment.site` so sitemaps and Open Graph images use absolute URLs.
 :::
 ```
 
-### Sucesso
+### Sucesso [#success]
 
 Confirme um resultado positivo ou que uma etapa foi concluída como esperado.
 
@@ -552,7 +552,7 @@ Your docs built successfully and are ready to deploy.
 :::
 ```
 
-### Aviso
+### Aviso [#warning]
 
 Sinalize algo que exige cuidado para evitar um erro ou comportamento inesperado.
 
@@ -566,7 +566,7 @@ Switching to `output: "server"` requires an adapter before you can deploy.
 :::
 ```
 
-### Perigo
+### Perigo [#danger]
 
 Destaque uma ação destrutiva ou disruptiva que não pode ser desfeita com facilidade.
 
@@ -596,7 +596,7 @@ The core theme ships no client framework JS.
 
 Os nomes `caution`, `error`, `important` e `warn` são aceitos como aliases de `warning`, `danger`, `note` e `warning`, respectivamente.
 
-## Matemática
+## Matemática [#math]
 
 Renderize LaTeX com o KaTeX como blocos centralizados — útil para documentação científica ou com muita matemática. Envolva uma fórmula em `$$…$$`:
 
@@ -614,7 +614,7 @@ $$
 A matemática funciona apenas em bloco e está ativa automaticamente — escreva `$$…$$` e ela é renderizada; não escreva nenhuma e a folha de estilo do KaTeX nunca é enviada. Não existe matemática inline com `$…$`: um `$` isolado (moeda, variáveis de shell, código) é sempre mantido como texto literal, então não há delimitador para escapar nem configuração para alternar. A matemática é um recurso exclusivo do MDX. Os nomes de classe dentro da marcação renderizada (`.katex-html`, `.katex-base`, …) são internos do próprio KaTeX, não um contrato de estilização que o Blume mantém — eles podem mudar quando o KaTeX for atualizado, então mire no wrapper `.katex-display` para estilos personalizados.
 :::
 
-## Pontuação inteligente
+## Pontuação inteligente [#smart-punctuation]
 
 O Blume converte aspas retas e traços em equivalentes tipográficos enquanto você escreve, para que o texto pareça diagramado — sem exigir caracteres especiais.
 

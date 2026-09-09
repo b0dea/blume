@@ -6,7 +6,7 @@ sidebar:
   order: 2
 ---
 
-## どこにでもデプロイ（静的）
+## どこにでもデプロイ（静的） [#deploy-anywhere-static]
 
 `blume build` はドキュメントを素の HTML、CSS、そしてローカル検索インデックスとして `dist/` にコンパイルします。実行するサーバーはありません — 任意の静的ホストにそのフォルダを向けるだけです。
 
@@ -27,7 +27,7 @@ sidebar:
 - リダイレクトページ
 - `seo.og.enabled` が有効な場合、事前レンダリングされた [Open Graph 画像](/docs/discoverability/open-graph)
 
-### サイト URL を設定する
+### サイト URL を設定する [#set-your-site-url]
 
 サイトマップ、canonical タグ、RSS、Open Graph 画像には絶対オリジンが必要です。**Vercel**、**Netlify**、**Cloudflare Pages** では、Blume がビルド時にプラットフォームの環境から自動検出します — 設定は不要です。
 
@@ -43,7 +43,7 @@ deployment: {
 
 `blume dev` の実行中、サイト URL が未設定の場合はローカル開発サーバー（例: `http://localhost:4321`）にフォールバックするため、サイト URL に依存する機能 — Open Graph 画像、canonical、サイトマップ — がそのまま動作します。ビルドではこのフォールバックは使われないため、本番の出力が localhost を指すことはありません。
 
-## ローカルでプレビューする
+## ローカルでプレビューする [#preview-locally]
 
 公開する前に、静的ホストが配信するのとまったく同じ形で本番ビルドをプレビューしましょう:
 
@@ -52,7 +52,7 @@ blume build
 blume preview
 ```
 
-## サブパスへのデプロイ
+## サブパスへのデプロイ [#subpath-deploys]
 
 `example.com/docs` のようなパス配下でドキュメントを配信しますか？ `deployment.base` を設定してください — GitHub Pages のプロジェクトサイトでよくあるケースです。ルートを含むサイト全体がそのベース配下に移動し、内部リンクとアセットもベースを含むように書き換えられます。
 
@@ -62,7 +62,7 @@ deployment: {
 }
 ```
 
-## ドキュメントをパス配下にマウントする
+## ドキュメントをパス配下にマウントする [#mount-the-docs-under-a-path]
 
 `basePath` は生成されるすべてのルートをあるセグメント配下（`/docs/getting-started`）にマウントしますが、サイドバーはそのままです — トップレベルはラッパーグループではなく、あなたのセクションのままです。ドキュメントは `/docs/*` に置きつつ、サイトのルートは自分のものとして残したい場合に使います（Docusaurus の `routeBasePath` や Fumadocs の `baseUrl` のようなものです）。
 
@@ -77,7 +77,7 @@ basePath: "/docs",
 - ソースごとの [`prefix`](/docs/content/sources#multiple-sources) は**単一**のソースに名前空間を与え、サイドバーグループを**追加します**。
 - `deployment.base` は**アプリ全体**が配信されるホスト側のサブディレクトリです。両者は組み合わせられます — 両方を設定すると、ページは `{deployment.base}/{basePath}/page` に配置されます。
 
-## サーバーレンダリング
+## サーバーレンダリング [#server-rendering]
 
 静的出力でほとんどのドキュメントは事足ります。リクエスト時の機能 — 特に [Ask AI](/docs/configuration/ask-ai) エンドポイント — が必要な場合はサーバー出力に切り替えます:
 
@@ -107,7 +107,7 @@ Vercel と Cloudflare では、サーバービルドによって [`Accept: text/
 サーバー機能にはそれぞれ独自の設定があります — 例えば Ask AI にはモデルの API キーが必要です。セットアップについては [AI ガイド](/docs/configuration/ask-ai) を参照してください。
 :::
 
-## リダイレクト
+## リダイレクト [#redirects]
 
 `blume.config.ts` で古い URL を新しい URL にマッピングします:
 
@@ -125,11 +125,11 @@ redirects: [{ from: "/old", to: "/new", status: 301 }];
 `from` と `to` はどちらもルートにマウントされている前提で書いてください — [`deployment.base`](#subpath-deploys) でも [`basePath`](#mount-the-docs-under-a-path) でも、Blume が両側を書き換えるため、リダイレクト先はベース配下に収まります。`to` に手動でベースを書き込んでいる場合は、二重にならずそのまま維持されます。
 :::
 
-## コンテンツタイプ
+## コンテンツタイプ [#content-types]
 
 静的ビルドでは `_headers` ファイルも出力され、生の AI 対応エンドポイント — `/<route>.md`、`/<route>.mdx`、および `.txt` ファイル（`llms.txt`、`llms-full.txt`）— に `charset=utf-8` を固定します。これらのレスポンスは妥当な UTF-8 ですが、多くの静的ホストは charset **なし**の `text/markdown` / `text/plain` として配信し、ブラウザは Windows-1252 にフォールバックします — その結果、非 ASCII のドキュメント（日本語、アクセント付きラテン文字など）は生の URL を直接開いたときに文字化けします。HTML ページは `<meta charset>` を持つため影響を受けません。Netlify と Cloudflare（Pages/Workers の静的アセット）は `_headers` を読み取ります。読み取らないホスト（Vercel、S3）はこのファイルを無害に無視します。`public/` に配置した `_headers` はそのまま維持されます。
 
-## 環境変数
+## 環境変数 [#environment-variables]
 
 機能が実行時のシークレットを必要とする場合、それが欠けていると Blume は `blume dev`/`build` の時点で警告します — 最初のリクエスト時ではなく、早い段階で問題が表面化します:
 
@@ -141,6 +141,6 @@ redirects: [{ from: "/old", to: "/new", status: 301 }];
 
 ローカル開発では `.env.local` に、本番ではホストの環境に設定してください。検索インデックスの同期（Algolia、Orama Cloud、Typesense）に必要なビルド時のシークレットについては、同期ステップで個別に警告されます。
 
-## ビルドサマリー
+## ビルドサマリー [#build-summary]
 
 ビルドのたびにサマリーが出力されます — 出力モード、アダプター、解決されたサイト URL、検索プロバイダー、リダイレクト数、サイトマップと `llms.txt` の状態、有効になっているサーバー機能 — デプロイ前に、何が反映されたのか（自動検出されたものも含めて）を確認できます。

@@ -6,7 +6,7 @@ description: >-
 
 Blume rendert standardmäßiges Markdown und MDX mit einem kuratierten, GitHub-Flavored-Funktionsumfang — keine Imports, keine Konfiguration. Schreibe Inhalte so, wie du es ohnehin tust; diese Seite zeigt alles, was unterstützt wird, mit einer Live-Vorschau und dem Quelltext für jedes Element.
 
-## Überschriften
+## Überschriften [#headings]
 
 Gliedere eine Seite mit Überschriften. Blume rendert den `title` aus deinem Frontmatter als Seitenüberschrift, beginne deinen Inhalt also bei `##` — `##` und `###` werden zu Einträgen im Inhaltsverzeichnis. Jede Überschrift von `##` bis `######` wird außerdem in einen Link auf ihren eigenen Anker eingefasst, sodass Leser eine Überschrift anklicken können, um einen Permalink direkt zu diesem Abschnitt zu kopieren, als Lesezeichen zu speichern oder zu teilen (mit dem Mauszeiger darüberfahren, um das `#` einzublenden). Schalte das mit `markdown: { headingAnchors: false }` in `blume.config.ts` ab.
 
@@ -18,7 +18,7 @@ Gliedere eine Seite mit Überschriften. Blume rendert den `title` aus deinem Fro
 #### Detail
 ```
 
-### Eigene Anker
+### Eigene Anker [#custom-anchors]
 
 Anker-IDs werden aus dem Überschriftentext erzeugt, eine umformulierte Überschrift bekommt also einen neuen Anker. Hänge stattdessen `[#custom-id]` an, um den Anker festzunageln — der Marker wird nie gerendert, und Links funktionieren weiter, egal wie die Überschrift lautet. Festgenagelte Anker bleiben außerdem über [übersetzte Locales](/docs/content/i18n) hinweg identisch, wo automatisch erzeugte IDs sonst je Sprache abweichen würden.
 
@@ -36,7 +36,7 @@ Die von Pandoc, kramdown und Markdown-basierten Spezifikations-Toolchains verwen
 
 Fragment-Links können auch auf ein rohes HTML-Element mit einer `id` zeigen (`<a id="setup"></a>`); `blume validate` akzeptiert diese neben Überschriften-Ankern.
 
-### Inhaltsverzeichnis-Marker
+### Inhaltsverzeichnis-Marker [#table-of-contents-markers]
 
 Zwei weitere nachgestellte Marker steuern, wie eine Überschrift im Inhaltsverzeichnis erscheint. `[!toc]` behält eine Überschrift auf der Seite, hält sie aber aus dem Inhaltsverzeichnis heraus; `[toc]` macht das Gegenteil — die Überschrift erscheint nur im Inhaltsverzeichnis, als unsichtbares Ankerziel, was nützlich ist, um Abschnitte zu beschriften, die aus Komponenten statt aus Fließtext aufgebaut sind. Marker lassen sich in beliebiger Reihenfolge aneinanderreihen. Eine Ausnahme, geerbt von CommonMark: Eine nachgestellte Klammer, deren Label irgendwo auf der Seite eine Link-Referenzdefinition besitzt (`[toc]: /url`), ist ein Shortcut-Referenzlink und kein Marker — sie bleibt im Überschriftentext stehen.
 
@@ -50,7 +50,7 @@ Zwei weitere nachgestellte Marker steuern, wie eine Überschrift im Inhaltsverze
 
 Marker werden immer geparst — eine Überschrift, die wörtlich auf markerförmigen Text endet, würde als markiert behandelt. Escapen mit Backslash hilft nicht (Markdown löst `\[` zu `[` auf, bevor der Marker-Parse läuft); um wörtlichen Marker-Text am Ende einer Überschrift zu zeigen, packe ihn in Inline-Code: `` ## Using `[toc]` ``.
 
-## Betonung
+## Betonung [#emphasis]
 
 Inline-Formatierung, um Wörter hervorzuheben, Löschungen zu kennzeichnen und Code oder Tastenanschläge mitten im Satz zu zeigen.
 
@@ -60,7 +60,7 @@ Inline-Formatierung, um Wörter hervorzuheben, Löschungen zu kennzeichnen und C
 **Bold**, _italic_, ~~strikethrough~~, and `inline code`.
 ```
 
-## Hoch- und Tiefstellung
+## Hoch- und Tiefstellung [#superscript-and-subscript]
 
 Für Fußnotenzeichen, Ordnungszahlen sowie wissenschaftliche oder chemische Notation im Fließtext.
 
@@ -71,7 +71,7 @@ E = mc^2^ und H~2~O.
 E = mc^2^ and H~2~O.
 ```
 
-## Blockzitate
+## Blockzitate [#blockquotes]
 
 Hebe ein Zitat, einen beiläufigen Hinweis oder eine redaktionelle Anmerkung vom umgebenden Text ab.
 
@@ -81,7 +81,7 @@ Hebe ein Zitat, einen beiläufigen Hinweis oder eine redaktionelle Anmerkung vom
 > Documentation that's fast, AI-ready, and zero-config — down to the template.
 ```
 
-## Listen
+## Listen [#lists]
 
 Verwende ungeordnete Listen für ungeordnete Mengen, geordnete Listen für Abfolgen und Aufgabenlisten für Checklisten und Roadmaps.
 
@@ -111,7 +111,7 @@ Verwende ungeordnete Listen für ungeordnete Mengen, geordnete Listen für Abfol
 - [ ] Write the first guide
 ```
 
-## Tabellen
+## Tabellen [#tables]
 
 Stelle strukturierte Daten tabellarisch dar — Konfigurationsoptionen, Vergleichsmatrizen, Parameterlisten. Verwende Doppelpunkte in der Trennzeile, um Spalten auszurichten.
 
@@ -135,7 +135,7 @@ Für eine Tabelle ohne Kopfzeile — zum Beispiel Schlüssel-Wert-Paare — läs
 | Current status | E-3 visa |
 ```
 
-## Links und Bilder
+## Links und Bilder [#links-and-images]
 
 Verlinke auf andere Seiten oder externe Websites. Bilder akzeptieren einen relativen Pfad zu einer Datei neben deinem Inhalt, jeden Pfad unter `public/` (wird im Site-Root ausgeliefert) oder eine entfernte URL.
 
@@ -157,7 +157,7 @@ Absolute Pfade unter `public/` (`![Alt text](/screenshot.png)`) werden unveränd
 
 Inhaltsbilder sind standardmäßig per Klick zoombar — Leser können jedes Bild anklicken, um es in einer Lightbox zu öffnen. Schalte das mit `markdown: { imageZoom: false }` in `blume.config.ts` ab oder nimm ein einzelnes Bild mit `data-no-zoom` aus.
 
-## Horizontale Linie
+## Horizontale Linie [#horizontal-rule]
 
 Trenne größere Themenwechsel innerhalb einer langen Seite.
 
@@ -167,7 +167,7 @@ Trenne größere Themenwechsel innerhalb einer langen Seite.
 ---
 ```
 
-## Codeblöcke
+## Codeblöcke [#code-blocks]
 
 Eingezäunte Codeblöcke werden syntaxhervorgehoben und erhalten eine Kopfzeile mit der Sprache — samt Markensymbol für erkannte Sprachen — sowie einen Kopieren-Button. Füge nach der Sprache einen **Titel** hinzu — typischerweise einen Dateinamen — und er ersetzt die Sprachbezeichnung in der Kopfzeile.
 
@@ -217,7 +217,7 @@ export default defineConfig({
 });
 ```
 
-### Zeilennummern
+### Zeilennummern [#line-numbers]
 
 Hänge `lineNumbers` an, um eine Zeilennummernspalte zu rendern — allein oder zusammen mit einem Titel:
 
@@ -235,7 +235,7 @@ serve({ port: 3000 });
 ```
 ````
 
-### Hervorhebung
+### Hervorhebung [#highlighting]
 
 Versieh Code mit Kommentaren im GitHub-Stil, um Aufmerksamkeit auf Zeilen, Wörter und Änderungen zu lenken. Die Kommentare werden aus der gerenderten Ausgabe entfernt, sodass der Code sauber kopierbar bleibt. Alle vier sind standardmäßig aktiv — keine Konfiguration nötig.
 
@@ -295,7 +295,7 @@ export default defineConfig({
 ```
 ````
 
-### Anzeigetypen
+### Anzeigetypen [#display-types]
 
 Markiere einen TypeScript-Block mit `twoslash`, um echte Typen direkt aus dem Compiler anzuzeigen — ermöglicht durch [Twoslash](https://shiki.style/packages/twoslash). Fahre über ein beliebiges Token, um seinen abgeleiteten Typ zu sehen, und füge eine Inline-Abfrage `^?` hinzu, um einen Typ unter der Zeile anzuheften.
 
@@ -318,7 +318,7 @@ config.title;
 ```
 ````
 
-### TypeScript- und JavaScript-Tabs
+### TypeScript- und JavaScript-Tabs [#typescript-and-javascript-tabs]
 
 Markiere einen `ts`- oder `tsx`-Block mit `ts2js`, um ihn als Tab-Paar zu rendern: dein TypeScript neben einer automatisch erzeugten JavaScript-Variante — so pflegst du ein einziges Snippet und Leser wählen ihren Dialekt. Die Umwandlung entfernt Typ-Syntax und reine Typ-Imports, behält deine Formatierung, Kommentare und JSX aber exakt so bei, wie du sie geschrieben hast — und die Tabs sind synchronisiert, sodass eine einmalige Wahl von JavaScript jedes Paar auf der Seite umschaltet. Wie Diagramme und Mathematik ist dies eine reine MDX-Funktion — in einer `.md`-Datei rendert der Block als schlichter TypeScript-Fence.
 
@@ -358,7 +358,7 @@ Weitere Fence-Metaangaben lassen sich kombinieren: Ein `title="..."` erscheint a
 Blende die Sprachsymbole aus oder lasse lange Zeilen umbrechen statt scrollen — mit `markdown: { code: { icons: false, wrap: true } }` in `blume.config.ts`.
 :::
 
-## Paketinstallation
+## Paketinstallation [#package-install]
 
 Ein `package-install`-Block macht aus einem einzelnen Installationsbefehl ein Snippet mit Tabs für npm, pnpm, yarn, bun, nub und aube — so kopieren Leser genau den, der zu ihrem Setup passt. Wie Diagramme und Mathematik ist dies eine reine MDX-Funktion — in einer `.md`-Datei rendert der Block als schlichter Code-Fence.
 
@@ -372,7 +372,7 @@ npm i blume
 ```
 ````
 
-## Diagramme
+## Diagramme [#diagrams]
 
 Ein `mermaid`-Block rendert ein [Mermaid](https://mermaid.js.org)-Diagramm direkt aus Text. Der Inhalt des Fences wird unverändert an Mermaid übergeben, sodass jeder von Mermaid unterstützte Diagrammtyp hier funktioniert. Diagramme folgen dem aktiven Farbthema und werden bei einem Wechsel neu gerendert. Erstelle eines, indem du den Quelltext mit `mermaid` einzäunst:
 
@@ -387,7 +387,7 @@ flowchart LR
 
 Diagramme werden im Client gerendert, daher ist dies eine reine MDX-Funktion, und die Mermaid-Bibliothek wird nur auf Seiten geladen, die eines enthalten. Der Rest dieses Abschnitts ist eine Galerie gängiger Typen — die vollständige Liste findest du in der [Mermaid-Dokumentation](https://mermaid.js.org/intro/).
 
-### Flussdiagramm
+### Flussdiagramm [#flowchart]
 
 ```mermaid
 flowchart LR
@@ -396,7 +396,7 @@ flowchart LR
   B --> D[llms.txt]
 ```
 
-### Sequenzdiagramm
+### Sequenzdiagramm [#sequence-diagram]
 
 ```mermaid
 sequenceDiagram
@@ -406,7 +406,7 @@ sequenceDiagram
   B-->>R: Prerendered HTML
 ```
 
-### Klassendiagramm
+### Klassendiagramm [#class-diagram]
 
 ```mermaid
 classDiagram
@@ -419,7 +419,7 @@ classDiagram
   Page <|-- Changelog
 ```
 
-### Zustandsdiagramm
+### Zustandsdiagramm [#state-diagram]
 
 ```mermaid
 stateDiagram-v2
@@ -475,7 +475,7 @@ gitGraph
   commit
 ```
 
-### Kreisdiagramm
+### Kreisdiagramm [#pie-chart]
 
 ```mermaid
 pie title Content types
@@ -497,7 +497,7 @@ mindmap
       llms.txt
 ```
 
-### Zeitstrahl
+### Zeitstrahl [#timeline]
 
 ```mermaid
 timeline
@@ -596,7 +596,7 @@ The core theme ships no client framework JS.
 
 Die Namen `caution`, `error`, `important` und `warn` werden als Aliase für `warning`, `danger`, `note` beziehungsweise `warning` akzeptiert.
 
-## Mathematik
+## Mathematik [#math]
 
 Rendere LaTeX mit KaTeX als zentrierte Blöcke — nützlich für mathematik- oder naturwissenschaftslastige Dokumentation. Setze eine Formel in `$$…$$`:
 
@@ -614,7 +614,7 @@ $$
 Mathematik gibt es nur als Block und sie ist automatisch aktiv — schreibe `$$…$$` und es wird gerendert; schreibst du keine, wird das Stylesheet von KaTeX nie ausgeliefert. Inline-Mathematik mit `$…$` gibt es nicht: Ein einzelnes `$` (Währung, Shell-Variablen, Code) bleibt immer wörtlicher Text, es gibt also kein Trennzeichen zu escapen und keine Einstellung zum Umschalten. Mathematik ist eine reine MDX-Funktion. Die Klassennamen im gerenderten Markup (`.katex-html`, `.katex-base`, …) sind KaTeX-eigene Interna und kein Styling-Vertrag, den Blume pflegt — sie können sich bei einem KaTeX-Upgrade ändern, ziele für eigene Styles also auf den `.katex-display`-Wrapper.
 :::
 
-## Intelligente Interpunktion
+## Intelligente Interpunktion [#smart-punctuation]
 
 Blume wandelt gerade Anführungszeichen und Bindestriche schon beim Schreiben in typografische Entsprechungen um, sodass Fließtext wirkt, als wäre er gesetzt worden — ohne Sonderzeichen.
 

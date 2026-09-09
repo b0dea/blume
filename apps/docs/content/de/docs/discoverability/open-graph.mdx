@@ -12,7 +12,7 @@ seo: {
 }
 ```
 
-## Die generierte Card branden
+## Die generierte Card branden [#brand-the-generated-card]
 
 Setze ein lokales SVG und eine Farbpalette, damit die generierte Card zu deiner Marke passt. Das Logo kann in `public/` oder im Projektstammverzeichnis liegen. Lass einen Palettenwert weg, um den Standard beizubehalten.
 
@@ -55,7 +55,7 @@ Jede Palettenfarbe akzeptiert beliebige CSS-Farben — Hex, `oklch(…)`, `rgb(�
 
 Emojis in einem Seitentitel oder Site-Titel werden als [Twemoji](https://github.com/jdecked/twemoji)-Glyphen gerendert und während des Card-Renderings von einem CDN geladen — ein Build, dessen Titel Emojis enthalten, braucht also Netzwerkzugriff. Jede Glyphe wird pro Build nur einmal geladen, egal wie viele Seiten sie verwenden.
 
-## Card-Ebenen anzeigen, ausblenden oder überschreiben
+## Card-Ebenen anzeigen, ausblenden oder überschreiben [#show-hide-or-override-card-layers]
 
 Neben der Überschrift trägt die Card drei optionale Ebenen: das **Markenzeichen** oben links (dein Logo oder eine Accent-Kachel mit dem Anfangsbuchstaben des Site-Titels), den **Untertitel** unter der Überschrift (die `description` der Seite oder deine Site-`description` für Seiten ohne eigene) und eine **Fußzeile** mit deinem Repo-Slug (aus `github`) und der URL der Site — dem Host der Deployment-Site plus [`deployment.base`](/docs/deployment#subpath-deploys), sodass bei einer GitHub-Pages-Projektsite `user.github.io/repo` steht. Überschreibe eine davon mit einem eigenen String oder blende sie mit `false` aus:
 
@@ -69,7 +69,7 @@ seo: {
 }
 ```
 
-## Card-Schriften
+## Card-Schriften [#card-fonts]
 
 Standardmäßig wird die Card in Takumis eingebauter Schrift gerendert, die nur lateinische Glyphen abdeckt — ein Titel in einem anderen Schriftsystem (Japanisch, Chinesisch, Koreanisch, Arabisch, …) würde als Tofu erscheinen, also als leere Kästchen.
 
@@ -95,7 +95,7 @@ Google-Familien werden beim Build geladen — ein Build, der sie verwendet, brau
 
 Ein explizites `og.fonts: []` deaktiviert das komplett: Cards behalten die eingebaute Schrift, selbst wenn `theme.fonts` gesetzt ist.
 
-## Eigene Seitentitel
+## Eigene Seitentitel [#custom-page-titles]
 
 Eine benutzerdefinierte [`.astro`-Seite](/docs/advanced/custom-pages) hat kein Frontmatter zum Auslesen, daher wird ihre generierte Card betitelt, indem das letzte URL-Segment ihrer Route lesbar gemacht wird — aus `/getting-started` wird „Getting Started", aus `/cli` aber „Cli". Benenne solche Cards explizit mit `og.titles`, nach Route indiziert (`"/"` adressiert die Startseite, deren Card sonst den Site-Titel trägt):
 

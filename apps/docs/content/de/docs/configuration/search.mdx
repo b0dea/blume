@@ -8,13 +8,13 @@ Blume liefert lokale Suche ohne gehostete Infrastruktur und ohne API-Schlüssel.
 
 Blume erreicht Parität mit dem Anbieterangebot von Fumadocs: **Orama**, **FlexSearch**, **Algolia**, **Orama Cloud**, **Typesense** und **Mixedbread** (dazu **Pagefind**). In dein Projekt wird nur das SDK des konfigurierten Anbieters installiert, sodass die Wahl eines Backends nie die anderen mitzieht.
 
-## Suche verwenden
+## Suche verwenden [#using-search]
 
 Öffne die Suche mit <Badge variant="accent">⌘K</Badge> (oder `Ctrl K`), oder drücke `/`, wenn du gerade nicht in einem Feld tippst. `Esc` schließt sie, und `⌘J` (oder `Ctrl J`) blendet die Ergebnisvorschau ein und aus.
 
 Suchanfragen treffen auf **Titel**, **Beschreibungen** und **Fließtext** von Seiten, wobei Titeltreffer am höchsten und Beschreibungen über dem Fließtext bewertet werden.
 
-## Beliebte Seiten
+## Beliebte Seiten [#popular-pages]
 
 Bevor ein Leser eine Suchanfrage tippt, zeigt der Suchdialog eine **Beliebt**-Liste. Standardmäßig sind das die ersten sechs Seiten der Seitenleiste — was auf Websites mit mehreren Tabs oft den falschen Bereich hervorhebt. Hefte stattdessen die gewünschten Links an:
 
@@ -41,7 +41,7 @@ Schreibe `href` so, als wäre die Website im Stammverzeichnis eingehängt — ei
   willst.
 </Callout>
 
-## Was indexiert wird
+## Was indexiert wird [#whats-indexed]
 
 Für Orama, FlexSearch, Algolia, Orama Cloud und Typesense — sowie für das `search_docs`-Tool des MCP-Servers — indexiert Blume den Titel, die Beschreibung und den auf reinen Text reduzierten Fließtext jeder Seite: Codeblöcke, Bilder und Markup werden entfernt, damit die Ergebnisse relevant bleiben. Diese Indizes werden aus deinen Quelldateien erstellt und sind daher in der Entwicklung und in der Produktion identisch. Pagefind indexiert stattdessen das gebaute HTML, und Mixedbread synchronisiert dein rohes Markdown, sodass beide immer auch Code durchsuchen.
 
@@ -68,11 +68,11 @@ search:
   tags: [api, reference]
 ```
 
-## Anbieter
+## Anbieter [#providers]
 
 Die clientseitigen Anbieter kommen ohne Schlüssel aus und benötigen keine zusätzliche Konfiguration. Die gehosteten nehmen **öffentliche** Zugangsdaten in `blume.config.ts` entgegen (die gefahrlos an den Browser ausgeliefert werden können) und lesen ihren **geheimen** Admin-Schlüssel zur Buildzeit aus einer Umgebungsvariablen — das Geheimnis landet nie in der Konfiguration oder im Client-Bundle.
 
-### Orama (Standard)
+### Orama (Standard) [#orama-default]
 
 Blumes Standard-Engine. Sie erstellt einen JSON-Index, der unter `/blume-search.json` ausgeliefert wird, und fragt ihn im Browser ab — sofort, clientseitig und in `blume dev` live beim Bearbeiten. Keine Schlüssel, kein Dienst.
 
@@ -82,7 +82,7 @@ search: {
 }
 ```
 
-#### Nicht-lateinische Schriften
+#### Nicht-lateinische Schriften [#non-latin-scripts]
 
 Oramas Standard-Tokenizer behält nur lateinische Grundbuchstaben, Ziffern und eine Handvoll akzentuierter Vokale, sodass Text in jeder anderen Schrift — Japanisch, Chinesisch, Koreanisch und Thai, aber ebenso Russisch, Griechisch, Hebräisch und Hindi — sonst überhaupt keine Treffer liefern würde. Blume erledigt das für dich: Wenn [`i18n.defaultLocale`](/docs/content/i18n) auf eine nicht-lateinische Schrift verweist, wechselt der Index zu einem wortsegmentierenden Tokenizer (aufgebaut auf dem in Browser und Node nativ verfügbaren `Intl.Segmenter`). Die Sprache deiner Website zu deklarieren, ist alles, was nötig ist:
 
@@ -180,7 +180,7 @@ search: {
 }
 ```
 
-### Suche deaktivieren
+### Suche deaktivieren [#disabling-search]
 
 ```ts blume.config.ts lineNumbers
 search: {
@@ -188,7 +188,7 @@ search: {
 }
 ```
 
-## Seiten ausschließen
+## Seiten ausschließen [#excluding-pages]
 
 Es werden nur indexierbare Seiten durchsucht. Eine Seite bleibt aus dem Index heraus, wenn sie `search.exclude` im Frontmatter setzt:
 

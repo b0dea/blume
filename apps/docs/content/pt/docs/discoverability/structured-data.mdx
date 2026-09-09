@@ -20,7 +20,7 @@ Cada página inclui:
 
 As URLs são absolutas quando [`deployment.site`](/docs/deployment) está definido. Páginas marcadas com [`seo.noindex`](/docs/discoverability/metadata#per-page-overrides) são ignoradas. Quando [`lastModified`](/docs/configuration#last-modified) está ativo, a data de cada página também é emitida como `dateModified`.
 
-## Identidade do site
+## Identidade do site [#site-identity]
 
 O nó WebSite diz que um site existe; ele não diz _o que_ é nem _quem_ o mantém — que é justamente o que os agentes de IA leem no JSON-LD antes de recomendar ou citar você. Dois blocos opcionais preenchem isso, e ambos precisam de `deployment.site` (os nós carregam identificadores absolutos):
 
@@ -47,6 +47,6 @@ seo: {
 
 `software` adiciona um nó **SoftwareApplication** à página inicial: o nome e a descrição do produto (assumindo por padrão os do site), `applicationCategory` (padrão `"DeveloperApplication"`), sistema operacional, licença, um `Offer` quando `price` está definido, e as URLs do registro ou repositório em `sameAs`. Passe `software: true` para aceitar todos os padrões. A organização, quando configurada, é citada como seu `publisher`.
 
-## Páginas personalizadas
+## Páginas personalizadas [#custom-pages]
 
 Uma [página `.astro`](/docs/advanced/custom-pages) personalizada renderizada através do `PageLayout` emite o mesmo grafo `WebSite`, então uma página inicial de marketing não fica sendo a única URL sem dados estruturados. Passe `structuredDataEnabled={config.structuredData}` para mantê-la em sincronia com essa configuração, ou `structuredDataEnabled={false}` para desativá-la apenas naquela página.

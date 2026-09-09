@@ -7,6 +7,8 @@ import {
   isRelativeImageTarget,
   resolveRelativeImage,
 } from "./content-assets.ts";
+import type { LocaleRouting } from "./i18n.ts";
+import { localizeLinkPath } from "./locale-links.ts";
 import { gradeExternal, probeAll } from "./probe.ts";
 import type {
   ContentGraph,
@@ -78,6 +80,8 @@ interface LinkContext {
   /** Servable routes outside the graph (custom pages, generated routes); their
    * headings are unknown, so anchors there are accepted unchecked. */
   extraRoutes: Set<string>;
+  /** Locale routing, when the site is multi-locale; drives served-route resolution. */
+  i18n: LocaleRouting | null;
   publicDir: string | null;
   /** Normalized `redirect.from` paths — valid targets that resolve at runtime. */
   redirects: Set<string>;
@@ -189,6 +193,30 @@ const checkAnchor = (
   };
 };
 
+/**
+ * The route a link on `page` actually lands on. Rendered under a prefixed
+ * locale, a root-relative link moves into that locale when the localized route
+ * is served — a real translation (whose own headings then answer the anchor
+ * check) or a fallback page (accepted unchecked via `extraRoutes`) — exactly as
+ * `LocaleLinks.astro` rewrites it at render time. Otherwise the authored route
+ * stands.
+ */
+const servedRoute = (
+  authored: string,
+  page: PageRecord,
+  ctx: LinkContext
+): string =>
+  ctx.i18n
+    ? localizeLinkPath(authored, {
+        basePath: ctx.basePath,
+        i18n: ctx.i18n,
+        locale: page.locale,
+        routes: {
+          has: (route) => ctx.routes.has(route) || ctx.extraRoutes.has(route),
+        },
+      })
+    : authored;
+
 /** Validate a resolved internal path: asset, route, then optional anchor. */
 const checkPathLink = (
   resolved: string,
@@ -204,7 +232,8 @@ const checkPathLink = (
   // relative link already resolved against the based `page.route`). A real
   // route always wins over the asset-extension heuristic, so a dotted route
   // (e.g. `/releases/v1.0`) isn't misread as a missing asset.
-  const route = toRoute(withBasePath(ctx.basePath, resolved));
+  const authoredRoute = toRoute(withBasePath(ctx.basePath, resolved));
+  const route = servedRoute(authoredRoute, page, ctx);
   if (ctx.routes.has(route)) {
     return fragment ? checkAnchor(route, fragment, site, ctx, via) : null;
   }
@@ -374,6 +403,8 @@ export const validateLinks = async (
      * full-route-set resolution in `nav-diagnostics.ts`/`generateRuntime`.
      */
     extraRoutes?: string[];
+    /** Locale routing when i18n is on; links then resolve into the page's locale. */
+    i18n?: LocaleRouting | null;
     publicDir: string | null;
     checkExternal?: boolean;
     /** Configured redirects; their `from` paths count as valid link targets. */
@@ -385,6 +416,7 @@ export const validateLinks = async (
     anchors: buildAnchorIndex(graph.pages),
     basePath,
     extraRoutes: new Set((options.extraRoutes ?? []).map(toRoute)),
+    i18n: options.i18n ?? null,
     publicDir: options.publicDir,
     redirects: new Set(
       (options.redirects ?? []).map((redirect) =>

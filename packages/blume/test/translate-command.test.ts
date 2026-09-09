@@ -43,6 +43,9 @@ const INSTALL_EN =
   "---\ntitle: Install\n---\n# Install\n\nRun the installer.\n";
 const INSTALL_FR =
   "---\ntitle: Installation\n---\n# Installation\n\nLancez l'installateur.\n";
+// What lands on disk: the heading pinned to the source heading's anchor id.
+const INSTALL_FR_WRITTEN =
+  "---\ntitle: Installation\n---\n# Installation [#install]\n\nLancez l'installateur.\n";
 
 const PROJECT_FILES = {
   "blume.config.ts": CONFIG,
@@ -160,7 +163,7 @@ describe("blume translate", () => {
     expect(translate.exitCode).toBe(0);
     expect(
       await readFile(join(root, "docs/fr/guides/install.mdx"), "utf-8")
-    ).toBe(INSTALL_FR);
+    ).toBe(INSTALL_FR_WRITTEN);
     expect(await agentCalls(root)).toBe(1);
     expect(translate.stderr).toContain("Translated 1 file into 1 locale");
     expect(translate.stderr).toContain("1 adopted");

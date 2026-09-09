@@ -14,7 +14,7 @@ description: >-
 - `og:image` — ページの [OG 画像](/docs/discoverability/open-graph)。生成されたカードは `og:image:width`、`og:image:height`、`og:image:type`、`og:image:alt` も宣言するため、クローラーは画像を取得せずにカードをレイアウトできます。自分で指定した `seo.image` は、サイズとフォーマットが不明なため、これらを一切宣言しません。
 - `twitter:card`、`twitter:title`、`twitter:description`、`twitter:image` — X カード。画像のあるページは横長の `summary_large_image` バリアントになります。画像のないページでも、素のリンクとしてレンダリングされる代わりにコンパクトな `summary` カードが適用されます。
 
-## X のクレジット表記
+## X のクレジット表記 [#x-attribution]
 
 X はカードのその他すべての値を `og:*` タグから読み取るため、推測できない値はクレジットするアカウントだけです。それらを `seo.x` の下に設定すると、Blume は `twitter:site`（サイトのアカウント）と `twitter:creator`（著者のアカウント）を出力します。`@` は省略可能で、`acme` と `@acme` のどちらでも動作します。
 
@@ -35,7 +35,7 @@ seo:
 ---
 ```
 
-## ページごとの上書き
+## ページごとの上書き [#per-page-overrides]
 
 その他のタグはいずれも、`seo` フロントマターでページごとに上書きできます。
 

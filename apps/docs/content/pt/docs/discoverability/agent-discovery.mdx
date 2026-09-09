@@ -6,7 +6,7 @@ description: >-
 
 Publicar `llms.txt`, espelhos em Markdown, uma API JSON e um servidor MCP é só metade do trabalho — um agente ainda precisa encontrar tudo isso. O Blume anuncia a superfície inteira pelas convenções que os agentes de fato sondam: um manifesto na raiz do site, cabeçalhos `Link` e tags `<link>`, arquivos well-known e o próprio model context do navegador. Tudo aqui vem ligado por padrão e é derivado do que você já habilitou.
 
-## Legibilidade para agentes
+## Legibilidade para agentes [#agent-readability]
 
 O Blume escreve um manifesto **`/agent-readability.json`** na raiz do seu site que indexa a superfície voltada a agentes descrita ao longo desta seção — assim um agente consegue descobri-la com uma única requisição, em vez de adivinhar convenções ou raspar HTML. Como o `llms.txt`, ele vem ligado por padrão:
 
@@ -50,7 +50,7 @@ O campo `contentNegotiation` aparece apenas quando o site publicado realmente re
 
 Defina `seo.agentReadability` como `false` para pular isso, ou publique seu próprio `public/agent-readability.json` para assumir o controle — o Blume nunca sobrescreve um arquivo que você coloca em `public/`.
 
-## Cabeçalho Link de descoberta
+## Cabeçalho Link de descoberta [#discovery-link-header]
 
 Agentes que sondam um site não sabem que devem procurar pelo manifesto — então o Blume também o anuncia em um cabeçalho de resposta `Link` da [RFC 8288](https://www.rfc-editor.org/rfc/rfc8288) na página inicial, usando tipos de relação registrados na IANA:
 
@@ -78,7 +78,7 @@ Nem todo agente entra pela raiz, no entanto — um que siga um resultado de busc
 
 Aqui o link `alternate` aponta para o [espelho em Markdown bruto](/docs/discoverability/markdown) _daquela página em si_, para que o agente possa pular direto do HTML em que caiu para a versão eficiente em tokens. Como os links do head viajam junto com o HTML pré-renderizado, eles também funcionam em hosts que ignoram `_headers` e não conseguem enviar cabeçalhos de resposta personalizados (GitHub Pages, S3) — não importa em qual página o agente entre.
 
-## Catálogo de APIs
+## Catálogo de APIs [#api-catalog]
 
 Quando o site publica APIs, o Blume gera um catálogo de APIs da [RFC 9727](https://www.rfc-editor.org/rfc/rfc9727) em `/.well-known/api-catalog` — um [linkset](https://www.rfc-editor.org/rfc/rfc9264) que permite aos agentes enumerar suas APIs a partir apenas do domínio, servido com seu media type registrado `application/linkset+json` em todas as superfícies de build. Não há nada para configurar: o catálogo é derivado do que já está no `blume.config.ts`. Cada [referência OpenAPI ou AsyncAPI](/docs/advanced/api-reference) vira uma entrada ancorada na sua rota de docs renderizada, com `service-doc` apontando para essa documentação e `service-desc` para a spec quando ela está em uma URL acessível; a própria [API JSON](/docs/discoverability/json-api) do site vira uma entrada descrita por seu `/openapi.json`; e o [servidor MCP](/docs/discoverability/mcp) vira uma entrada com seu documento de descoberta como descrição do serviço:
 
@@ -134,7 +134,7 @@ ai: {
 }
 ```
 
-## Descoberta de skills
+## Descoberta de skills [#skills-discovery]
 
 Se o seu projeto publica [agent skills](https://agentskills.io) — [o próprio repositório do Blume publica](/docs/advanced/skills) —, aponte `ai.skills` para o diretório que as contém, e o build as publica para descoberta conforme a [RFC de Agent Skills Discovery](https://github.com/cloudflare/agent-skills-discovery-rfc):
 
@@ -148,7 +148,7 @@ O caminho é resolvido a partir da raiz do seu projeto, e cada subdiretório com
 
 Skills com `name`/`description` ausentes ou inválidos segundo a spec são ignoradas com um aviso de build, em vez de publicadas quebradas, e um `public/.well-known/agent-skills/index.json` que você mesmo publique assume o controle de toda a superfície. As skills publicadas também são listadas no [`llms.txt`](/docs/discoverability/llms-txt#generated-sections).
 
-## Descoberta via DNS (DNS-AID)
+## Descoberta via DNS (DNS-AID) [#dns-based-discovery-dns-aid]
 
 O [DNS for AI Discovery](https://datatracker.ietf.org/doc/draft-mozleywilliams-dnsop-dnsaid/) é um draft emergente da IETF que permite aos agentes descobrir a superfície de IA de um site antes de fazer uma única requisição HTTP, consultando registros [SVCB/HTTPS](https://www.rfc-editor.org/rfc/rfc9460) em ServiceMode em um ponto de entrada DNS well-known. Registros DNS vivem na sua zona, não no build, então essa é a única superfície de descoberta que o Blume não pode publicar por você — em vez disso, adicione um registro no seu provedor de DNS:
 

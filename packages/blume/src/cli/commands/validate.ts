@@ -84,6 +84,7 @@ export const validateCommand = defineCommand({
           basePath: project.config.basePath,
           checkExternal: Boolean(args.external),
           extraRoutes,
+          i18n: project.config.i18n,
           publicDir: existsSync(publicDir) ? publicDir : null,
           redirects: project.config.redirects,
         }))

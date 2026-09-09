@@ -16,7 +16,7 @@ Jede Blume-Site liefert ihre Dokumentation zusätzlich als kleine, schreibgesch�
 
 Der Seitenindex, die Dokumente pro Seite und die Navigation werden vorgerendert, sodass eine statische Site sie von jedem Host als Dateien ausliefert. Die Suche ist ein Live-Endpunkt und existiert nur bei [Server-Output](/docs/deployment#server-rendering), wo sie denselben Index nutzt wie `search_docs`.
 
-## Fehler
+## Fehler [#errors]
 
 Fehler sind Problem Details nach [RFC 9457](https://www.rfc-editor.org/rfc/rfc9457) (`application/problem+json`) mit einem stabilen `code`, einem `detail` und einem `resolution`-Hinweis, der dem Agent sagt, wo es weitergeht — eine fehlende Seite, eine leere Suchanfrage oder, bei Server-Output, jede `/api/…`-URL, die kein Endpunkt beantwortet:
 
@@ -42,13 +42,13 @@ Fehler sind Problem Details nach [RFC 9457](https://www.rfc-editor.org/rfc/rfc94
 }
 ```
 
-## OpenAPI-Beschreibung
+## OpenAPI-Beschreibung [#openapi-description]
 
 Das **OpenAPI-Dokument** unter `/openapi.json` wird bei jedem Build aus deiner Konfiguration erzeugt und beschreibt daher nur das, was die deployte Site tatsächlich ausliefert: jeden JSON-Endpunkt mit einer eindeutigen `operationId`, typisierten Parametern und Response-Schemas, dazu die Text-Oberflächen daneben — die [`.md`-Spiegel](/docs/discoverability/markdown), [`llms.txt`](/docs/discoverability/llms-txt) und `llms-full.txt`, [`agent-readability.json`](/docs/discoverability/agent-discovery#agent-readability) — sowie den [MCP-Endpunkt](/docs/discoverability/mcp), wenn er aktiviert ist. Frameworks, die aus einer OpenAPI-Beschreibung Tools bauen, erhalten dieselbe Reichweite wie ein MCP-Client. Das Dokument ist aus dem [API-Katalog](/docs/discoverability/agent-discovery#api-catalog), dem [Readability-Manifest](/docs/discoverability/agent-discovery#agent-readability), dem `Link`-Header der Startseite als `rel="service-desc"` und aus `llms.txt` verlinkt.
 
 Nichts davon berührt deine eigene [API-Referenz](/docs/advanced/api-reference): Eine dokumentierte Spec wird in Seiten gerendert, niemals unter `/openapi.json` ausgeliefert, und der Katalog listet beides. Eine `public/openapi.json`, die du selbst ausspielst, übernimmt diese Route (die JSON-Endpunkte bleiben bestehen). Der `/api/…`-Catch-all tritt zurück, wenn ein Dokumentationsbereich aus dem `/api`-Namespace ausgeliefert wird (`content/api/overview.md`) oder eine eigene Seite eine Rest-Route unter `/api/` besetzt — diese Seiten gewinnen also weiterhin.
 
-## Abschalten
+## Abschalten [#turning-it-off]
 
 Setze `ai.api` auf `false`, um nichts davon zu veröffentlichen:
 

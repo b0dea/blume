@@ -31,7 +31,7 @@ navigation: {
 }
 ```
 
-## Exemplos gerados
+## Exemplos gerados [#generated-examples]
 
 Toda página de operação traz uma operação de exemplo completa e válida — uma variável por argumento, tipada a partir do schema, com um conjunto de seleção de profundidade limitada sobre o tipo de retorno — mais as variáveis de exemplo correspondentes e uma resposta de exemplo que espelha a mesma seleção. Os exemplos de código mostram a requisição HTTP exata (um `POST` JSON de `{ query, variables }`) em cada linguagem configurada:
 
@@ -43,11 +43,11 @@ graphql: {
 }
 ```
 
-## Páginas de tipos
+## Páginas de tipos [#type-pages]
 
 Tipos nomeados ganham suas próprias páginas com deep link, agrupadas por espécie na sidebar: campos e campos de entrada com seus tipos linkados, valores de enum, membros de union, implementações de interface e uma seção **Usado por** listando as operações que retornam ou aceitam o tipo e os outros tipos que o referenciam. Scalars definidos pela especificação (`String`, `Int`, …) não ganham páginas; scalars customizados ganham, incluindo a URL `specifiedBy` deles.
 
-## Múltiplos schemas
+## Múltiplos schemas [#multiple-schemas]
 
 Cada entrada em `sources` renderiza um schema na sua própria rota. Um `endpoint` por fonte sobrescreve o do nível do bloco:
 
@@ -69,7 +69,7 @@ graphql: {
 
 Cada fonte aceita os mesmos [controles por fonte](/docs/advanced/api-reference#per-source-indexing) do bloco OpenAPI: `includeInSearch`, `includeInLlms`, `noindex` e `seoDescriptionSuffix` (aqui a frase gerada nomeia a query, a mutation ou o tipo — "Reference for the `pets` query in the GraphQL API.").
 
-## Playground Try it
+## Playground Try it [#try-it-playground]
 
 Páginas de query e mutation renderizam um painel interativo: edite o corpo da requisição (a query e as variáveis), aponte para o seu endpoint ou uma URL customizada e envie — os exemplos de código atualizam ao vivo, então o que você copia é byte a byte o que foi enviado. Desative com `playground: false`. Páginas de subscription mostram a operação gerada e um evento de exemplo no lugar: subscriptions rodam sobre um transporte com estado (WebSocket ou SSE) que o único `POST` HTTP do playground não sabe falar.
 

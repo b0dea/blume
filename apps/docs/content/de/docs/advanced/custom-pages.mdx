@@ -6,7 +6,7 @@ description: >-
 
 Der Großteil einer Blume-Website besteht aus Markdown, aber manchmal benötigst du eine Route, die _kein_ Dokument ist — eine Landingpage, eine Preisseite, einen handgebauten Blog- oder Changelog-Index oder ein interaktives Dashboard. Lege eine `.astro`-Datei in deinem **pages**-Ordner ab, und Blume bindet sie als echte Route ein, direkt neben deinen Inhalten.
 
-## Eine Seite hinzufügen
+## Eine Seite hinzufügen [#add-a-page]
 
 Erstelle im Stammverzeichnis deines Projekts einen `pages/`-Ordner und füge eine `.astro`-Datei hinzu:
 
@@ -22,7 +22,7 @@ import data from "blume:data";
 
 Benutzerdefinierte Seiten behalten ihren ursprünglichen Speicherort auf der Festplatte, sodass relative Importe, Komponentenimporte und [`getStaticPaths`](https://docs.astro.build/en/reference/routing-reference/#getstaticpaths) genau so funktionieren wie in einem einfachen Astro-Projekt — Blume bindet jede Datei dort ein, wo sie liegt, statt sie zu kopieren.
 
-## Dateien und Routen
+## Dateien und Routen [#files-and-routes]
 
 Der Pfad jeder Datei innerhalb des pages-Ordners wird zu ihrer Route. `index` verweist auf den übergeordneten Ordner, und dynamische `[param]`-Segmente bleiben erhalten:
 
@@ -35,7 +35,7 @@ Der Pfad jeder Datei innerhalb des pages-Ordners wird zu ihrer Route. `index` ve
 
 Eine benutzerdefinierte Seite **gewinnt** gegenüber einer generierten Route mit demselben Pfad. Fügt man beispielsweise `pages/changelog.astro` hinzu, ersetzt das Blumes [generierte Changelog-Zeitleiste](/docs/advanced/changelog) durch deine eigene.
 
-## Website-Daten lesen
+## Website-Daten lesen [#reading-site-data]
 
 Importiere `blume:data`, um dieselbe aufgelöste Konfiguration, Navigation, Routen und Feeds zu lesen, die auch der Rest der Website verwendet:
 
@@ -152,7 +152,7 @@ const posts = (await getCollection("docs"))
 </ul>
 ```
 
-## Laufzeit-Hilfsfunktionen
+## Laufzeit-Hilfsfunktionen [#runtime-helpers]
 
 `blume/runtime` bündelt die gängigen Datenmuster, sodass du nicht auf die Interna von `blume:data` zugreifen musst.
 
@@ -189,7 +189,7 @@ const [intro] = getBlumeCollection(data, { prefix: "/docs" });
 
 Übergib `components`, um eigene Überschreibungen oder Islands hinzuzufügen (die in der generierten Laufzeitumgebung liegen und standardmäßig nicht importiert werden), und `collection`, um aus einer anderen Sammlung als `"docs"` zu lesen.
 
-## Das Website-Layout verwenden
+## Das Website-Layout verwenden [#using-the-site-layout]
 
 `RootLayout` verleiht einer benutzerdefinierten Seite das komplette Dokumentations-Chrome — Kopfzeile, Seitenleiste, Suche, Inhaltsverzeichnis und Theme —, indem es sie in dasselbe dreispaltige Raster einbettet, das auch die generierten Seiten verwenden. Für eine Landing- oder Marketingseite steht dieses Raster im Weg, greif deshalb stattdessen zu **`PageLayout`**: Es liefert die Dokumenthülle, die Kopfzeile, das Theme und die Schriftarten und dann einen einzelnen `<slot />` über die volle Breite (keine Seitenleiste, kein Fließtext, kein Inhaltsverzeichnis). Ein optionaler `footer`-Slot wird nach `<main>` gerendert:
 
@@ -271,7 +271,7 @@ import data from "blume:data";
 `RootLayout` ist Teil der generierten Laufzeitumgebung, daher können sich seine Props zwischen Releases ändern. Wenn du ein Layout möchtest, das vollständig dir gehört, verwandelt [`blume eject`](/docs/configuration/customization#eject) `.blume/` in ein normales Astro-Projekt, das dir uneingeschränkt gehört.
 :::
 
-## 404-Seite
+## 404-Seite [#404-page]
 
 Blume liefert ab Werk eine standardmäßige **Nicht gefunden**-Seite mit: eine zentrierte „404“-Meldung, eingebettet in das Website-Chrome (Kopfzeile, Suche, Theme), die für jede nicht zugeordnete URL ausgeliefert wird. `blume build` schreibt sie nach `404.html`, was statische Hoster automatisch ausliefern, und `blume dev` zeigt sie für unbekannte Routen an. Unterhalb der Meldung verlinkt eine Liste **Wo du als Nächstes nachsehen kannst** jeden Abschnitt der obersten Ebene sowie die Indizes `sitemap.xml` und [`llms.txt`](/docs/discoverability/llms-txt), sofern vorhanden, damit eine lesende Person — oder ein Agent, der einer veralteten URL gefolgt ist — einen Weg zurück hat.
 
@@ -303,7 +303,7 @@ import data from "blume:data";
 
 Um das Standarddesign beizubehalten, aber seine Formulierungen zu ändern — auch für andere Sprachen —, überschreibe die `notFound`-[UI-Zeichenketten](/docs/content/i18n) (`title`, `description`, `home`) über `i18n.ui`.
 
-## Interaktive Seiten
+## Interaktive Seiten [#interactive-pages]
 
 Benutzerdefinierte Seiten sind gewöhnliches Astro, sodass du React- (oder Framework-beliebige) [Islands](/docs/configuration/customization#interactive-islands) mit einer Hydratations-Direktive einbinden kannst. React wird automatisch aktiviert, sobald dein Projekt eine `.tsx`- oder `.jsx`-Datei enthält.
 

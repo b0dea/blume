@@ -7,7 +7,7 @@ description: Blume のすべてのコマンドとフラグを一箇所で解説�
 blume <command> [options]
 ```
 
-## コマンド
+## コマンド [#commands]
 
 | コマンド | 説明 |
 | --- | --- |
@@ -26,7 +26,7 @@ blume <command> [options]
 | `blume translate` | ローカルのエージェント CLI を使って、設定済みのロケールにドキュメントを翻訳します。 |
 | `blume version [id]` | 現在のドキュメントを[アーカイブ版](/docs/content/versioning)として固定します（id を省略すると、設定済みのバージョンを一覧表示します）。 |
 
-## よく使うフラグ
+## よく使うフラグ [#common-flags]
 
 - `blume init` — ターミナルでは、いくつかの質問（プロジェクトの作成先、サイト名、テンプレート、コンテンツソース）に沿って進みます。以下の各フラグは、対応する質問にあらかじめ回答します。
 - `blume init --yes` — プロンプトをスキップし、デフォルト設定でスキャフォールドします（CI 環境や stdin がターミナルでない場合の挙動でもあります）。
@@ -68,7 +68,7 @@ blume <command> [options]
 - `blume translate --check` — エージェントを実行せずに、翻訳のずれを報告して非ゼロで終了します（CI のゲート）。
 - `blume translate --locale <codes> --concurrency <n> --force --timeout <seconds> --json` — 各フラグについては [Translate](/docs/reference/translate) を参照してください。
 
-## 開発サーバー実行中の検証
+## 開発サーバー実行中の検証 [#verifying-while-the-dev-server-runs]
 
 `blume dev` は生成された `.blume/` ランタイムをルートとするライブの Astro サーバーを提供し、変更のたびにそれを再生成します。`blume build` と `blume check` は*同じ* `.blume/` を再生成するため、開発サーバーの実行中にどちらかを実行するとランタイムが壊れてしまいます。そのため、どちらもエラーで拒否し、非ゼロで終了します:
 
@@ -94,7 +94,7 @@ blume build --isolated   # thorough: full production render into .blume-verify/d
 export BLUME_RUNTIME_DIR=.blume-verify
 ```
 
-## 型チェック
+## 型チェック [#type-checking]
 
 `blume check` はプロジェクトに対して [`astro check`](https://docs.astro.build/en/reference/cli-reference/#astro-check) を実行します。`.blume` ランタイムを再生成し、Astro のコンテンツ型を同期したうえで、TypeScript のエラーを報告します — `blume.config.ts`、カスタムの `.astro` ページ、そしてそれらがインポートするコンポーネントについて。エラーがある場合は非ゼロで終了するため、CI の `typecheck` ステップとして機能します:
 
@@ -117,7 +117,7 @@ export BLUME_RUNTIME_DIR=.blume-verify
 
 プロジェクトに `tsconfig.json` がない場合、チェックされるのは生成されたランタイムのみです。
 
-## リンクの検証
+## リンクの検証 [#validating-links]
 
 `blume validate` は、コンテンツ内で見つかったすべてのリンクをチェックします:
 
@@ -127,7 +127,7 @@ export BLUME_RUNTIME_DIR=.blume-verify
 - **アセットリンク**は、そのファイルが存在する場所に対してチェックされます。絶対パス（`/logo.png`）は `public/` ディレクトリに対して、相対パスの画像埋め込み（`![](./diagram.png)`）はそのページ自身のフォルダーに対してチェックされます。相対パスへの通常のリンクは、引き続きサイトのルートとして解決されます。画像パイプラインを通るのは画像埋め込みのみです。
 - **外部リンク**は `--external` を指定した場合のみチェックされます（ネットワークが必要なためデフォルトは無効）。切れたリンク（404/410/到達不能）はエラー、レート制限や一時的なレスポンス（403/429/5xx/タイムアウト）は警告です。
 
-## ビルド済みサイトの監査
+## ビルド済みサイトの監査 [#auditing-the-built-site]
 
 `blume validate` は*コンテンツ*を読み取り、`blume audit` は*ビルド済みサイト*を読み取ります。ビルド後の `dist/` 内の HTML をクロールし、SEO とサイトの健全性に関する問題 — タイトル、メタディスクリプション、canonical、Open Graph と X カード、見出し、hreflang、画像、サイトマップ、`robots.txt`、構造化データ — を報告します。
 
@@ -148,7 +148,7 @@ blume audit
 
 所見はページごとではなくチェックごとにまとめられるため、レポートは ToDo リストのように読めます。影響を受ける各ページを詳細とともに展開するには `--verbose` を、1 カテゴリーずつ対応するには `--only`/`--skip` を使ってください。`blume audit --list-checks` は全カタログを出力します。
 
-### CI を失敗させる
+### CI を失敗させる [#failing-ci]
 
 終了コードが契約です。デフォルトでは `blume audit` はエラーでのみ失敗します — ビルドされなかったページへのリンク、リダイレクトループ、無効なサイトマップなど、明確に壊れているものです。参考情報としての所見（説明が短い、タイトルの重複）は警告であり、ビルドを失敗させません:
 
@@ -157,7 +157,7 @@ blume audit                      # fails on errors
 blume audit --fail-on warning    # also fails on warnings
 ```
 
-### 実際のデプロイをチェックする
+### 実際のデプロイをチェックする [#checking-a-live-deployment]
 
 実サーバーでしか分からないこともあります。`dist/` に存在するページが、誤ったリライトの背後で実際には 404 になっていないか、レスポンスが圧縮されているか、そして HTML は問題なく見えるページを `X-Robots-Tag` ヘッダーが密かにインデックスから外していないか。これらのチェックを追加するには、監査をデプロイ先に向けます:
 
@@ -168,7 +168,7 @@ blume audit --url https://docs.example.com --external   # also probe outbound li
 
 外部リンクは一律に失敗扱いにするのではなく、段階的に評価されます。404 は修正できる壊れたリンクですが、403 や 5xx は通常レート制限か相手側の障害であり、警告として報告されます。
 
-### エージェントで所見を修正する
+### エージェントで所見を修正する [#fixing-the-findings-with-an-agent]
 
 [Claude Code](https://claude.com/claude-code) や [Codex](https://developers.openai.com/codex/cli) を使っている場合、監査は所見をそのままエージェントに渡せます:
 
@@ -180,7 +180,7 @@ blume audit --claude   # or --codex
 
 `--only` と `--skip` はレポートを絞り込むのと同じように引き渡しの内容も絞り込むため、1 カテゴリーずつ送ることができます。
 
-### チェックする内容としない内容
+### チェックする内容としない内容 [#what-it-does-and-doesnt-check]
 
 チェックの対象は、汎用の SEO クローラーよりも意図的に狭くしています。そうしたクローラーが報告する内容の多くは Blume のサイトでは起こり得ず — `rel=nofollow` は決して出力されず、Vite のコンテンツハッシュ付きバンドルが欠落したりリダイレクトしたりすることもありません — それらを常にゼロとして報告しても、レポートを無視する習慣がつくだけだからです。
 

@@ -6,7 +6,7 @@ description: >-
 
 O Blume versiona seus docs do jeito que os releases funcionam de verdade: a documentação mais recente fica na raiz do seu conteúdo, com URLs limpas e sem prefixo, e cada versão passada é um snapshot congelado na própria pasta. Crie um snapshot quando você lançar, e o Blume monta o seletor, o aviso de "versão antiga", o escopo da busca, o SEO e a superfície de agentes pra você. É opcional: sem um bloco `versions`, nada muda.
 
-## Habilite
+## Habilite [#enable-it]
 
 Adicione um bloco `versions` nomeando os docs atuais e quaisquer snapshots arquivados:
 
@@ -22,7 +22,7 @@ versions: {
 
 `current` rotula a árvore sem prefixo no seletor (com um `badge` opcional). O `id` de cada entrada arquivada é ao mesmo tempo o nome do diretório do snapshot e o segmento da URL — os ids precisam começar com uma letra (`v1.0`, não `1.0`) para que nunca colidam com [prefixos numéricos de ordenação](/docs/content/navigation#ordering). Liste as versões arquivadas da mais nova para a mais antiga; essa é a ordem do seletor.
 
-## Crie uma versão
+## Crie uma versão [#cut-a-version]
 
 Quando você lançar, congele os docs atuais com um comando:
 
@@ -45,7 +45,7 @@ docs/
 
 **Arquivado significa congelado.** As edições futuras pertencem à árvore viva; um snapshot são os docs como eles eram. O Blume se apoia nisso: snapshots mantêm os próprios metadados de pasta e traduções, o [`blume translate`](/docs/reference/translate) nunca os retraduz, e uma sidebar explícita configurada se aplica só aos docs atuais — a sidebar de um snapshot sempre vem dos arquivos dele.
 
-## O seletor e o aviso
+## O seletor e o aviso [#the-switcher-and-the-notice]
 
 Com as versões configuradas, o cabeçalho ganha um dropdown de versão automaticamente. Ao trocar, você cai na mesma página da versão de destino quando ela existe, e na raiz daquela versão quando não existe (defina `switcher.redirect: "root"` para sempre cair na raiz). Se você declarar seu próprio seletor `kind: "version"` em [`navigation.selectors`](/docs/content/navigation#selectors), ele substitui o automático.
 
@@ -80,11 +80,11 @@ versions: {
 
 O sitemap segue a mesma lógica: páginas arquivadas cujo canônico aponta para um equivalente vivo ficam de fora, versões com `noindex` ficam de fora por completo, e páginas exclusivas de uma versão continuam listadas. O frontmatter `seo.canonical` da própria página sempre vence.
 
-## Busca
+## Busca [#search]
 
 O diálogo de busca limita os resultados à versão que está sendo vista, com um alternador "Todas as versões" (lembrado por leitor) ao lado do de idioma. Resultados de outras versões mostram a versão deles na linha do resultado. Orama (o padrão), FlexSearch, Algolia e Typesense todos respeitam esse escopo — os registros hospedados carregam uma faceta `version`, com os docs atuais enviados como `"current"` — enquanto o Pagefind fica sem escopo, coerente com o comportamento dele para locales.
 
-## Agentes
+## Agentes [#agents]
 
 A superfície de agentes entende versões — algo que nenhum outro framework de docs faz:
 
@@ -93,7 +93,7 @@ A superfície de agentes entende versões — algo que nenhum outro framework de
 - O `llms-full.txt` continua somente com a versão atual — o dump plano nunca intercala cópias congeladas da mesma página.
 - Espelhos em Markdown puro (URLs `.md`) existem para as páginas de todas as versões, como para qualquer rota.
 
-## Com i18n
+## Com i18n [#with-i18n]
 
 O versionamento se combina com a [internacionalização](/docs/content/i18n). No disco, a pasta da versão é a mais externa — um snapshot naturalmente contém as pastas de locale dele — enquanto nas URLs o locale continua sendo o mais externo, igual ao resto do site:
 
@@ -108,6 +108,6 @@ docs/
 
 O fallback de locale funciona dentro de cada versão: uma página de snapshot não traduzida renderiza o conteúdo do locale de fallback na URL localizada, e as alternativas `hreflang` se agrupam por versão. Um id de versão não pode colidir com um código de locale configurado — o Blume rejeita essa configuração de cara.
 
-## O que fica sem versionamento
+## O que fica sem versionamento [#what-stays-unversioned]
 
 O versionamento cobre a árvore de conteúdo dos docs. O blog, o changelog, as referências de API geradas a partir de specs OpenAPI e as páginas customizadas são sempre a versão atual. Mais dois comportamentos que vale conhecer: as abas do cabeçalho são definidas em relação aos docs atuais, então dentro de uma árvore arquivada a sidebar é renderizada sem escopo por abas; e sites grandes devem notar que cada snapshot é uma cópia completa — conteúdo, entradas do índice de busca e dados de navegação crescem a cada versão.

@@ -6,7 +6,7 @@ description: >-
 
 検索クローラーも AI クローラーも、サイトルートにある同じ 2 つのファイルから始めます。Blume はビルドのたびに両方を書き出し、`robots.txt` には AI クローラーが参照するコンテンツ利用シグナルが含まれます。つまり、ここは発見可能性の検索側とエージェント側が交わる場所です。
 
-## サイトマップ
+## サイトマップ [#sitemap]
 
 Blume はビルド時に、インデックス対象となるすべてのページを含む `sitemap.xml` を書き出します。絶対 URL の [`deployment.site`](/docs/deployment) が必要で、下書き・非表示・[`noindex`](/docs/discoverability/metadata#per-page-overrides) のページを除くすべてのページを列挙します。[バージョン管理された](/docs/content/versioning)サイトでは、canonical が現行版を指しているアーカイブページも除外されます — インデックスすべきなのは現行のページだからです。デフォルトで有効です:
 
@@ -36,7 +36,7 @@ Allow: /
 Sitemap: https://docs.example.com/sitemap.xml
 ```
 
-### コンテンツシグナル
+### コンテンツシグナル [#content-signals]
 
 `Content-Signal` 行は、コンテンツ利用に関する新たな慣例であり、AI クローラーがドキュメントをどのように再利用してよいかを宣言します。Blume は、ドキュメントは人間にもエージェントにも開かれているという方針に沿って、**デフォルトで有効、かつすべてのシグナルを `yes`** として出力します:
 

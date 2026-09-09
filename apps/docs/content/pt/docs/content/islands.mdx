@@ -6,7 +6,7 @@ description: >-
 
 O Blume renderiza sua documentação como HTML estático com **zero JavaScript** por padrão. Quando você precisa de algo interativo — uma demonstração ao vivo, um gráfico, um playground — você adiciona uma **ilha**: um componente de framework que envia JS apenas para si mesmo, apenas nas páginas que o utilizam.
 
-## A convenção `islands/`
+## A convenção `islands/` [#the-islands-convention]
 
 Coloque um componente em uma pasta `islands/` na raiz do seu projeto. O nome do arquivo se torna um componente que você pode usar em **qualquer** página `.mdx`, sem importação:
 
@@ -29,7 +29,7 @@ O nome do arquivo é o nome do componente, então ele **deve ser um identificado
 Ilhas são para UI **interativa**. Para um componente estático que você reutiliza entre páginas (um destaque estilizado, uma tabela de preços), use uma [substituição MDX](/docs/configuration/customization) em vez disso — ela não envia nenhum JavaScript.
 :::
 
-## Registrando ilhas em `components.ts`
+## Registrando ilhas em `components.ts` [#registering-islands-in-componentsts]
 
 Se você preferir manter as ilhas junto ao restante dos seus componentes — ou dar a elas um nome diferente do arquivo — registre-as com `defineComponents`. O grupo `islands` é exatamente como a pasta `islands/`: cada entrada está disponível em todas as páginas MDX e é hidratada (com padrão `client: "visible"`).
 
@@ -54,7 +54,7 @@ export default defineComponents({
 });
 ```
 
-## Hidratação
+## Hidratação [#hydration]
 
 Por padrão, uma ilha usa `client:visible`: ela é hidratada quando o leitor a rola até o campo de visão, então uma página cheia de ilhas ainda carrega instantaneamente. Opte por uma estratégia diferente com um `export const client` no arquivo da ilha:
 

@@ -1,4 +1,5 @@
 import matter from "../core/frontmatter.ts";
+import { pinHeadingAnchors } from "./anchors.ts";
 import { TRANSLATABLE_KEY_PATHS } from "./prompts.ts";
 
 /**
@@ -123,19 +124,23 @@ export const validateTranslation = (
     return { ok: false, reason: "frontmatter does not parse as YAML" };
   }
 
-  const body = ensureTrailingNewline(parsed.content.replace(/^\r?\n/u, ""));
-  if (body.trim() === "") {
+  const rawBody = ensureTrailingNewline(parsed.content.replace(/^\r?\n/u, ""));
+  if (rawBody.trim() === "") {
     return { ok: false, reason: "translation has an empty body" };
   }
 
   const sourceFences = countFenceLines(source.content);
-  const candidateFences = countFenceLines(body);
+  const candidateFences = countFenceLines(rawBody);
   if (sourceFences !== candidateFences) {
     return {
       ok: false,
       reason: `code fence count changed (source has ${sourceFences}, translation has ${candidateFences})`,
     };
   }
+
+  // Anchors stay identical across languages: each translated heading is
+  // pinned to its source heading's id (see `anchors.ts`).
+  const body = pinHeadingAnchors(source.content, rawBody).text;
 
   if (!sourceHasFrontmatter) {
     // A frontmatter-less source writes the body alone; any frontmatter the

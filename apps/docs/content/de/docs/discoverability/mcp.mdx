@@ -22,7 +22,7 @@ ai: {
 | `name` | title | Server-Name, der Clients angezeigt wird (Standard: title). |
 | `instructions` | — | Optionaler System-Hinweis für verbundene Agents. |
 
-## Tools und Ressourcen
+## Tools und Ressourcen [#tools-and-resources]
 
 Der Server stellt schreibgeschützte Tools bereit — `search_docs`, `get_page`, `list_pages` und `get_navigation` — sowie jede Seite als MCP-Ressource (`resources/list` listet die Seiten unter ihren ausgelieferten URLs mit dem Typ `text/markdown` auf; `resources/read` gibt das [Agent-Markdown](/docs/discoverability/markdown) der Seite zurück, dieselbe Ausgabe wie `get_page`), sodass Clients, die Kontext per URI anhängen, die Docs ohne Tool-Aufruf durchstöbern können. Er veröffentlicht Discovery-Dokumente unter `/.well-known/mcp.json` und `/.well-known/mcp/server-card.json`. Die Server Card folgt dem Server-Card-Erweiterungsschema aus [SEP-2127](https://github.com/modelcontextprotocol/modelcontextprotocol/pull/2127) (Reverse-DNS-`name`, `remotes`-Transport-Endpunkte), ergänzt um initialize-förmige Kompatibilitätsfelder (`serverInfo`, `capabilities`, `transports`) für Scanner, die gegen die frühere Fassung des Proposals gebaut wurden. Das Menü **Connect to MCP** jeder Seite bietet eine Copy-and-go-Installation für Claude Code, Cursor, VS Code und Codex (sichtbar, sobald [`deployment.site`](/docs/deployment) gesetzt ist).
 
@@ -30,7 +30,7 @@ Der Server stellt schreibgeschützte Tools bereit — `search_docs`, `get_page`,
 
 Dieselben Tools stehen über einfaches HTTP als [JSON-API](/docs/discoverability/json-api) zur Verfügung — für Frameworks, die kein MCP sprechen.
 
-## Eingrenzen nach Content-Typ und Facetten
+## Eingrenzen nach Content-Typ und Facetten [#scoping-by-content-type-and-facets]
 
 `search_docs` und `list_pages` akzeptieren beide einen optionalen `contentTypes`-Filter, der Ergebnisse auf Seiten mit den angegebenen Frontmatter-[`type`s](/docs/reference/frontmatter) eingrenzt — `["rfc"]`, `["blog", "changelog"]` —, sodass ein Agent auf einer Site, die Docs mit RFCs, Runbooks oder Richtlinien mischt, den Abruf auf die benötigte Seitenart beschränken kann. Jedes Ergebnis nennt seinen Content-Typ, und die Ausgabe von `list_pages` zeigt die verwendeten Typen.
 
@@ -46,7 +46,7 @@ Beide Tools akzeptieren außerdem ein `filters`-Objekt, das gegen die Facetten a
 
 Jeder `filters`-Eintrag muss zutreffen (Ergebnisse führen ihre Facettenwerte mit, und `list_pages` zeigt sie für jede Seite), sodass eine Wissensdatenbank Agent-Workflows nach dem Prinzip der schrittweisen Offenlegung antreiben kann — die durchgesetzten Standards auflisten, nur innerhalb davon suchen — ganz ohne eigenen Server.
 
-## Server-Ausgabe erforderlich
+## Server-Ausgabe erforderlich [#server-output-required]
 
 Der MCP-Server ist ein Live-Endpunkt (`/mcp`) und kann daher nicht auf einem statischen Build laufen. Wechsle zur Server-Ausgabe und wähle einen Adapter:
 

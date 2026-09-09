@@ -4,7 +4,7 @@ description: >-
   Überschreibe Komponenten, füge interaktive Islands hinzu, binde eigene Seiten ein, installiere Registry-Komponenten oder ejecte vollständig, wenn du volle Kontrolle brauchst.
 ---
 
-## Komponenten-Overrides
+## Komponenten-Overrides [#component-overrides]
 
 Füge eine `components.ts` (oder `components.tsx`) im Stammverzeichnis deines Projekts hinzu und exportiere `defineComponents`. Die `mdx`-Map **ersetzt** entweder eine eingebaute Komponente oder **fügt** eine neue hinzu — verfügbar in jeder `.mdx`-Seite ohne Import.
 
@@ -23,7 +23,7 @@ export default defineComponents({
 
 Die Schlüssel sind die Namen, die du in MDX schreibst (`<Callout>`, `<Pricing>`). Verwende den Dateinamen mit `.tsx`, wenn du React-Komponenten importierst.
 
-### Referenzformen
+### Referenzformen [#reference-form]
 
 Jedes Override — in `mdx`, `layout` oder `islands` — akzeptiert drei Formen:
 
@@ -52,7 +52,7 @@ Die **Descriptor**-Form ergänzt einen Hydration-Modus, damit eine interaktive R
 
 Für interaktive Komponenten, die du auf vielen Seiten einsetzt, ist die [`islands`-Gruppe](/docs/content/islands#registering-islands-in-componentsts) eine Kurzschreibweise für die Descriptor-Form mit `client: "visible"`.
 
-### Ein Override typisieren
+### Ein Override typisieren [#typing-an-override]
 
 Wenn du eine eingebaute Komponente ersetzt, importiere ihren Prop-Typ aus `blume/components`, damit deine Komponente dem Vertrag entspricht — die Typen werden aus den Komponenten selbst abgeleitet, laufen also nie auseinander:
 
@@ -104,7 +104,7 @@ Verdrahtete Slots:
 
 Layout-Slots akzeptieren dieselben [drei Referenzformen](#reference-form) wie MDX-Overrides, sodass ein Slot ein Pfad-String oder ein hydratisierter Descriptor (`{ component, client }`) sein kann, wenn du einen interaktiven Header oder Footer möchtest.
 
-## Interaktive Islands
+## Interaktive Islands [#interactive-islands]
 
 Für interaktive UI (React, Vue oder Svelte) legst du eine Komponente in einen `islands/`-Ordner und verwendest sie in jeder MDX-Seite — Blume hydratisiert sie für dich, ohne Wrapper oder Registrierung:
 
@@ -123,7 +123,7 @@ Use it anywhere: <Counter />
 
 Siehe [Islands](/docs/content/islands) für Hydration-Strategien und Framework-Setup.
 
-## Eigene Seiten
+## Eigene Seiten [#custom-pages]
 
 Füge `.astro`-Dateien in deinem `pages/`-Ordner hinzu, um vollständig eigene Routen neben deiner Dokumentation einzubinden — eine Landingpage, eine Preisseite oder einen handgebauten Index. Sie behalten ihren Ort, sodass relative Importe und `getStaticPaths` wie gewohnt funktionieren, und sie können deine Konfiguration, Navigation und Routen aus dem Modul `blume:data` lesen.
 
@@ -146,7 +146,7 @@ blume add pagination
 
 Die Kopie importiert den Rest des Frameworks aus `blume/*`, sodass sie exakt wie die eingebaute Komponente rendert, bis du sie änderst. `blume add` gibt das `defineComponents`-Snippet aus, um sie zu registrieren — Content-Komponenten unter `mdx`, Layout-Teile unter `layout`.
 
-## Astro-Integrationen
+## Astro-Integrationen [#astro-integrations]
 
 Füge eine beliebige Astro-Integration über das Array `integrations` auf oberster Ebene in `blume.config.ts` hinzu. Installiere die Integration zuerst in deiner Site; Blume fügt sie nicht zu den Abhängigkeiten der generierten Runtime hinzu und verwaltet auch nicht ihre Astro-Kompatibilität.
 
@@ -183,7 +183,7 @@ blume eject --yes
 
 Eject ist ein einseitiger Schritt: Die versteckte `.blume/`-Runtime wird zu einer normalen Astro-App, die dir gehört und die du direkt verändern kannst. Das Paket `blume` bleibt importierbar, sodass du seine Komponenten, sein Theme und seine Markdown-Prozessoren behältst.
 
-### Was Eject zurücklässt
+### Was Eject zurücklässt [#what-eject-leaves-behind]
 
 Nach dem Eject führt dein `build`-Skript einfach `astro build` aus — die Site selbst wird gleich gebaut, aber die Artefakte, die `blume build` obendrauf gelegt hat, werden nicht mehr erzeugt. Der Eject-Befehl warnt vor denen, die deine Konfiguration tatsächlich nutzt. Um sie zu behalten:
 

@@ -8,7 +8,7 @@ Deine Dokumentation ist einfach ein Ordner voller Markdown- und MDX-Dateien. Blu
 
 Inhalte liegen unter deinem **Content-Root** (standardmäßig `docs/`; änderbar über `content.root` in [`blume.config.ts`](/docs/configuration)).
 
-## Markdown und MDX
+## Markdown und MDX [#markdown-and-mdx]
 
 Blume rendert zwei Arten von Dateien:
 
@@ -17,7 +17,7 @@ Blume rendert zwei Arten von Dateien:
 
 Greif zu `.md`, wenn eine Seite nur aus Fließtext besteht, und zu `.mdx`, wenn sie Komponenten oder Direktiven braucht. Der Wechsel ist so einfach wie das Umbenennen der Datei.
 
-## Dateien und Routen
+## Dateien und Routen [#files-and-routes]
 
 Jede Datei wird anhand ihres Pfads unterhalb des Content-Roots auf eine Route abgebildet:
 
@@ -30,7 +30,7 @@ Jede Datei wird anhand ihres Pfads unterhalb des Content-Roots auf eine Route ab
 
 Verschachtelte Ordner werden zu verschachtelten Routen, und eine `index.mdx` in einem Ordner wird zur eigenen Seite dieses Ordners.
 
-## Sortierung mit numerischen Präfixen
+## Sortierung mit numerischen Präfixen [#ordering-with-numeric-prefixes]
 
 Stelle einer Datei oder einem Ordner eine Zahl voran, um die Reihenfolge in der Seitenleiste zu steuern. Das Präfix wird aus der URL entfernt, sodass du Seiten neu anordnen kannst, ohne Links zu zerstören:
 
@@ -41,7 +41,7 @@ Stelle einer Datei oder einem Ordner eine Zahl voran, um die Reihenfolge in der 
 
 Die Sortierung hat mehrere Ebenen — die vollständigen Vorrangregeln findest du unter [Navigation](/docs/content/navigation).
 
-## Gruppenordner
+## Gruppenordner [#group-folders]
 
 Setze einen Ordnernamen in Klammern, um dessen Seiten in der Seitenleiste zu gruppieren, **ohne** ein URL-Segment hinzuzufügen:
 
@@ -51,7 +51,7 @@ docs/(internal)/security.mdx  ->  /security
 
 Die Seiten teilen sich eine Seitenleisten-Gruppe „Internal“, behalten aber flache URLs ohne Klammern.
 
-## Entwürfe
+## Entwürfe [#drafts]
 
 Markiere eine Seite als Entwurf, um sie aus Produktions-Builds herauszuhalten, sie aber weiterhin in `blume dev` ansehen zu können:
 
@@ -64,7 +64,7 @@ draft: true
 
 `blume build` überspringt Entwürfe; `blume dev` rendert sie, damit du offen daran arbeiten kannst.
 
-## Inhaltstypen
+## Inhaltstypen [#content-types]
 
 Jede Seite hat einen **Typ**, festgelegt über das Frontmatter-Feld `type` (Standard `doc`). Typen ermöglichen es Blume, Gruppen von Seiten unterschiedlich zu behandeln — vor allem werden `blog`- und `changelog`-Seiten in [Feeds](#feeds) gesammelt.
 
@@ -103,7 +103,7 @@ description: Why we built a markdown-first docs framework.
 
 Feeds benötigen eine absolute Website-URL, setze also [`deployment.site`](/docs/deployment). Blume fügt jeder Seite `<link rel="alternate">`-Tags hinzu, damit Browser und Feedreader sie automatisch finden. Wie du die jeweiligen Inhaltstypen schreibst, erfährst du unter [Blog](/docs/advanced/blog) und [Changelog](/docs/advanced/changelog).
 
-## Auf dieser Seite
+## Auf dieser Seite [#on-this-page]
 
 Jede Seite erhält automatisch ein Inhaltsverzeichnis, das aus ihren Überschriften erstellt wird. Auf breiten Bildschirmen sitzt es in einer haftenden Seitenleiste neben deinem Inhalt; auf schmaleren Bildschirmen klappt es in ein Panel **Auf dieser Seite** oberhalb der Seite zusammen. Beim Scrollen wird der Eintrag des Abschnitts hervorgehoben, den du gerade liest, sodass du auf einer langen Seite immer weißt, wo du dich befindest.
 
@@ -111,7 +111,7 @@ Blume wandelt jede Überschrift in einen Anker-Slug um, sodass jeder Eintrag dir
 
 Das Inhaltsverzeichnis listet deine `##`- und `###`-Überschriften (H2 und H3) auf. Eine Seite ohne Überschriften auf dieser Ebene hat schlicht kein Inhaltsverzeichnis.
 
-## Wie geht es weiter
+## Wie geht es weiter [#where-to-next]
 
 <CardGroup cols={2}>
   <Card title="Frontmatter" href="/docs/reference/frontmatter" icon="file">

@@ -6,7 +6,7 @@ description: >-
 
 Blume bringt ein Changelog von Haus aus mit. Schreibe jedes Release als normale Inhaltsdatei, kennzeichne es mit `type: changelog`, und Blume sammelt jeden Eintrag in einer generierten Timeline-Seite und einem RSS-Feed – kein Layout zu bauen, keine Liste zu pflegen. Oder verzichte ganz auf die Dateien und [beziehe dein Changelog aus GitHub Releases](#from-github-releases).
 
-## Einen Eintrag schreiben
+## Einen Eintrag schreiben [#write-an-entry]
 
 Ein Changelog-Eintrag ist eine gewöhnliche `.md`- oder `.mdx`-Seite mit `type: changelog` im Frontmatter. Üblicherweise liegen sie unter `changelog/`, aber entscheidend ist der Typ – nicht der Ordner:
 
@@ -28,7 +28,7 @@ A big batch of components landed this release — columns, frames, trees, and to
 
 Gib jedem Eintrag ein `date`, damit Timeline und Feed die neuesten zuerst sortieren. Ein YAML-Datum ohne Anführungszeichen ist in Ordnung – Blume normalisiert es.
 
-### Das `changelog`-Objekt
+### Das `changelog`-Objekt [#the-changelog-object]
 
 Das optionale `changelog`-Objekt ergänzt reichhaltigere Metadaten für Timeline und Feed:
 
@@ -52,7 +52,7 @@ Das optionale `changelog`-Objekt ergänzt reichhaltigere Metadaten für Timeline
   }}
 />
 
-## Die Timeline-Seite
+## Die Timeline-Seite [#the-timeline-page]
 
 Sobald du mindestens einen Eintrag mit `type: changelog` hast, generiert Blume automatisch eine **`/changelog`**-Seite. Sie wird als fokussierte Timeline über die volle Breite gerendert – ohne Seitenleiste oder Inhaltsverzeichnis – mit den neuesten Einträgen zuerst und zeigt Datum, Label und `category`-Tag in einer linken Spalte neben dem Inhalt:
 
@@ -72,7 +72,7 @@ navigation: {
 }
 ```
 
-### Nach Major-Version gruppiert
+### Nach Major-Version gruppiert [#grouped-by-major-version]
 
 Wenn deine Versionen [Semver](https://semver.org) folgen und mehr als eine Major-Version umfassen, paginiert Blume die Timeline nach Major-Version. Es wird nur die neueste Major-Reihe angezeigt, mit einer Schaltfläche **Show N.x releases** am unteren Rand, die die nächstältere Major-Version mit je einem Klick einblendet:
 
@@ -80,7 +80,7 @@ Wenn deine Versionen [Semver](https://semver.org) folgen und mehr als eine Major
 - Sie kommt mit den Scoped Tags zurecht, die Monorepos veröffentlichen, sodass `pkg@2.0.0` unter `2.x` und `pkg@1.4.0` unter `1.x` gruppiert wird.
 - Es handelt sich um Progressive Enhancement: Jedes Release steht weiterhin im HTML der Seite (sowie im RSS-Feed und im Suchindex), sodass Leser ohne JavaScript – und Crawler – die vollständige Historie sehen. Die Schaltfläche klappt ältere Major-Versionen erst ein, sobald die Seite hydratisiert.
 
-## Aus GitHub Releases
+## Aus GitHub Releases [#from-github-releases]
 
 Statt Einträge von Hand zu verfassen, richte die eingebaute [`github-releases`-Quelle](/docs/content/sources#github-releases) auf ein Repository, und jedes Release wird zu einem Eintrag mit `type: changelog` – dieselbe Timeline und derselbe Feed, direkt gespeist aus den Releases, die du ohnehin veröffentlichst. Blumes eigenes [Changelog](/changelog) ist so aufgebaut:
 
@@ -100,7 +100,7 @@ content: {
 
 Der Name des Releases wird zum Titel, sein Tag zu `changelog.version`, und sein Veröffentlichungsdatum sortiert die Timeline. Jede Release-Seite erhält außerdem eine eindeutige Meta-Description, die aus ihren Notes zusammengefasst wird – Markdown entfernt, Abschnittsüberschriften und Changeset-Commit-Hash-Präfixe verworfen, gekürzt auf die Länge des Such-Snippets, die [`blume audit`](/docs/reference/cli#auditing-the-built-site) prüft – statt auf die Site-Beschreibung zurückzufallen. Ein privates Repository authentifiziert sich über die Umgebungsvariable `GITHUB_TOKEN`. Alle Optionen findest du unter [Content sources](/docs/content/sources#github-releases).
 
-## Der RSS-Feed
+## Der RSS-Feed [#the-rss-feed]
 
 Blume erstellt außerdem einen Changelog-Feed unter **`/changelog/rss.xml`**, sortiert nach `date` mit den neuesten zuerst. Feeds benötigen eine absolute Site-URL, setze also [`deployment.site`](/docs/deployment); Blume fügt dann auf jeder Seite ein `<link rel="alternate">`-Tag ein, damit Leser den Feed automatisch entdecken.
 
@@ -118,7 +118,7 @@ seo: {
 
 Entferne `"changelog"` aus `rss.types`, um den Feed wegzulassen und die Timeline beizubehalten.
 
-## Strukturierte Daten
+## Strukturierte Daten [#structured-data]
 
 Wenn [strukturierte Daten](/docs/discoverability/structured-data) aktiviert sind, wird jeder Changelog-Eintrag als schema.org-**`TechArticle`** mit Beschreibung und Veröffentlichungsdatum ausgegeben, sodass Suchmaschinen Releases als datierte Artikel indexieren können.
 

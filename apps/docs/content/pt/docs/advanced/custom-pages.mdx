@@ -6,7 +6,7 @@ description: >-
 
 A maior parte de um site Blume é Markdown, mas às vezes você precisa de uma rota que _não seja_ um documento — uma landing page, uma página de preços, um índice de blog ou changelog construído à mão, ou um painel interativo. Coloque um arquivo `.astro` dentro da sua pasta **pages** e o Blume o monta como uma rota real, bem ao lado do seu conteúdo.
 
-## Adicionar uma página
+## Adicionar uma página [#add-a-page]
 
 Crie uma pasta `pages/` na raiz do seu projeto e adicione um arquivo `.astro`:
 
@@ -22,7 +22,7 @@ O `blume dev` a detecta imediatamente e o `blume build` a pré-renderiza como HT
 
 As páginas personalizadas mantêm sua localização original em disco, então importações relativas, importações de componentes e [`getStaticPaths`](https://docs.astro.build/en/reference/routing-reference/#getstaticpaths) funcionam exatamente como funcionariam em um projeto Astro comum — o Blume monta cada arquivo onde ele está, em vez de copiá-lo.
 
-## Arquivos e rotas
+## Arquivos e rotas [#files-and-routes]
 
 O caminho de cada arquivo dentro da pasta pages se torna a sua rota. `index` corresponde à pasta pai, e segmentos dinâmicos `[param]` são preservados:
 
@@ -35,7 +35,7 @@ O caminho de cada arquivo dentro da pasta pages se torna a sua rota. `index` cor
 
 Uma página personalizada **prevalece** sobre uma rota gerada no mesmo caminho. Adicionar `pages/changelog.astro`, por exemplo, substitui a [linha do tempo de changelog gerada](/docs/advanced/changelog) pelo Blume pela sua própria.
 
-## Lendo dados do site
+## Lendo dados do site [#reading-site-data]
 
 Importe `blume:data` para ler a mesma configuração resolvida, navegação, rotas e feeds que o restante do site usa:
 
@@ -152,7 +152,7 @@ const posts = (await getCollection("docs"))
 </ul>
 ```
 
-## Helpers de runtime
+## Helpers de runtime [#runtime-helpers]
 
 O `blume/runtime` agrupa os padrões de dados mais comuns para que você não precise mexer nos detalhes internos do `blume:data`.
 
@@ -189,7 +189,7 @@ const [intro] = getBlumeCollection(data, { prefix: "/docs" });
 
 Passe `components` para adicionar suas próprias substituições ou ilhas (que ficam no runtime gerado e não são importadas por padrão), e `collection` para ler de uma coleção diferente de `"docs"`.
 
-## Usando o layout do site
+## Usando o layout do site [#using-the-site-layout]
 
 O `RootLayout` dá a uma página personalizada toda a estrutura da documentação — cabeçalho, barra lateral, busca, índice e tema — envolvendo-a na mesma grade de 3 colunas que as páginas geradas usam. Para uma landing page ou página de marketing, essa grade atrapalha, então recorra ao **`PageLayout`**: ele fornece a estrutura do documento, o cabeçalho, o tema e as fontes, e depois um único `<slot />` de largura total (sem barra lateral, sem prosa, sem índice). Um slot opcional `footer` é renderizado após o `<main>`:
 
@@ -271,7 +271,7 @@ import data from "blume:data";
 O `RootLayout` faz parte do runtime gerado, então suas props podem mudar entre versões. Quando você quiser um layout totalmente seu, o [`blume eject`](/docs/configuration/customization#eject) transforma o `.blume/` em um projeto Astro padrão que é inteiramente seu.
 :::
 
-## Página 404
+## Página 404 [#404-page]
 
 O Blume traz uma página **não encontrada** padrão de fábrica: uma mensagem "404" centralizada envolvida na estrutura do site (cabeçalho, busca, tema), servida para qualquer URL sem correspondência. O `blume build` a grava em `404.html`, que hospedagens estáticas servem automaticamente, e o `blume dev` a exibe para rotas desconhecidas. Abaixo da mensagem, uma lista **Onde procurar em seguida** aponta para cada seção de nível superior, além dos índices `sitemap.xml` e [`llms.txt`](/docs/discoverability/llms-txt) quando existirem, para que um leitor — ou um agente que seguiu uma URL desatualizada — tenha um caminho de volta.
 
@@ -303,7 +303,7 @@ import data from "blume:data";
 
 Para manter o design padrão mas alterar o texto — inclusive para outros idiomas — sobrescreva os [textos da interface](/docs/content/i18n) de `notFound` (`title`, `description`, `home`) via `i18n.ui`.
 
-## Páginas interativas
+## Páginas interativas [#interactive-pages]
 
 Páginas personalizadas são Astro comum, então você pode inserir [ilhas](/docs/configuration/customization#interactive-islands) React (ou de qualquer framework) com uma diretiva de hidratação. O React é ativado automaticamente assim que seu projeto contém um arquivo `.tsx` ou `.jsx`.
 

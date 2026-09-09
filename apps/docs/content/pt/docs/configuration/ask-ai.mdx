@@ -16,7 +16,7 @@ ai: {
 }
 ```
 
-## Perguntas sugeridas
+## Perguntas sugeridas [#suggested-questions]
 
 Preencha o estado vazio com alguns prompts iniciais. Cada um aparece como uma sugestão clicável — clique em uma para enviá-la — com um [ícone Lucide](/docs/content/components#icon) opcional ao lado do rótulo:
 
@@ -35,7 +35,7 @@ ai: {
 
 `label` é a pergunta que será feita; `icon` é opcional. Deixe `suggestions` sem definir (ou vazio) e o painel abre com um campo de entrada simples.
 
-## Instruções personalizadas
+## Instruções personalizadas [#custom-instructions]
 
 Adicione o seu próprio texto de system prompt com `instructions` — identidade, idioma, tom ou qualquer outra coisa que o assistente deva ter em mente:
 
@@ -51,7 +51,7 @@ ai: {
 
 Seu texto é **acrescentado às** instruções internas em vez de substituí-las: a parte interna carrega o contrato de [fundamentação](#grounding) — responder apenas a partir das páginas recuperadas, citá-las como links Markdown — do qual as citações do painel de chat dependem, então ela permanece intacta independentemente do que você adicionar.
 
-## Fundamentação
+## Fundamentação [#grounding]
 
 O Ask AI é **fundamentado na sua documentação**. Para cada pergunta ele recupera as páginas mais relevantes — usando o mesmo índice léxico do [Orama](/docs/configuration/search) que alimenta a busca na página — e as injeta no system prompt do modelo, de forma que as respostas venham do seu conteúdo e não do conhecimento próprio do modelo. O assistente é instruído a responder apenas a partir das páginas recuperadas, a dizer quando algo não está coberto e a citar as páginas de onde tirou a informação.
 
@@ -59,7 +59,7 @@ A página em que o leitor está no momento é adicionada primeiro ao contexto e 
 
 A fundamentação está ativa para todos os backends, exceto o **[Inkeep](#backends)**, que roda a própria recuperação sobre o conteúdo que você indexou no painel dele.
 
-## Tamanho da recuperação
+## Tamanho da recuperação [#retrieval-size]
 
 Quanta documentação uma pergunta carrega é a maior alavanca sobre quanto tempo o leitor espera pela primeira palavra: o modelo lê cada caractere injetado antes de emitir um token. Em um modelo de fronteira hospedado isso é imperceptível, mas em um backend auto-hospedado é o fator dominante. `retrieval` dimensiona isso:
 
@@ -86,7 +86,7 @@ Os três não são intercambiáveis. `contextBudget` limita toda a injeção, `e
 
 Os padrões servem bem para um modelo hospedado. Reduza-os quando você estiver servindo a partir do seu próprio hardware e o tempo até o primeiro token importar mais que a abrangência; as respostas continuam fundamentadas de qualquer forma, e o assistente é instruído a dizer quando algo não está coberto em vez de preencher a lacuna.
 
-## Endpoint externo
+## Endpoint externo [#external-endpoint]
 
 Já tem um backend de API para IA? Aponte o painel para ele e mantenha o build da documentação estático:
 
@@ -110,7 +110,7 @@ O Blume envia o mesmo corpo `POST` que a rota interna:
 
 Retorne uma resposta bem-sucedida cujo corpo seja um fluxo de texto UTF-8 puro. Se o endpoint estiver em outra origem, permita a origem da documentação com CORS: aceite `OPTIONS` e `POST`, permita o cabeçalho de requisição `content-type` e retorne os cabeçalhos CORS tanto no preflight quanto na resposta com streaming. Com `endpoint` definido, o Blume gera a interface de chat mas nenhuma rota de servidor, snapshot de fundamentação, dependência de provedor ou aviso de segredo de provedor; seu backend fica responsável pela recuperação, autenticação, limitação de taxa, acesso ao modelo e citações.
 
-## Saída de servidor obrigatória
+## Saída de servidor obrigatória [#server-output-required]
 
 O backend interno do Ask AI no Blume é uma rota de servidor (`POST /api/ask`), então ele não pode rodar num build estático. Mude para saída de servidor e escolha um adaptador:
 
@@ -173,7 +173,7 @@ O **Inkeep** responde a partir do conteúdo que você indexou no painel do Inkee
 
 As chaves são lidas com `process.env`, o que cobre os adaptadores Node, Vercel e Netlify. No Cloudflare, exponha a chave através do [runtime binding](https://docs.astro.build/en/guides/integrations-guide/cloudflare/#environment-variables-and-secrets) da plataforma. Ativar o Ask AI também liga o React para a ilha na página — veja [Personalização](/docs/configuration/customization#interactive-islands).
 
-## Limitação de taxa
+## Limitação de taxa [#rate-limiting]
 
 O endpoint `POST /api/ask` é **não autenticado** — ele precisa ser, para que o assistente na página possa chamá-lo. O Blume valida cada requisição — rejeitando corpos malformados, limitando a 1–40 mensagens e aceitando apenas os papéis `user`/`assistant` para que quem chama não possa injetar o próprio system prompt e reaproveitar a rota como um proxy genérico de LLM — para limitar quanto uma única chamada pode gastar com o seu modelo, mas isso não impede alguém de chamar o endpoint repetidamente. Se o abuso de custos for uma preocupação, coloque a rota atrás de um limitador de taxa — a limitação de taxa na borda do seu host (a da Vercel, por exemplo), um middleware, ou os limites de gasto por chave do seu provedor de modelos.
 

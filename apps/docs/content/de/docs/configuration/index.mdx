@@ -17,7 +17,7 @@ export default defineConfig({
 });
 ```
 
-## Ein vollständiges Beispiel
+## Ein vollständiges Beispiel [#a-complete-example]
 
 Ein umfassenderes Beispiel, das die gängigsten Optionen abdeckt (den Rest findest du in der Anleitung zur jeweiligen Funktion):
 
@@ -93,7 +93,7 @@ export default defineConfig({
 });
 ```
 
-## Website
+## Website [#site]
 
 | Option | Standard | Beschreibung |
 | --- | --- | --- |
@@ -185,7 +185,7 @@ banner: {
 
 Ist `dismissible` aktiviert, zeigt die Leiste eine Schließen-Schaltfläche und bleibt für diese Besucherin bzw. diesen Besucher danach ausgeblendet. Der Schlüssel für das Ausblenden basiert standardmäßig auf dem Inhaltstext, sodass eine Bearbeitung der Nachricht das Banner zurückbringt; setze eine feste `id`, damit es über Bearbeitungen hinweg ausgeblendet bleibt.
 
-## Inhalte
+## Inhalte [#content]
 
 Wo deine Inhalte liegen und wie Blume sie findet. Unter [Seiten](/docs/content) erfährst du, wie aus Dateien Routen werden.
 
@@ -206,7 +206,7 @@ content: {
 
 Statische Assets liegen in `public/` — eine Datei unter `public/logo.png` wird unter `/logo.png` ausgeliefert, sodass eine Referenz wie `![](/images/create.png)` auf `public/images/create.png` verweist. Bilder, die über einen **relativen Pfad** referenziert werden (`![](./diagram.png)`), liegen stattdessen neben deinen Inhalten und werden [beim Build optimiert](/docs/content/syntax#links-and-images).
 
-## Bilder
+## Bilder [#images]
 
 Lokale Bilder, die über einen relativen Pfad referenziert werden, werden beim Build automatisch optimiert — komprimiert, in WebP konvertiert und mit intrinsischen `width`/`height`-Attributen versehen, damit das Layout beim Laden nicht springt. Es gibt nichts zu konfigurieren; Hinweise zum Verfassen findest du unter [Links und Bilder](/docs/content/syntax#links-and-images).
 
@@ -311,7 +311,7 @@ Eine Instanz, die nur über einfaches HTTP erreichbar ist, rendert ihre Zahlen w
 `host` deckt Links ab, die Blume aus `github` ableitet. Um nur die Bildmarke im Header woanders hinzuleiten — etwa auf eine Organisation, wenn das Docs-Repository selbst privat ist — verwende [`navigation.repo`](/docs/content/navigation#repository-link) mit einer absoluten URL.
 :::
 
-## Zuletzt geändert
+## Zuletzt geändert [#last-modified]
 
 Zeige am Ende jeder Seite eine Zeile „Zuletzt aktualisiert am …“ an. Standardmäßig deaktiviert; setze `lastModified` auf `true`, um das Datum jeder Seite aus ihrer Git-Historie abzuleiten:
 
@@ -337,7 +337,7 @@ lastModified: 2026-06-20
 
 Ist die Funktion aktiviert, wird das Datum außerdem als schema.org-`dateModified` in den strukturierten Daten der Seite ausgegeben.
 
-## Datumsformat
+## Datumsformat [#date-format]
 
 Sowohl der Stempel „Zuletzt aktualisiert“ als auch die Zeitleiste des [Changelogs](/docs/advanced/changelog) rendern ihre Daten über dasselbe `dateFormat`, damit sie sich gleich lesen. Daten werden immer in der Sprache der Website gerendert; `dateFormat` steuert die _Form_. Standardmäßig wird die lange Form verwendet (`21. Juli 2026`, `2026年7月21日`):
 
@@ -364,7 +364,7 @@ dateFormat: { year: "numeric", month: "2-digit", day: "2-digit" },
 | `timeZone` | IANA-Zeitzone. Standard ist `UTC`, sodass ein Datum unabhängig vom Build-Ort gleich gelesen wird. |
 | `calendar`, `numberingSystem` | Kalendersystem (z. B. `"japanese"`) und Nummerierungssystem (z. B. `"arab"`). |
 
-## SEO und KI
+## SEO und KI [#seo-and-ai]
 
 Metadaten, Open-Graph-Bilder, RSS-Feeds, JSON-LD, die Sitemap und `robots.txt` liegen unter `seo`; `llms.txt`, rohes Markdown, die JSON-API und der MCP-Server liegen unter `ai`. Beide werden Seite für Seite im Abschnitt [Auffindbarkeit](/docs/discoverability) behandelt, der Suchmaschinen und KI-Agents als zwei Zielgruppen derselben maschinenlesbaren Schicht betrachtet.
 
@@ -390,7 +390,7 @@ seo: {
 
 Diese Funktionen entfalten ihre volle Wirkung mit einer absoluten [`deployment.site`](/docs/deployment) für vollständige URLs.
 
-## Inhaltsverzeichnis
+## Inhaltsverzeichnis [#table-of-contents]
 
 Die Gliederung „Auf dieser Seite“ ist standardmäßig aktiviert und listet `H2`–`H3`-Überschriften auf. Schalte sie mit `toc` ab oder ändere den Überschriftenbereich:
 
@@ -408,7 +408,7 @@ export default defineConfig({
 });
 ```
 
-## Funktionsoptionen
+## Funktionsoptionen [#feature-options]
 
 Zu jeder dieser Optionen gibt es eine eigene Anleitung. Das Konfigurationsfeld ist der Einstiegspunkt:
 
@@ -426,7 +426,7 @@ Zu jeder dieser Optionen gibt es eine eigene Anleitung. Das Konfigurationsfeld i
 | `redirects` | Permanente und temporäre Weiterleitungen | [Deployment](/docs/deployment#redirects) |
 | `integrations` | Astro-Integrationen, die nach Blumes eingebauten angehängt werden | [Anpassung](/docs/configuration/customization#astro-integrations) |
 
-## Rangfolge
+## Rangfolge [#precedence]
 
 Einstellungen werden von der niedrigsten zur höchsten Priorität aufgelöst, sodass du nur überschreibst, was du brauchst:
 

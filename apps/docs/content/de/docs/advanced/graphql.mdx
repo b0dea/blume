@@ -31,7 +31,7 @@ navigation: {
 }
 ```
 
-## Generierte Beispiele
+## Generierte Beispiele [#generated-examples]
 
 Jede Operationsseite enthält eine vollständige, gültige Beispieloperation — eine Variable pro Argument, typisiert anhand des Schemas, mit einem tiefenbegrenzten Selection Set über den Rückgabetyp — plus passende Beispielvariablen und eine Beispielantwort, die dieselbe Auswahl widerspiegelt. Code-Beispiele zeigen den exakten HTTP-Request (ein JSON-`POST` von `{ query, variables }`) in jeder konfigurierten Sprache:
 
@@ -43,11 +43,11 @@ graphql: {
 }
 ```
 
-## Typseiten
+## Typseiten [#type-pages]
 
 Benannte Typen bekommen ihre eigenen, direkt verlinkbaren Seiten, in der Sidebar nach Art gruppiert: Felder und Input-Felder mit verlinkten Typen, Enum-Werte, Union-Mitglieder, Interface-Implementierungen sowie einen Abschnitt **Verwendet von**, der die Operationen auflistet, die den Typ zurückgeben oder annehmen, und die anderen Typen, die ihn referenzieren. Spec-definierte Scalars (`String`, `Int`, …) bekommen keine Seiten; Custom Scalars schon, inklusive ihrer `specifiedBy`-URL.
 
-## Mehrere Schemas
+## Mehrere Schemas [#multiple-schemas]
 
 Jeder Eintrag in `sources` rendert ein Schema auf seiner eigenen Route. Ein `endpoint` pro Quelle überschreibt den auf Block-Ebene:
 

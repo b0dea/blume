@@ -8,7 +8,7 @@ description: >-
 blume <command> [options]
 ```
 
-## Comandos
+## Comandos [#commands]
 
 | Comando | Descrição |
 | --- | --- |
@@ -27,7 +27,7 @@ blume <command> [options]
 | `blume translate` | Traduz a documentação para os idiomas configurados com uma CLI de agente local. |
 | `blume version [id]` | Congela a documentação atual como uma [versão arquivada](/docs/content/versioning) (sem id, lista as versões configuradas). |
 
-## Flags comuns
+## Flags comuns [#common-flags]
 
 - `blume init` — em um terminal, guia você por algumas perguntas (onde criar o projeto, nome do site, template, fontes de conteúdo); cada flag abaixo responde antecipadamente à sua pergunta.
 - `blume init --yes` — pula as perguntas e cria a estrutura com os padrões (também é o comportamento em CI ou quando o stdin não é um terminal).
@@ -69,7 +69,7 @@ blume <command> [options]
 - `blume translate --check` — reporta o desvio de tradução e sai com código diferente de zero (a barreira de CI), sem executar um agente.
 - `blume translate --locale <codes> --concurrency <n> --force --timeout <seconds> --json` — veja [Translate](/docs/reference/translate) para cada flag.
 
-## Verificar enquanto o servidor de desenvolvimento roda
+## Verificar enquanto o servidor de desenvolvimento roda [#verifying-while-the-dev-server-runs]
 
 O `blume dev` serve um servidor Astro ativo com raiz no runtime `.blume/` gerado e o regenera a cada alteração. O `blume build` e o `blume check` regeneram o _mesmo_ `.blume/`, então executar qualquer um deles com o servidor de desenvolvimento ativo iria corrompê-lo — ambos recusam com um erro e saem com código diferente de zero:
 
@@ -95,7 +95,7 @@ Isso é especialmente útil quando um agente de programação precisa verificar 
 export BLUME_RUNTIME_DIR=.blume-verify
 ```
 
-## Verificação de tipos
+## Verificação de tipos [#type-checking]
 
 O `blume check` executa o [`astro check`](https://docs.astro.build/en/reference/cli-reference/#astro-check) sobre o seu projeto. Ele regenera o runtime `.blume`, sincroniza os tipos de conteúdo do Astro e depois reporta quaisquer erros de TypeScript — no seu `blume.config.ts`, em páginas `.astro` personalizadas e nos componentes que elas importam. Ele sai com código diferente de zero quando existem erros, então funciona como um passo `typecheck` em CI:
 
@@ -118,7 +118,7 @@ Adicione à raiz do projeto um `tsconfig.json` que estenda a configuração do A
 
 Sem um `tsconfig.json` no projeto, apenas o runtime gerado é verificado.
 
-## Validar links
+## Validar links [#validating-links]
 
 O `blume validate` verifica todos os links descobertos no seu conteúdo:
 
@@ -128,7 +128,7 @@ O `blume validate` verifica todos os links descobertos no seu conteúdo:
 - **Links de assets** são verificados onde o arquivo fica: um caminho absoluto (`/logo.png`) em relação ao diretório `public/`, uma imagem incorporada com caminho relativo (`![](./diagram.png)`) em relação à pasta da própria página. Um link simples para um caminho relativo continua resolvendo como uma rota do site — apenas imagens incorporadas passam pelo pipeline de imagens.
 - **Links externos** só são verificados com `--external` (desativado por padrão, já que requer rede); links mortos (404/410/inacessíveis) são erros, enquanto respostas com limite de taxa ou transitórias (403/429/5xx/timeout) são avisos.
 
-## Auditar o site compilado
+## Auditar o site compilado [#auditing-the-built-site]
 
 O `blume validate` lê o seu _conteúdo_; o `blume audit` lê o _site compilado_. Ele rastreia o HTML em `dist/` após uma compilação e reporta problemas de SEO e de saúde do site — títulos, meta descrições, canônicos, cards Open Graph e X, cabeçalhos, hreflang, imagens, o sitemap, o `robots.txt` e dados estruturados.
 
@@ -149,7 +149,7 @@ blume audit
 
 As constatações são agrupadas por verificação em vez de listadas por página, para que o relatório se leia como uma lista de tarefas. Use `--verbose` para expandir todas as páginas afetadas com o seu detalhe completo, e `--only`/`--skip` para tratar de uma categoria por vez. O `blume audit --list-checks` exibe o catálogo completo.
 
-### Fazer a CI falhar
+### Fazer a CI falhar [#failing-ci]
 
 O código de saída é o contrato. Por padrão, o `blume audit` só falha diante de erros — coisas que estão definitivamente quebradas, como um link para uma página que nunca foi compilada, um loop de redirecionamento ou um sitemap inválido. Constatações consultivas (uma descrição curta, um título duplicado) são avisos e não fazem a compilação falhar:
 
@@ -158,7 +158,7 @@ blume audit                      # fails on errors
 blume audit --fail-on warning    # also fails on warnings
 ```
 
-### Verificar um deploy ativo
+### Verificar um deploy ativo [#checking-a-live-deployment]
 
 Há coisas que só o servidor real pode te dizer: se uma página que existe em `dist/` realmente retorna 404 por trás de um rewrite incorreto, se as respostas estão comprimidas e se um cabeçalho `X-Robots-Tag` está discretamente desindexando uma página cujo HTML parece perfeitamente correto. Aponte a auditoria para um deploy para acrescentar essas verificações:
 
@@ -169,7 +169,7 @@ blume audit --url https://docs.example.com --external   # also probe outbound li
 
 Os links de saída são classificados em vez de simplesmente reprovados: um 404 é um link quebrado que você pode corrigir, enquanto um 403 ou 5xx normalmente é limitação de taxa ou uma indisponibilidade de terceiros e é reportado como aviso.
 
-### Corrigir as constatações com um agente
+### Corrigir as constatações com um agente [#fixing-the-findings-with-an-agent]
 
 Se você usa o [Claude Code](https://claude.com/claude-code) ou o [Codex](https://developers.openai.com/codex/cli), a auditoria pode entregar as suas constatações diretamente a ele:
 
@@ -181,7 +181,7 @@ Isso escreve o relatório JSON completo — todas as páginas afetadas, e não a
 
 O `--only` e o `--skip` restringem a entrega da mesma forma que restringem o relatório, então você pode enviar uma categoria por vez.
 
-### O que ele verifica e o que não verifica
+### O que ele verifica e o que não verifica [#what-it-does-and-doesnt-check]
 
 O conjunto de verificações é deliberadamente mais restrito do que o de um rastreador de SEO de uso geral. Muito do que esse rastreador reporta não pode acontecer a um site Blume — ele nunca emite `rel=nofollow`, e os bundles com hash de conteúdo do Vite nunca estão faltando nem redirecionando — e reportar isso como zeros permanentes só ensinaria você a ignorar o relatório.
 

@@ -6,7 +6,7 @@ description: >-
 
 Toda pasta na sua árvore de conteúdo se torna um grupo da barra lateral. Coloque um `meta.ts` junto às suas páginas para controlar a aparência desse grupo e a ordenação de seus filhos. É totalmente opcional: sem ele, o rótulo do grupo é o nome da pasta humanizado e suas páginas são ordenadas por [índice, prefixo numérico e, então, alfabeticamente](/docs/content/navigation#ordering).
 
-## Definindo o meta
+## Definindo o meta [#defining-meta]
 
 Exporte um objeto `defineMeta` para obter uma configuração totalmente tipada. Coloque o arquivo na raiz da pasta que ele configura — `guides/meta.ts` configura o grupo **Guias**:
 
@@ -24,7 +24,7 @@ export default defineMeta({
 
 Todos os campos são opcionais — defina apenas o que você quiser sobrescrever.
 
-## Campos
+## Campos [#fields]
 
 | Campo | Tipo | Descrição |
 | --- | --- | --- |
@@ -39,7 +39,7 @@ O array `pages` lista os filhos por slug — o nome da pasta ou do arquivo com o
 
 Como os grupos são renderizados — cabeçalhos planos, blocos recolhíveis ou painéis de navegação em profundidade — o padrão é o `navigation.sidebar.display` de toda a barra lateral; defina `display` aqui para sobrescrevê-lo apenas para este grupo. A página `index` de uma pasta também pode defini-lo pelo frontmatter, o que tem precedência sobre o `meta.ts` — veja [sobrescritas por grupo](/docs/content/navigation#per-group-overrides).
 
-## Meta computado
+## Meta computado [#computed-meta]
 
 Como `meta.ts` é um módulo de verdade, você pode computar o meta — passe uma função (síncrona ou `async`) em vez de um objeto para construí-lo no momento da varredura. Prático para ordenar páginas a partir de uma fonte externa:
 
@@ -52,13 +52,13 @@ export default defineMeta(async () => ({
 }));
 ```
 
-## Ordenação dentro de um grupo
+## Ordenação dentro de um grupo [#ordering-within-a-group]
 
 O array `pages` define a ordem dos filhos de um grupo. Tudo que ele omitir recorre ao `sidebar.order` do frontmatter de cada página e, em seguida, ao sistema de arquivos (uma página `index` primeiro, depois os prefixos numéricos e então a ordem alfabética). Para a precedência completa da barra lateral — incluindo uma barra lateral explícita na configuração — veja [Navegação › Ordenação](/docs/content/navigation#ordering).
 
 Para agrupar páginas _sem_ adicionar um segmento de URL, você não precisa de um `meta.ts`: use um nome de pasta entre parênteses — veja [Páginas › Pastas de grupo](/docs/content#group-folders).
 
-## Internacionalização
+## Internacionalização [#internationalization]
 
 Sob o [i18n](/docs/content/i18n), o meta de pasta é resolvido por locale: coloque um `meta.ts` em `fr/guides/` para ordenar o grupo em francês de forma independente.
 
@@ -70,7 +70,7 @@ docs/guides/meta.$.ts   (folder meta applied to every locale)
 
 Um `meta.ts` específico de locale ainda sobrescreve o `meta.$.ts` compartilhado para aquele idioma.
 
-## Para onde ir agora
+## Para onde ir agora [#where-to-next]
 
 <CardGroup cols={2}>
   <Card title="Navegação" href="/docs/content/navigation" icon="menu">

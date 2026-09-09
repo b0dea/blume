@@ -6,7 +6,7 @@ description: >-
 
 Por padrão, o Blume lê uma pasta de arquivos `.md`/`.mdx`. As **fontes de conteúdo** permitem trazer páginas de outro lugar — um repositório remoto, um CMS ou qualquer backend personalizado — e combinar várias fontes em um único site. As fontes são lidas em tempo de build; o Blume continua static-first.
 
-## O padrão
+## O padrão [#the-default]
 
 Sem nenhuma configuração, o Blume varre a raiz do seu conteúdo (`docs`, por padrão) como uma única fonte de sistema de arquivos implícita. As opções de nível superior `content.root`/`include`/`exclude` continuam funcionando exatamente como antes — nada a mudar.
 
@@ -18,7 +18,7 @@ export default defineConfig({
 });
 ```
 
-## Múltiplas fontes
+## Múltiplas fontes [#multiple-sources]
 
 Adicione um array `content.sources` para compor fontes. Cada entrada recebe um namespace por meio de um `prefix` opcional, de modo que suas rotas fiquem aninhadas sob `/<prefix>/…`. Quando `sources` está presente, ele substitui o padrão implícito, portanto inclua uma entrada `filesystem` para a sua documentação local.
 
@@ -83,7 +83,7 @@ Pastas que começam com ponto são ignoradas, incluindo o próprio diretório de
 
 Ainda não reduzidos: callouts (`> [!note]`) são renderizados como blockquotes simples, embeds (`![[image.png]]`) passam intocados, `%%comments%%` de várias linhas são deixados no lugar e não há grafo de backlinks.
 
-## MDX remoto
+## MDX remoto [#remote-mdx]
 
 A fonte integrada `mdx-remote` busca arquivos `.md`/`.mdx` brutos via HTTP. Enumere os arquivos a partir de uma subárvore de um repositório do GitHub (`github`) ou explicitamente contra uma URL base bruta (`url` + `files`):
 
@@ -100,7 +100,7 @@ O token de um repositório privado é lido da variável de ambiente `GITHUB_TOKE
 
 As páginas remotas são renderizadas com fidelidade total de MDX-mais-componentes: seus corpos são materializados em um diretório de staging oculto e renderizados pelo Astro junto com a sua documentação local, de modo que callouts, abas e todos os demais componentes do Blume continuam funcionando.
 
-### Cache e builds offline
+### Cache e builds offline [#caching-and-offline-builds]
 
 Cada fonte remota mantém um snapshot em `.blume/cache/<source>/`. Se uma busca falhar — uma instabilidade de rede ou uma indisponibilidade do CMS — o Blume serve o último snapshot válido conhecido com um aviso, em vez de quebrar o build. O cache fica dentro de `.blume/` e é regenerado, nunca versionado.
 
@@ -188,7 +188,7 @@ export default defineConfig({
 
 O token de integração vem da variável de ambiente `NOTION_TOKEN` (compartilhe o banco de dados com a sua integração). Por padrão, todas as páginas são importadas; defina `publishedValue` para fazer da propriedade `Status` um controle de publicação — qualquer outro valor passa então a ser mapeado para `draft: true`, que os builds de produção descartam. **As URLs de imagem do Notion são assinadas e expiram**, portanto o adaptador as baixa em tempo de build para os assets do site e reescreve as referências — uma imagem de CMS nunca apodrece um build estático. As chamadas à API são ritmadas por um pequeno pool de requisições (3 por vez, correspondendo ao limite de taxa por integração do Notion), de modo que bancos de dados com centenas de páginas são importados sem esbarrar em respostas `429`; defina `concurrency` na fonte para ajustar isso.
 
-## Preview e sincronização
+## Preview e sincronização [#preview-and-sync]
 
 Duas flags controlam como o conteúdo remoto é buscado e o que é incluído:
 
@@ -202,7 +202,7 @@ blume sync               # refresh remote content now
 blume sync --force       # ...ignoring any cached snapshot
 ```
 
-## Fontes personalizadas
+## Fontes personalizadas [#custom-sources]
 
 Qualquer objeto que implemente a interface `ContentSource` pode ser passado diretamente, e é assim que um adaptador com serializers personalizados — ou qualquer backend não integrado — se conecta sem que seu SDK toque a instalação principal:
 

@@ -8,7 +8,7 @@ sidebar:
 
 Antworten auf häufig gestellte Fragen. Fehlt eine? [Öffne ein Issue](https://github.com/haydenbleasel/blume/issues) oder frage den Assistenten auf der Seite.
 
-## Wie unterscheidet sich Blume von Mintlify, Fumadocs und anderen?
+## Wie unterscheidet sich Blume von Mintlify, Fumadocs und anderen? [#how-is-blume-different-from-mintlify-fumadocs-and-others]
 
 Die meisten Dokumentationswerkzeuge liegen an einem von zwei Extremen. **Verwaltete Plattformen** wie Mintlify liefern dir schnell ein poliertes Ergebnis, aber Build und Hosting sind ihr Service — du verfasst innerhalb ihres Systems und veröffentlichst auf ihrer Infrastruktur. **Komponentenbibliotheken und Starter** wie Fumadocs, Nextra oder Docusaurus sind Open Source und flexibel, aber sie übergeben dir eine Anwendung (ein Next.js- oder React-Projekt), die du aufsetzt, verkabelst und pflegst, bevor und nachdem du ein einziges Wort geschrieben hast.
 
@@ -36,31 +36,31 @@ Das ist kein „besser als alles andere“ — verwaltete Plattformen und vollwe
 
 Siehe [Warum es Blume gibt](/docs) für die ausführliche Fassung.
 
-## Ist Blume kostenlos und quelloffen?
+## Ist Blume kostenlos und quelloffen? [#is-blume-free-and-open-source]
 
 Ja — Blume steht unter der MIT-Lizenz und ist kostenlos. Du installierst das `blume`-Paket, hältst deine Inhalte in deinem eigenen Repository und hostest den Build, wo du möchtest. Es gibt keine kostenpflichtige Stufe, keine Preise pro Nutzer und kein Konto, für das du dich registrieren musst. Der Quellcode liegt auf [GitHub](https://github.com/haydenbleasel/blume).
 
-## Muss ich Astro, React oder Tailwind kennen?
+## Muss ich Astro, React oder Tailwind kennen? [#do-i-need-to-know-astro-react-or-tailwind]
 
 Nein. Ein Ordner mit Markdown ist eine vollständige Website — Navigation, Suche und Theming werden abgeleitet oder mit einer Handvoll Tokens festgelegt. Zum darunterliegenden Stack greifst du nur, wenn du anpassen willst: [interaktive Islands](/docs/content/islands) (React), [Komponenten-Overrides](/docs/configuration/customization) oder [Theme-Tokens](/docs/configuration/theming) (Tailwind). Und selbst dann ist [`blume.config.ts`](/docs/configuration) typisiert, sodass dich dein Editor führt.
 
-## Kann ich React-Komponenten und MDX verwenden?
+## Kann ich React-Komponenten und MDX verwenden? [#can-i-use-react-components-and-mdx]
 
 Ja. Jede Seite kann `.md` oder `.mdx` sein, und mit MDX kannst du die [eingebauten Komponenten](/docs/content/components) ohne Importe einfügen. Du kannst auch eigene `.tsx`/`.jsx`-[Islands](/docs/content/islands) hinzufügen — Blume aktiviert React automatisch nur für die Seiten, die sie nutzen, sodass das Kern-Theme überall sonst frei von JavaScript bleibt.
 
-## Wo kann ich es veröffentlichen?
+## Wo kann ich es veröffentlichen? [#where-can-i-deploy-it]
 
 Überall. `blume build` gibt standardmäßig statisches HTML aus, das du von jedem statischen Host oder CDN ausliefern kannst — Vercel, Netlify, Cloudflare Pages, GitHub Pages, S3 oder deinem eigenen Server. Reine Serverfunktionen (Ask AI, der MCP-Server, On-Demand-Rendering) stellen den Build über einen Adapter für Vercel, Node, Netlify oder Cloudflare auf eine Serverfunktion um. Siehe [Deployment](/docs/deployment).
 
-## Braucht die Suche einen gehosteten Dienst?
+## Braucht die Suche einen gehosteten Dienst? [#does-search-need-a-hosted-service]
 
 Nein. [Orama](/docs/configuration/search) erstellt einen lokalen Index, der sowohl in der Entwicklung als auch in der Produktion funktioniert, ohne dass etwas gehostet oder bezahlt werden muss. Für sehr große Websites ist [Pagefind](/docs/configuration/search) nur ein Flag entfernt. So oder so wird der Index als Teil deiner Website ausgeliefert.
 
-## Wie passe ich das Erscheinungsbild an?
+## Wie passe ich das Erscheinungsbild an? [#how-do-i-customize-the-look]
 
 Beginne mit [Theme-Tokens](/docs/configuration/theming) — Akzentfarbe, Schriften, Radius und eine `theme.css` für alles andere, was Tailwind ausdrücken kann. Geh weiter, indem du [eingebaute Komponenten überschreibst](/docs/configuration/customization) oder [eigene Seiten](/docs/configuration/customization#custom-pages) hinzufügst. Wenn du das Astro-Projekt selbst haben möchtest, übergibt dir [`blume eject`](/docs/reference/cli) eine eigenständige App, die weiterhin das `blume`-Paket nutzt.
 
-## Warum faltet oxfmt / Ultracite meine Direktiven zusammen?
+## Warum faltet oxfmt / Ultracite meine Direktiven zusammen? [#why-is-oxfmt--ultracite-collapsing-my-directives]
 
 Wenn du dein Markdown mit [Ultracite](https://www.ultracite.ai) formatierst (das oxlint + [oxfmt](https://oxc.rs) ausführt) — so wie Blume es selbst tut — fällt dir vielleicht auf, dass Container-Direktiven nach einem Formatierungsdurchlauf auf eine einzige Zeile zusammengedrückt werden:
 
@@ -78,13 +78,13 @@ wird zu
 
 Sobald die öffnende `:::note`-Auszeichnung mit dem Fließtext verbunden ist, ist sie keine Direktive mehr und wird als wörtlicher Text statt als [Callout](/docs/content/syntax#callouts) dargestellt.
 
-### Warum das passiert
+### Warum das passiert [#why-it-happens]
 
 Das ist ein Fehler im Markdown-Formatierer von oxfmt (geerbt von Prettiers Markdown-Printer — siehe [prettier/prettier#19040](https://github.com/prettier/prettier/pull/19040)). Beim Umbrechen von Fließtext behandelt er die `:::`-Zeilen als gewöhnlichen Text und verbindet sie mit der angrenzenden Zeile, was die Direktive zerstört. Betroffen sind alle Typen von Container-Direktiven — `:::note`, `:::tip`, `:::info`, `:::warning`, `:::danger`, `:::success`.
 
 Wir haben das upstream unter [oxc-project/oxc#24096](https://github.com/oxc-project/oxc/issues/24096) gemeldet; bis es dort behoben ist, ist der untenstehende Patch die Behelfslösung.
 
-### Die Lösung
+### Die Lösung [#the-fix]
 
 Patche oxfmt so, dass es den Zeilenumbruch erhält, der direkt an einer `:::`-Auszeichnung sitzt. Blume liefert dieselbe Korrektur in seinem eigenen Repository aus, und du kannst sie in jedem Projekt anwenden.
 

@@ -6,7 +6,7 @@ description: >-
 
 Blumes Theme ist Token-gesteuert und funktioniert von Haus aus im hellen und dunklen Modus. Nutze so wenig oder so viel davon, wie du brauchst: ein paar Konfigurations-Tokens für die gängigen Fälle, eine `theme.css`, um beliebige Design-Tokens zu überschreiben, oder Tailwind-Utilities für eigene Komponenten.
 
-## Konfigurations-Tokens
+## Konfigurations-Tokens [#config-tokens]
 
 Die alltäglichen Stellschrauben findest du unter `theme` in deiner Konfiguration:
 
@@ -23,7 +23,7 @@ theme: {
 }
 ```
 
-### Akzentfarbe
+### Akzentfarbe [#accent]
 
 Die Akzentfarbe färbt interaktive und hervorgehobene Elemente ein — Schrittmarkierungen, aktive Tabs, Badges, Karten-Hover und mehr. Verwende eine benannte Voreinstellung oder eine beliebige CSS-Farbe:
 
@@ -37,11 +37,11 @@ Benannte Voreinstellungen: `blue` (Standard), `green`, `orange`, `pink`, `purple
 
 Ein String gilt für beide Farbmodi; übergib ein Objekt für [eine unterschiedliche Akzentfarbe je Modus](#dark-mode-colors).
 
-### Eckenradius
+### Eckenradius [#radius]
 
 `radius` legt die Eckenrundung fest, die Karten, Codeblöcke, Callouts und Eingabefelder gemeinsam nutzen — `none`, `sm`, `md` (Standard) oder `lg`.
 
-### Farbmodus
+### Farbmodus [#color-mode]
 
 `mode` legt das anfängliche Farbschema fest:
 
@@ -50,7 +50,7 @@ Ein String gilt für beide Farbmodi; übergib ein Objekt für [eine unterschiedl
 
 Ein Umschalter im Header erlaubt Lesenden jederzeit den Wechsel, und ihre Wahl wird über Besuche hinweg gespeichert. Der dunkle Modus wird über ein Attribut `data-theme="dark"` am `<html>`-Element angewendet.
 
-### Schriften
+### Schriften [#fonts]
 
 `fonts` legt die Schriftarten für drei Rollen fest:
 
@@ -90,7 +90,7 @@ Ein einfacher String ist ein Google-Fonts-Slug aus der folgenden kuratierten Aus
 | Serif | `ibm-plex-serif` `lora` `merriweather` `playfair-display` `source-serif-4` |
 | Mono | `fira-code` `geist-mono` `ibm-plex-mono` `jetbrains-mono` `roboto-mono` `source-code-pro` `space-mono` |
 
-#### Beliebige Schriftfamilie eines Anbieters
+#### Beliebige Schriftfamilie eines Anbieters [#any-provider-family]
 
 Du brauchst eine Familie, die nicht in der kuratierten Auswahl enthalten ist — etwa eine, die ein nicht-lateinisches Schriftsystem abdeckt? Übergib ein Objekt mit dem exakten Namen der Familie. Sie wird genauso selbst gehostet und optimiert:
 
@@ -109,7 +109,7 @@ theme: {
 - **`subsets`** — die zu ladenden Zeichen-Subsets, mit den Namen des Anbieters (`latin`, `latin-ext`, `vietnamese`, `cyrillic`, `greek`, …). Standard ist `latin` plus alles, was deine konfigurierten Locales brauchen — siehe unten.
 - **`fallback`** — der System-Stack, der während des Ladens der Schrift und für fehlende Glyphen angezeigt wird: `sans`, `serif` oder `mono`. Standard ist `mono` für die Mono-Rolle und andernfalls `sans`.
 
-#### Subsets und Locales
+#### Subsets und Locales [#subsets-and-locales]
 
 Google, Bunny und Fontsource teilen jede Familie in Subsets je Schriftsystem auf, und nur die Subsets, die du lädst, bekommen eine `@font-face`. Blume leitet die Liste aus deinen [`i18n.locales`](/docs/content/i18n) ab: Eine Website mit vietnamesischen, polnischen, russischen oder griechischen Locales lädt `vietnamese`, `latin-ext`, `cyrillic` oder `greek` zusätzlich zu `latin`, sodass diakritische Zeichen und nicht-lateinische Buchstaben in deiner gewählten Schrift statt im System-Fallback erscheinen. Websites ohne `i18n`-Block oder mit ausschließlich Latin-1-Sprachen laden nur `latin`. Browser laden ein Subset erst herunter, wenn eine Seite dessen Zeichen verwendet, und Preloads folgen derselben Liste.
 
@@ -125,7 +125,7 @@ theme: {
 
 Kuratierte Slugs wie `inter` folgen der aus den Locales abgeleiteten Liste; verwende die Objektform, um auch für diese Familien Subsets festzulegen.
 
-#### Lokale Schriftdateien
+#### Lokale Schriftdateien [#local-font-files]
 
 Für eine Schrift, die dir gehört (oder die kein Anbieter ausliefert), verweist du eine Rolle auf Schriftdateien in deinem Projekt. Jede Variante wird zu einer `@font-face`:
 
@@ -151,7 +151,7 @@ Wenn du `theme.fonts` explizit setzt, gestalten deine Display- und Body-Schrifte
 
 Du möchtest zum System-Stack zurückkehren? Überschreibe die `--blume-font-*`-Tokens direkt in [`theme.css`](#themecss).
 
-### Farben im dunklen Modus
+### Farben im dunklen Modus [#dark-mode-colors]
 
 `accent` und `background` folgen einer Regel: Ein String gilt für beide Farbmodi, und ein Objekt `{ light, dark }` legt jeden Modus einzeln fest:
 
@@ -167,7 +167,7 @@ theme: {
 
 Jede Farbe akzeptiert eine benannte Voreinstellung oder eine beliebige CSS-Farbe. Bei `background` (und `backgroundImage`) kann jeder Schlüssel weggelassen werden, um nur einen Modus zu überschreiben — `background: { dark: "#0a0a0a" }` behält den standardmäßigen hellen Hintergrund bei.
 
-### Aktionsfarbe
+### Aktionsfarbe [#action-color]
 
 `action` ist eine sekundäre Akzentfarbe für primäre Handlungsaufforderungen und die `action`-Tailwind-Utilities (`bg-action`, `text-action`). Standardmäßig entspricht sie deiner `accent`-Farbe:
 
@@ -177,7 +177,7 @@ theme: {
 }
 ```
 
-### Hintergrundbild
+### Hintergrundbild [#background-image]
 
 Lege mit `backgroundImage` ein Hintergrundbild hinter deinen Inhalt — eine URL oder ein Pfad unterhalb von `public/`. Wie bei den Farben gilt ein String für beide Modi, und ein Objekt `{ light, dark }` legt das Bild je Modus fest:
 
@@ -258,7 +258,7 @@ Blumes Theme ist intern mit Tailwind v4 gebaut, und die `.astro`-, `.tsx`- und `
 | `--blume-font-body`         | `font-sans`                |
 | `--blume-font-mono`         | `font-mono`                |
 
-## Reihenfolge der Kaskade
+## Reihenfolge der Kaskade [#cascade-order]
 
 Styles werden in drei Ebenen aufgelöst, von denen jede die vorherige überschreibt:
 

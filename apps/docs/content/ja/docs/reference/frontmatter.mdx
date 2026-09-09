@@ -40,7 +40,7 @@ description: >-
   }}
 />
 
-## サイドバー
+## サイドバー [#sidebar]
 
 ```yaml lineNumbers
 sidebar:
@@ -65,7 +65,7 @@ seo:
   noindex: false
 ```
 
-## 検索
+## 検索 [#search]
 
 ```yaml lineNumbers
 search:
@@ -73,7 +73,7 @@ search:
   tags: [api]
 ```
 
-## 変更履歴
+## 変更履歴 [#changelog]
 
 変更履歴のエントリー（`type: changelog`）では、フィードや表示のメタデータをより充実させるために、任意の `changelog` オブジェクトを指定できます。
 
@@ -87,7 +87,7 @@ changelog:
 
 `date` はここに書いてもトップレベルに書いても構いません。どちらも[変更履歴の RSS フィード](/docs/content#feeds)に反映されます。生成されるタイムラインページとフィードについては、[変更履歴](/docs/advanced/changelog)を参照してください。
 
-## カスタムキー
+## カスタムキー [#custom-keys]
 
 このリファレンスに記載されていないキーはビルドを失敗させるため、タイプミスを早期に検出できます。独自のメタデータを扱うプロジェクトでは、`blume.config.ts` の [`frontmatter.extend`](/docs/configuration#frontmatter) で追加のキーを許可できます。各キーはプロジェクト側が用意したスキーマで検証されます。
 
@@ -115,7 +115,7 @@ reviewedAt: 2026-06-20
 
 スキーマは [Standard Schema](https://standardschema.dev) インターフェース経由で受け付けられるため、Zod（プロジェクトがインストールしているバージョンを問わず）、Valibot、ArkType のいずれも利用できます。宣言されたキーはすべてのページで検証されます。存在しない場合も含めて検証されるため、必須スキーマにするとサイト全体でそのキーが強制されます。存在するページでのみ検証したい場合は `.optional()` を付けてください。それ以外のキーは引き続き厳密に検証され、組み込みフィールドを再宣言することはできません。
 
-### タイプ別のキー
+### タイプ別のキー [#per-type-keys]
 
 RFC の `status` やインシデントレポートの `severity` のように、特定のコンテンツタイプでのみキーを必須にしたい場合は、代わりに [`content.types`](/docs/configuration#content) の下で、適用対象となるフロントマターの `type` をキーとして宣言します。
 

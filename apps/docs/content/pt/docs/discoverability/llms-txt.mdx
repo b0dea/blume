@@ -19,7 +19,7 @@ Enquanto estiver ativado, o `blume build` grava dois arquivos na raiz do seu sit
 
 Páginas em rascunho são excluídas. Defina [`deployment.site`](/docs/deployment) para que os links e as URLs de origem resolvam para endereços absolutos.
 
-## Opções
+## Opções [#options]
 
 O `llmsTxt` também aceita um formato de objeto com ajustes sobre o que os arquivos incluem. Se a sua [referência de API](/docs/advanced/api-reference) documenta uma especificação de exemplo ou de placeholder, defina `openapi: false` para manter as páginas geradas por ela fora dos dois arquivos:
 
@@ -46,11 +46,11 @@ ai: {
 }
 ```
 
-## Seções geradas
+## Seções geradas [#generated-sections]
 
 O `llms.txt` termina com duas seções geradas que não precisam de configuração. **Agent skills** lista cada skill publicada através de [`ai.skills`](/docs/discoverability/agent-discovery#skills-discovery) com sua descrição (onde a skill diz quando deve ser usada). **Agent resources** cria links para todos os artefatos legíveis por máquina que o build emite — `llms-full.txt`, o espelho de [Markdown bruto](/docs/discoverability/markdown) por página, o [servidor MCP](/docs/discoverability/mcp) e seu documento de descoberta, o índice de skills, o [catálogo de API](/docs/discoverability/agent-discovery#api-catalog), o [`agent-readability.json`](/docs/discoverability/agent-discovery#agent-readability) e o [sitemap](/docs/discoverability/sitemap-and-robots#sitemap) — cada um apenas quando existe, então um agente que não lê nada além do `llms.txt` ainda encontra toda a superfície.
 
-## Excluindo uma página
+## Excluindo uma página [#excluding-a-page]
 
 Para manter uma página individual fora dos dois arquivos, defina `ai.exclude` no frontmatter dela:
 
@@ -64,6 +64,6 @@ ai:
 
 A página continua sendo renderizada, permanece na busca e mantém seu lugar no sitemap — só os arquivos `llms.txt` a ignoram.
 
-## Usando os seus próprios
+## Usando os seus próprios [#bringing-your-own]
 
 Para assumir controle total de qualquer um dos arquivos, adicione seu próprio `llms.txt` ou `llms-full.txt` na pasta `public/`. Assim como um favicon personalizado, ele é detectado automaticamente e é publicado no lugar do arquivo gerado — se você sobrescrever um, o Blume ainda gera o outro.

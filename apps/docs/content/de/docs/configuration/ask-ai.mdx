@@ -16,7 +16,7 @@ ai: {
 }
 ```
 
-## Vorgeschlagene Fragen
+## Vorgeschlagene Fragen [#suggested-questions]
 
 Fülle den leeren Zustand mit ein paar Einstiegs-Prompts. Jeder wird als klickbarer Vorschlag dargestellt — klicke einen an, um ihn abzusenden — mit einem optionalen [Lucide-Icon](/docs/content/components#icon) neben dem Label:
 
@@ -35,7 +35,7 @@ ai: {
 
 `label` ist die Frage, die gestellt wird; `icon` ist optional. Lässt du `suggestions` weg (oder leer), öffnet sich das Panel mit einem einfachen Eingabefeld.
 
-## Eigene Anweisungen
+## Eigene Anweisungen [#custom-instructions]
 
 Ergänze deinen eigenen System-Prompt-Text mit `instructions` — Identität, Sprache, Tonfall oder alles andere, was der Assistent im Blick behalten soll:
 
@@ -59,7 +59,7 @@ Die Seite, auf der sich der Leser gerade befindet, wird dem Kontext zuerst hinzu
 
 Grounding ist für jedes Backend aktiv außer **[Inkeep](#backends)**, das sein eigenes Retrieval über die Inhalte ausführt, die du in seinem Dashboard indexiert hast.
 
-## Retrieval-Größe
+## Retrieval-Größe [#retrieval-size]
 
 Wie viel Dokumentation eine Frage mitträgt, ist der größte Hebel dafür, wie lange der Leser auf das erste Wort wartet: Das Modell liest jedes injizierte Zeichen, bevor es ein Token ausgibt. Bei einem gehosteten Frontier-Modell ist das unsichtbar, bei einem selbst gehosteten Backend dominiert es. `retrieval` dimensioniert das:
 
@@ -86,7 +86,7 @@ Die drei sind nicht austauschbar. `contextBudget` begrenzt die gesamte Injektion
 
 Die Standardwerte passen zu einem gehosteten Modell. Senke sie, wenn du von eigener Hardware ausliefert und die Zeit bis zum ersten Token wichtiger ist als der Recall; Antworten bleiben in beiden Fällen verankert, und der Assistent ist angewiesen, zu sagen, wenn etwas nicht abgedeckt ist, statt die Lücke zu füllen.
 
-## Externer Endpunkt
+## Externer Endpunkt [#external-endpoint]
 
 Du hast schon ein API-Backend für AI? Richte das Panel darauf aus und halte den Docs-Build statisch:
 
@@ -110,7 +110,7 @@ Blume sendet denselben `POST`-Body wie seine eingebaute Route:
 
 Gib eine erfolgreiche Antwort zurück, deren Body ein reiner UTF-8-Textstream ist. Liegt der Endpunkt auf einem anderen Origin, erlaube den Docs-Origin per CORS: akzeptiere `OPTIONS` und `POST`, lasse den Request-Header `content-type` zu und gib die CORS-Header sowohl beim Preflight als auch bei der gestreamten Antwort zurück. Mit gesetztem `endpoint` erzeugt Blume die Chat-UI, aber keine Server-Route, keinen Grounding-Snapshot, keine Provider-Abhängigkeit und keine Warnung zu Provider-Secrets; dein Backend verantwortet Retrieval, Authentifizierung, Rate Limiting, Modellzugriff und Zitate.
 
-## Server-Ausgabe erforderlich
+## Server-Ausgabe erforderlich [#server-output-required]
 
 Blumes eingebautes Ask-AI-Backend ist eine Server-Route (`POST /api/ask`) und kann daher nicht auf einem statischen Build laufen. Wechsle zur Server-Ausgabe und wähle einen Adapter:
 

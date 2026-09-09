@@ -1790,6 +1790,7 @@ import TypeTable from "blume/components/content/TypeTable.astro";
 import Visibility from "blume/components/content/Visibility.astro";
 import YouTube from "blume/components/content/YouTube.astro";
 import Icon from "blume/components/Icon.astro";
+import LocaleLinks from "blume/components/layout/LocaleLinks.astro";
 import ApiOverview from "blume/components/openapi/ApiOverview.astro";
 import ApiTagOperations from "blume/components/openapi/ApiTagOperations.astro";
 import Operation from "blume/components/openapi/Operation.astro";
@@ -2125,7 +2126,9 @@ const LayoutComponent = resolveSlot(layoutOverrides.Layout, RootLayout);
 >
   <h1>{title}</h1>
   {frontmatter.description && <p class="text-lg text-muted-foreground">{frontmatter.description}</p>}
-  <Content components={components} />
+  <LocaleLinks locale={locale}>
+    <Content components={components} />
+  </LocaleLinks>
 </LayoutComponent>
 `;
 };

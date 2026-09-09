@@ -280,6 +280,8 @@ interface HeadingScanState {
   fence: FenceState;
   /** 1-based body line of the line being scanned. */
   line: number;
+  /** Where each heading in `headings` sits, index-aligned. */
+  sites: HeadingSite[];
   /** Consecutive paragraph lines — the candidate text for a setext underline. */
   paragraph: string[];
   /** Body line of the first line in `paragraph`. */
@@ -399,23 +401,43 @@ const refDefinitionLabels = (lines: readonly string[]): Set<string> => {
  * regardless of TOC visibility. A heading that is nothing but markers keeps
  * them as literal text, mirroring the renderer.
  */
+/** A scanned heading plus whether its id came from an author pin. */
+interface ScannedHeading {
+  heading: Heading;
+  pinned: boolean;
+}
+
 const toHeading = (
   depth: number,
   raw: string,
   slugger: GithubSlugger,
   isRefDefined: (label: string) => boolean
-): Heading => {
+): ScannedHeading => {
   const unescaped = raw.replaceAll(ESCAPED_PUNCTUATION, "$<char>");
   const markers = parseHeadingMarkers(unescaped, isRefDefined);
   const text = markers.text.trim();
   if (text === "" && (markers.id !== undefined || markers.toc !== undefined)) {
-    return { depth, slug: slugger.slug(unescaped), text: unescaped };
+    return {
+      heading: { depth, slug: slugger.slug(unescaped), text: unescaped },
+      pinned: false,
+    };
   }
   if (markers.id !== undefined) {
     occupySlug(slugger, markers.id);
-    return { depth, slug: markers.id, text };
+    return { heading: { depth, slug: markers.id, text }, pinned: true };
   }
-  return { depth, slug: slugger.slug(text), text };
+  return { heading: { depth, slug: slugger.slug(text), text }, pinned: false };
+};
+
+/** Record a heading and where a trailing marker would be written for it. */
+const pushHeading = (
+  headings: Heading[],
+  state: HeadingScanState,
+  scanned: ScannedHeading,
+  line: number
+): void => {
+  headings.push(scanned.heading);
+  state.sites.push({ line, pinned: scanned.pinned });
 };
 
 /** Record a heading's unescaped trailing `{#id}` so `.mdx` pages can be warned. */
@@ -444,7 +466,12 @@ const scanContentLine = (
   if (atx?.groups) {
     const depth = atx.groups.hashes?.length ?? 1;
     const text = (atx.groups.text ?? "").trim();
-    headings.push(toHeading(depth, text, slugger, isRefDefined));
+    pushHeading(
+      headings,
+      state,
+      toHeading(depth, text, slugger, isRefDefined),
+      state.line
+    );
     noteCurlyMarker(text, state.line, state);
     state.paragraph = [];
     return;
@@ -455,7 +482,14 @@ const scanContentLine = (
     // a multi-line paragraph renders as one heading, soft breaks as spaces.
     const depth = setext.groups.marker?.startsWith("=") ? 1 : 2;
     const text = state.paragraph.join(" ").trim();
-    headings.push(toHeading(depth, text, slugger, isRefDefined));
+    // A setext heading's markers trail its last text line, just above the
+    // underline — that is where a pin is appended.
+    pushHeading(
+      headings,
+      state,
+      toHeading(depth, text, slugger, isRefDefined),
+      state.line - 1
+    );
     noteCurlyMarker(text, state.paragraphStart, state);
     state.paragraph = [];
     return;
@@ -515,6 +549,14 @@ const scanHeadingLine = (
   scanContentLine(line, state, slugger, headings, isRefDefined);
 };
 
+/** Where a heading's text ends in the scanned text, for appending a marker. */
+export interface HeadingSite {
+  /** 1-based line (of the text passed to `scanBody`) that any trailing marker ends. */
+  line: number;
+  /** True when the heading already pins its id with `[#id]`/`{#id}`. */
+  pinned: boolean;
+}
+
 /** Everything one walk over a body yields for the anchor index. */
 export interface BodyScan {
   /**
@@ -527,6 +569,8 @@ export interface BodyScan {
   /** Headings whose trailing `{#id}` marker is unescaped, for `.mdx` pages. */
   curlyMarkers: CurlyMarker[];
   headings: Heading[];
+  /** Index-aligned with `headings`: where each one's markers would go. */
+  sites: HeadingSite[];
 }
 
 /**
@@ -546,6 +590,7 @@ export const scanBody = (body: string): BodyScan => {
     paragraphStart: 0,
     promptDepth: 0,
     promptTag: false,
+    sites: [],
   };
 
   const { lines, offset } = linesWithoutFrontMatter(body);
@@ -568,7 +613,12 @@ export const scanBody = (body: string): BodyScan => {
       anchors.add(id);
     }
   }
-  return { anchors: [...anchors], curlyMarkers: state.curlyMarkers, headings };
+  return {
+    anchors: [...anchors],
+    curlyMarkers: state.curlyMarkers,
+    headings,
+    sites: state.sites,
+  };
 };
 
 export const extractHeadings = (body: string): Heading[] =>

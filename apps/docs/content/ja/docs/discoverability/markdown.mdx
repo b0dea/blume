@@ -6,7 +6,7 @@ description: >-
 
 HTML はブラウザーのためのものです。エージェントや LLM は、ページの記述に使われている Markdown のほうがうまく扱えます — トークンが少なく、余計な装飾がなく、コンポーネントもモデルが読める形式でレンダリングされます。Blume は、開発環境でも本番環境でも、設定不要ですべてのページの Markdown を配信します。
 
-## 生の Markdown
+## 生の Markdown [#raw-markdown]
 
 任意のページの URL に `.md` または `.mdx` を付けると、その生の Markdown ソースを取得できます — LLM、コーディングエージェント、「Markdown としてコピー」のワークフローに最適です。
 
@@ -20,13 +20,13 @@ HTML はブラウザーのためのものです。エージェントや LLM は�
 
 `.md` バリアントは、JSX を解釈できないコンシューマー向けにコンポーネントをプレーンな Markdown へ*ダウンレベル*します。`<TypeTable>` は Markdown のテーブルに、`<Callout>` はラベル付きの引用ブロックに、`<Steps>` は順序付きリストに、`<Tabs>` は太字ラベルのセクションに、`<Card>` は本文にリンクとしてタイトルを重ねたものに (そして `<CardGroup>` はそれが保持するカードに)、`<YouTube>` はリンクになります。生成された [API リファレンス](/docs/advanced/api-reference)ページを構成するコンポーネントもダウンレベルされます。`<Operation>` はそのスペック独自の記法によるエンドポイント (`GET /pets/{id}`、`SEND user/signup`、`query pets`) と非推奨マーカーになり、`<ApiTagOperations>` はそれらのエンドポイントを各ページへのリンクと概要付きで並べたリストになり、`<ApiOverview>` は API のバージョンとベース URL になります — これにより、リファレンスページを読むエージェントは何を呼び出せばよいかが分かり、サイト検索でもエンドポイントのパスがマッチします。プロパティはページの `frontmatter` をスコープに入れて評価されるため、`title={frontmatter.status}` のようなプロパティはレンダリングされたページと同じ値に解決されます。忠実に変換できないもの — カスタムコンポーネントや、import から計算されたプロパティ — はそのまま残され、フェンス付きコードブロック内のコンポーネントマークアップには一切手が加えられません。同じ変換は [`llms-full.txt`](/docs/discoverability/llms-txt) と [MCP サーバー](/docs/discoverability/mcp)の `get_page` ツールにも適用されるため、エージェント向けのあらゆる面がクリーンな Markdown を読み取れます。変換されていないソースが必要な場合は、`.mdx` バリアントを使用してください。
 
-### コンテンツネゴシエーション
+### コンテンツネゴシエーション [#content-negotiation]
 
 エージェントが `.md` の規約を知っている必要はありません。ページ自身の URL に [`Accept: text/markdown`](https://acceptmarkdown.com) ヘッダーを付けてリクエストすると、同じアドレスで Markdown バリアントが配信され、キャッシュが両者を区別できるよう `Vary: Accept` が付きます。開発サーバーは標準でこのヘッダーを尊重し、[Vercel または Cloudflare のサーバービルド](/docs/deployment#server-rendering)は同じネゴシエーションをデプロイに自動的に組み込みます — Vercel ではルーティングルール、Cloudflare では生成された Worker で — 設定は不要です。ホームページは、コンテンツページではなくカスタムのランディングページであっても、常にネゴシエーションを行います。その Markdown ミラーは [`llms.txt`](/docs/discoverability/llms-txt) インデックスにフォールバックするため、サイトのルートに Markdown を要求したエージェントはサイトの機械可読なマップを受け取ります。Markdown のレスポンスには `x-markdown-tokens` ヘッダーも付きます — [Cloudflare の Markdown for Agents](https://developers.cloudflare.com/fundamentals/reference/markdown-for-agents/) の慣例に従った推定トークン数 (1 トークンあたり約 4 文字) で、Blume がレスポンスヘッダーを制御できるすべての面 — 開発サーバー、サーバーレンダリングされたレスポンス、Vercel と Cloudflare でネゴシエーションされたホームページ — に付与されます。その他のデプロイ先はリクエスト時のフックを持たない静的レイヤーからプリレンダリング済みページを配信するため、そこではエージェントが `.md` URL を直接取得します。[エージェント可読性マニフェスト](/docs/discoverability/agent-discovery#agent-readability)は、ヘッダーを尊重するデプロイでのみ `contentNegotiation` を告知します。
 
 存在しないページもネゴシエーションします。すべてのビルドは `/404.md` に Markdown の [404 ページ](/docs/advanced/custom-pages#404-page) を出力します — not-found メッセージに続いて、すべてのトップレベルセクション、サイトマップ、`llms.txt` への復帰リンクが並びます — そして Vercel では、Markdown を優先する存在しない URL へのリクエスト、あるいは背後にページがない `.md` URL は、HTML シェルではなくその本文を実際の `404` ステータスで受け取ります。
 
-### カスタムコンポーネントシリアライザー
+### カスタムコンポーネントシリアライザー [#custom-component-serializers]
 
 `ai.markdownComponents` — JSX 名からシリアライザーへのマップ — を使って、独自のコンポーネントに Markdown 形式を与えられます。各シリアライザーは、コンポーネントの `props` (MDX の属性から静的に評価され、ページの `frontmatter` がスコープに入ります)、`children` (すでに Markdown へダウンレベル済み)、およびページの `frontmatter` データを受け取り、置き換える内容を返します — JSX をそのまま残す場合は `null` を返します。
 
@@ -50,13 +50,13 @@ export default defineConfig({
 
 シリアライザーは `components.tsx` ではなく `blume.config.ts` に置きます。設定ファイルはビルド時に実行されるのに対し、コンポーネントファイルは静的に解析されるだけだからです (コンポーネントファイルは `.astro` ファイルを import することがあり、それらはサイトのビルド外では実行できません)。コンポーネント自体はこれまでどおり `components.tsx` に登録したままです — `markdownComponents` は、そのエージェント向けの Markdown 形式を追加するだけです。
 
-## Markdown としてコピー
+## Markdown としてコピー [#copy-as-markdown]
 
 すべてのページには **Markdown としてコピー** のアクションがあり — 目次の下の[ページアクション](/docs/content/navigation#page-actions)にあります — ページの生の Markdown をクリップボードにコピーします。これは上記の [`.md` URL](#raw-markdown) で配信されるものと同じソースで、LLM、Issue、メモなどにそのまま貼り付けられます。開発環境でも本番環境でも、設定不要ですべてのページで利用できます。
 
 Clipboard API が利用できない場合やブラウザーが拒否した場合 — アプリ内ブラウザー、WebView、安全でないオリジンなど — このアクションはレガシーのコピーコマンドにフォールバックし、クリップボードに何も入らなかった場合は、黙ったままにするのではなくボタンが **コピーに失敗しました** (`actions.copyFailed` でローカライズ) と表示します。同じフォールバックが、Blume がレンダリングするすべてのコピーボタンを支えています。
 
-## チャットで開く
+## チャットで開く [#open-in-chat]
 
 **チャットで開く** アクションは、現在のページを AI アシスタント — v0、ChatGPT、Claude、T3 Chat、Scira、Cursor — で開きます。プロンプトにはページの生の Markdown を指すよう事前入力されているため、読んでいる内容についての質問に答えてもらえます。
 

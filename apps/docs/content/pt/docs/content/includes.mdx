@@ -22,7 +22,7 @@ Veja funcionando na prática — este próximo destaque vem de um trecho compart
 
 <include>../_snippets/include-demo.mdx</include>
 
-## Parciais
+## Parciais [#partials]
 
 Qualquer arquivo cujo nome (ou pasta) comece com underscore fica excluído do roteamento, da navegação, da busca e dos sitemaps por padrão — essa convenção é o lar natural dos trechos compartilhados:
 
@@ -42,7 +42,7 @@ Referências relativas a imagens dentro de uma parcial continuam funcionando: el
 
 Editar uma parcial enquanto o `blume dev` está rodando recarrega todas as páginas que a incluem.
 
-## Incluindo arquivos de código
+## Incluindo arquivos de código [#including-code-files]
 
 Um alvo que não seja `.md`/`.mdx` é embutido como um bloco de código cercado, com a linguagem inferida da extensão. Use `lang` para sobrescrever a linguagem (ou para mostrar um arquivo Markdown como código-fonte em vez de inseri-lo), e `meta` para passar uma string de meta da cerca, como um título:
 
@@ -56,7 +56,7 @@ Um alvo que não seja `.md`/`.mdx` é embutido como um bloco de código cercado,
 <include lang="mdx">./_snippets/prerequisites.mdx</include>
 ```
 
-## Regras e diagnósticos
+## Regras e diagnósticos [#rules-and-diagnostics]
 
 Instruções de include precisam ocupar a própria linha — elas são de nível de bloco, não inline. Instruções dentro de blocos de código cercados são ignoradas, então você pode documentar a própria sintaxe (como esta página faz).
 

@@ -48,8 +48,19 @@ export const resolveFallbackLocale = (
   return i18n.fallbackLocale ?? i18n.defaultLocale;
 };
 
+/**
+ * The slice of the i18n settings URL routing reads. `ResolvedI18nConfig` and
+ * the `blume:data` runtime shape both satisfy it, so route helpers serve the
+ * Node-side graph and the rendered page alike.
+ */
+export interface LocaleRouting {
+  defaultLocale: string;
+  hideDefaultLocalePrefix: boolean;
+  locales: { code: string }[];
+}
+
 /** URL prefix for a locale: `""` for the hidden default, else `/<code>`. */
-export const localePrefix = (code: string, i18n: ResolvedI18nConfig): string =>
+export const localePrefix = (code: string, i18n: LocaleRouting): string =>
   code === i18n.defaultLocale && i18n.hideDefaultLocalePrefix ? "" : `/${code}`;
 
 /**
@@ -59,7 +70,7 @@ export const localePrefix = (code: string, i18n: ResolvedI18nConfig): string =>
 export const localizeRoute = (
   logicalRoute: string,
   code: string,
-  i18n: ResolvedI18nConfig
+  i18n: LocaleRouting
 ): string => {
   const prefix = localePrefix(code, i18n);
   if (!prefix) {

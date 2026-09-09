@@ -6,7 +6,7 @@ description: >-
 
 Blume には、アクセシブルでテーマ設定可能なコンポーネントセットが同梱されており、**インポート不要**で任意の `.mdx` ページで利用できます。以下ではそれぞれをライブプレビューとソースとともに紹介します。コンポーネントはバニラ実装で React を使いません。React は独自のアイランドを追加した場合にのみ有効になります。
 
-## Card と CardGroup
+## Card と CardGroup [#card-and-cardgroup]
 
 カードは、アイコン、タイトル、短い説明文とともにリンク先を示します。`CardGroup` でまとめるとレスポンシブなグリッドになります。ランディングページ、セクションのインデックス、「次のステップ」など、読者を先へ導きたい場所で活用してください。
 
@@ -94,7 +94,7 @@ Blume には、アクセシブルでテーマ設定可能なコンポーネン�
 
 ステータスやメタデータを示す小さなインラインラベルです — バージョンタグ、「new」や「beta」のマーカー、安定性レベルなど。`variant` で意味に合わせて色を調整します。
 
-### デフォルト
+### デフォルト [#default]
 
 特に強調のない中立的なメタデータ。
 
@@ -104,7 +104,7 @@ Blume には、アクセシブルでテーマ設定可能なコンポーネン�
 <Badge>Stable</Badge>
 ```
 
-### アクセント
+### アクセント [#accent]
 
 テーマのアクセントカラーで注意を引きます — 「new」や注目マーカーに適しています。
 
@@ -114,7 +114,7 @@ Blume には、アクセシブルでテーマ設定可能なコンポーネン�
 <Badge variant="accent">New</Badge>
 ```
 
-### 成功
+### 成功 [#success]
 
 肯定的、または合格を示す状態。
 
@@ -124,7 +124,7 @@ Blume には、アクセシブルでテーマ設定可能なコンポーネン�
 <Badge variant="success">Passing</Badge>
 ```
 
-### 警告
+### 警告 [#warning]
 
 実験的機能など、注意して使うべきもの。
 
@@ -134,7 +134,7 @@ Blume には、アクセシブルでテーマ設定可能なコンポーネン�
 <Badge variant="warning">Beta</Badge>
 ```
 
-### 危険
+### 危険 [#danger]
 
 非推奨など、否定的または破壊的な状態。
 
@@ -158,7 +158,7 @@ Blume は Lucide 専用です — 名前だけを指定すると Lucide から�
 
 アイコンはビルド時に解決され、JavaScript を伴わない SVG としてインライン展開されます。実行時に取得されるものはありません。
 
-## ファイルツリー
+## ファイルツリー [#file-tree]
 
 プロジェクトやフォルダの構成を図示します。通常の Markdown リストをラップすると、Blume がツリーとしてスタイリングします — セットアップや設定のガイドで構造を説明するのに便利です。
 
@@ -469,11 +469,11 @@ Hover the <Tooltip tip="A set of protocols software uses to communicate." headli
 <Visibility for="agents">Shown only in the generated Markdown.</Visibility>
 ```
 
-## 型テーブル
+## 型テーブル [#type-tables]
 
 オブジェクトのプロパティ — プロパティ、型、デフォルト値 — を文書化するためのテーブルです。`TypeTable` で行を手書きするか、`AutoTypeTable` で TypeScript のインターフェースや型エイリアスから直接生成できます。
 
-### 型テーブル
+### 型テーブル [#type-table]
 
 各行を展開すると説明と詳細が現れる、**プロパティ / 型**のグリッドです。プロパティ名をキーとする `type` マップを渡します。各エントリは `type` に加えて、任意の `description`、`default`、`required` フラグ、`typeDescription`、`typeDescriptionLink` を受け取ります。省略可能なプロパティ（`required` が未設定）は、名前の後に `?` が表示されます。
 
@@ -511,7 +511,7 @@ Hover the <Tooltip tip="A set of protocols software uses to communicate." headli
 />
 ```
 
-### 自動型テーブル
+### 自動型テーブル [#auto-type-table]
 
 TypeScript の型から型テーブルを生成し、ドキュメントをソースと同期させ続けます。`AutoTypeTable` に `path`（プロジェクトルートからの解決）と型の `name` を指定します。説明は JSDoc コメントから、デフォルト値は `@default` タグから取得され、省略可能なプロパティ（`?`）はそれに応じて示されます。
 
@@ -557,7 +557,7 @@ export interface ButtonProps {
 />
 ```
 
-## GitHub 情報
+## GitHub 情報 [#github-info]
 
 GitHub リポジトリへのリンクを、最新のスター数とフォーク数とともに表示するカードです。カウントはビルド時に取得され — クライアント JavaScript は不要 — API に到達できない場合でもカードは描画されます。`owner` と `repo` を渡すか、省略して `blume.config` のリポジトリを使用します。API のレート制限を緩和するには、環境変数 `GITHUB_TOKEN` を設定してください。
 

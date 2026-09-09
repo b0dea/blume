@@ -25,7 +25,7 @@ ai: {
 
 Boa parte disso fica mais afiada com uma URL absoluta do site — defina [`deployment.site`](/docs/deployment) para que feeds, imagens OG, canônicas, o sitemap, JSON-LD e todo manifesto de agente possam emitir URLs completas. Algumas superfícies (imagens Open Graph, o sitemap) ficam desligadas até que isso seja definido.
 
-## O que o build emite
+## O que o build emite [#what-the-build-emits]
 
 | Superfície | Onde | Padrão | Guia |
 | --- | --- | --- | --- |
@@ -44,6 +44,6 @@ Todo arquivo gerado cede lugar a um que você mesmo publique: coloque um `robots
 
 O assistente **Ask AI** dentro da página é o único recurso de IA documentado em outro lugar: ele é um recurso de produto voltado ao leitor, e não uma superfície de descoberta, então fica em [Configuração](/docs/configuration/ask-ai).
 
-## Conferindo seu trabalho
+## Conferindo seu trabalho [#checking-your-work]
 
 O [`blume audit`](/docs/reference/cli#auditing-the-built-site) percorre o site construído e gera um relatório sobre títulos, descrições, canônicas, cartões Open Graph e do X, hreflang, o sitemap, o `robots.txt` e os dados estruturados. Aponte-o para um deployment com `--url` para checar também os cabeçalhos de resposta e a [descoberta de agentes baseada em DNS](/docs/discoverability/agent-discovery#dns-based-discovery-dns-aid).

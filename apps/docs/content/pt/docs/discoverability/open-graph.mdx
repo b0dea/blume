@@ -12,7 +12,7 @@ seo: {
 }
 ```
 
-## Aplique sua marca ao card gerado
+## Aplique sua marca ao card gerado [#brand-the-generated-card]
 
 Defina um SVG local e uma paleta de cores para alinhar o card gerado à sua marca. O logo pode ficar em `public/` ou na raiz do projeto. Omita qualquer valor da paleta para manter o padrão dele.
 
@@ -55,7 +55,7 @@ Toda cor da paleta aceita qualquer cor CSS — hex, `oklch(…)`, `rgb(…)` e a
 
 Emojis no título de uma página ou no título do site são renderizados como glifos do [Twemoji](https://github.com/jdecked/twemoji), buscados em uma CDN enquanto o card é renderizado — então um build cujos títulos contenham emojis precisa de acesso à rede. Cada glifo é buscado uma vez por build, não importa quantas páginas o usem.
 
-## Exiba, oculte ou sobrescreva camadas do card
+## Exiba, oculte ou sobrescreva camadas do card [#show-hide-or-override-card-layers]
 
 Além da manchete, o card carrega três camadas opcionais: a **marca** no canto superior esquerdo (seu logo, ou um bloco em accent com a inicial do título do site), o **subtítulo** abaixo da manchete (a `description` da página, ou a `description` do seu site para páginas sem uma) e um **rodapé** com o slug do seu repositório (a partir de `github`) e a URL do site — o host do site de deploy mais [`deployment.base`](/docs/deployment#subpath-deploys), então um site de projeto no GitHub Pages fica `user.github.io/repo`. Sobrescreva qualquer uma delas com uma string sua, ou oculte uma com `false`:
 
@@ -69,7 +69,7 @@ seo: {
 }
 ```
 
-## Fontes do card
+## Fontes do card [#card-fonts]
 
 Por padrão, o card é renderizado com a fonte embutida do Takumi, que cobre apenas glifos latinos — um título em outra escrita (japonês, chinês, coreano, árabe, …) apareceria como tofu, quadradinhos vazios.
 
@@ -95,7 +95,7 @@ As famílias do Google são buscadas no build — então um build que as usa pre
 
 Um `og.fonts: []` explícito desativa tudo: os cards mantêm a fonte embutida mesmo com `theme.fonts` definido.
 
-## Títulos de páginas personalizadas
+## Títulos de páginas personalizadas [#custom-page-titles]
 
 Uma [página `.astro`](/docs/advanced/custom-pages) personalizada não tem frontmatter para ler, então o card gerado dela recebe o título humanizando o último segmento da URL da rota — `/getting-started` vira "Getting Started", mas `/cli` vira "Cli". Nomeie esses cards explicitamente com `og.titles`, indexado por rota (`"/"` endereça a home, cujo card, do contrário, carrega o título do site):
 

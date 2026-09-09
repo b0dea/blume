@@ -64,7 +64,7 @@ seo:
   noindex: false
 ```
 
-## Suche
+## Suche [#search]
 
 ```yaml lineNumbers
 search:
@@ -86,7 +86,7 @@ changelog:
 
 `date` kann hier oder auf der obersten Ebene stehen — beide speisen den [Changelog-RSS-Feed](/docs/content#feeds). Siehe [Changelog](/docs/advanced/changelog) für die generierte Timeline-Seite und den Feed.
 
-## Eigene Schlüssel
+## Eigene Schlüssel [#custom-keys]
 
 Jeder Schlüssel außerhalb dieser Referenz lässt den Build fehlschlagen, sodass Tippfehler früh auffallen. Projekte mit eigenen Metadaten können zusätzliche Schlüssel über [`frontmatter.extend`](/docs/configuration#frontmatter) in `blume.config.ts` zulassen, jeweils validiert durch ein Schema, das das Projekt bereitstellt:
 
@@ -114,7 +114,7 @@ reviewedAt: 2026-06-20
 
 Schemas werden über die [Standard-Schema](https://standardschema.dev)-Schnittstelle akzeptiert, sodass Zod (in der Version, die Ihr Projekt installiert), Valibot und ArkType allesamt funktionieren. Jeder deklarierte Schlüssel wird auf jeder Seite validiert — auch fehlende —, sodass ein erforderliches Schema den Schlüssel site-weit erzwingt; markieren Sie ihn mit `.optional()`, um nur dort zu validieren, wo er vorhanden ist. Alle übrigen Schlüssel bleiben streng validiert, und eingebaute Felder können nicht neu deklariert werden.
 
-### Schlüssel pro Typ
+### Schlüssel pro Typ [#per-type-keys]
 
 Um Schlüssel nur für einen Inhaltstyp zu verlangen — den `status` eines RFC, die `severity` eines Incident-Reports — deklariere sie stattdessen unter [`content.types`](/docs/configuration#content), geschlüsselt nach dem Frontmatter-`type`, für den sie gelten:
 

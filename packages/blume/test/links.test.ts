@@ -261,6 +261,103 @@ describe(validateLinks, () => {
     expect(diagnostics).toHaveLength(0);
   });
 
+  describe("under i18n", () => {
+    const i18n = {
+      defaultLocale: "en",
+      hideDefaultLocalePrefix: true,
+      locales: [{ code: "en" }, { code: "fr" }],
+    };
+    const english = makePage({
+      headings: [heading("Ordering", "ordering")],
+      id: "nav.mdx",
+      locale: "en",
+      route: "/nav",
+    });
+    const french = makePage({
+      headings: [heading("Ordre", "ordre")],
+      id: "fr/nav.mdx",
+      locale: "fr",
+      route: "/fr/nav",
+    });
+
+    it("resolves a root-relative link into the page's locale, anchors included", async () => {
+      // Rendered on `/fr/meta`, `/nav#ordering` lands on `/fr/nav` — whose
+      // translated heading slug no longer matches, exactly what a reader hits.
+      const diagnostics = await validateLinks(
+        makeGraph([
+          makePage({
+            id: "fr/meta.mdx",
+            links: [link("/nav#ordering"), link("/nav#ordre"), link("/nav")],
+            locale: "fr",
+            route: "/fr/meta",
+          }),
+          english,
+          french,
+        ]),
+        { i18n, publicDir: null }
+      );
+      expect(diagnostics).toHaveLength(1);
+      expect(diagnostics[0]?.code).toBe("BLUME_BROKEN_ANCHOR");
+      expect(diagnostics[0]?.message).toContain("/fr/nav");
+    });
+
+    it("accepts a link whose locale variant is a fallback route", async () => {
+      // No French `nav` page: the manifest materializes `/fr/nav` as a fallback
+      // (passed in `extraRoutes`), which renders the English headings — so the
+      // English anchor is right and accepted unchecked.
+      const diagnostics = await validateLinks(
+        makeGraph([
+          makePage({
+            id: "fr/meta.mdx",
+            links: [link("/nav#ordering")],
+            locale: "fr",
+            route: "/fr/meta",
+          }),
+          english,
+        ]),
+        { extraRoutes: ["/fr/nav"], i18n, publicDir: null }
+      );
+      expect(diagnostics).toHaveLength(0);
+    });
+
+    it("keeps the authored route when no locale variant is served", async () => {
+      // Fallbacks off and no translation: the link stays on `/nav`, so the
+      // English anchor is what gets checked.
+      const diagnostics = await validateLinks(
+        makeGraph([
+          makePage({
+            id: "fr/meta.mdx",
+            links: [link("/nav#ordering"), link("/nav#missing")],
+            locale: "fr",
+            route: "/fr/meta",
+          }),
+          english,
+        ]),
+        { i18n, publicDir: null }
+      );
+      expect(diagnostics.map((d) => d.message)).toStrictEqual([
+        "No anchor target on /nav matches #missing.",
+      ]);
+    });
+
+    it("checks default-locale pages against their own routes", async () => {
+      const diagnostics = await validateLinks(
+        makeGraph([
+          makePage({
+            id: "meta.mdx",
+            links: [link("/nav#ordering")],
+            locale: "en",
+            route: "/meta",
+          }),
+          english,
+          french,
+        ]),
+        { i18n, publicDir: null }
+      );
+      expect(diagnostics).toHaveLength(0);
+    });
+  });
+
   it("warns on a missing anchor but accepts a real heading", async () => {
     const target = makePage({
       headings: [heading("Setup", "setup")],

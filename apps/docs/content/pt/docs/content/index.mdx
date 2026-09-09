@@ -8,7 +8,7 @@ Sua documentação é apenas uma pasta de arquivos Markdown e MDX. O Blume trans
 
 O conteúdo fica na sua **raiz de conteúdo** (`docs/` por padrão; mude isso com `content.root` no [`blume.config.ts`](/docs/configuration)).
 
-## Markdown e MDX
+## Markdown e MDX [#markdown-and-mdx]
 
 O Blume renderiza dois tipos de arquivo:
 
@@ -17,7 +17,7 @@ O Blume renderiza dois tipos de arquivo:
 
 Opte pelo `.md` quando uma página for só prosa, e pelo `.mdx` quando ela precisar de componentes ou diretivas. Trocar é tão simples quanto renomear o arquivo.
 
-## Arquivos e rotas
+## Arquivos e rotas [#files-and-routes]
 
 Cada arquivo corresponde a uma rota pelo seu caminho na raiz de conteúdo:
 
@@ -30,7 +30,7 @@ Cada arquivo corresponde a uma rota pelo seu caminho na raiz de conteúdo:
 
 Pastas aninhadas se tornam rotas aninhadas, e um `index.mdx` dentro de uma pasta se torna a página da própria pasta.
 
-## Ordenação com prefixos numéricos
+## Ordenação com prefixos numéricos [#ordering-with-numeric-prefixes]
 
 Prefixe um arquivo ou pasta com um número para controlar a ordem dele na barra lateral. O prefixo é removido da URL, então você pode reordenar páginas sem quebrar links:
 
@@ -41,7 +41,7 @@ Prefixe um arquivo ou pasta com um número para controlar a ordem dele na barra 
 
 A ordenação tem várias camadas — veja [Navegação](/docs/content/navigation) para as regras completas de precedência.
 
-## Pastas de agrupamento
+## Pastas de agrupamento [#group-folders]
 
 Coloque o nome de uma pasta entre parênteses para agrupar as páginas dela na barra lateral **sem** adicionar um segmento à URL:
 
@@ -51,7 +51,7 @@ docs/(internal)/security.mdx  ->  /security
 
 As páginas compartilham um grupo “Internal” na barra lateral, mas mantêm URLs planas e sem parênteses.
 
-## Rascunhos
+## Rascunhos [#drafts]
 
 Marque uma página como rascunho para mantê-la fora dos builds de produção e ainda assim visualizá-la no `blume dev`:
 
@@ -64,7 +64,7 @@ draft: true
 
 O `blume build` ignora rascunhos; o `blume dev` renderiza eles para que você possa trabalhar abertamente.
 
-## Tipos de conteúdo
+## Tipos de conteúdo [#content-types]
 
 Toda página tem um **tipo**, definido com o campo de frontmatter `type` (padrão `doc`). Os tipos permitem que o Blume trate grupos de páginas de forma diferente — e, mais importante ainda, as páginas `blog` e `changelog` são reunidas em [feeds](#feeds).
 
@@ -103,7 +103,7 @@ description: Why we built a markdown-first docs framework.
 
 Feeds precisam de uma URL absoluta do site, então defina [`deployment.site`](/docs/deployment). O Blume adiciona tags `<link rel="alternate">` em todas as páginas para que navegadores e leitores de feeds descubram elas automaticamente. Veja [Blog](/docs/advanced/blog) e [Changelog](/docs/advanced/changelog) para escrever cada tipo de conteúdo.
 
-## Nesta página
+## Nesta página [#on-this-page]
 
 Toda página ganha um sumário automático, construído a partir dos seus títulos. Em telas largas, ele fica numa barra lateral fixa ao lado do seu conteúdo; em telas mais estreitas, ele se recolhe num painel **Nesta página** acima da página. Conforme você rola, a entrada da seção que você está lendo fica destacada, então você sempre sabe onde está numa página longa.
 
@@ -111,7 +111,7 @@ O Blume converte cada título em um slug para criar uma âncora, então cada ent
 
 O sumário lista seus títulos `##` e `###` (H2 e H3). Uma página sem títulos nesse nível simplesmente não tem sumário.
 
-## Para onde ir agora
+## Para onde ir agora [#where-to-next]
 
 <CardGroup cols={2}>
   <Card title="Frontmatter" href="/docs/reference/frontmatter" icon="file">
