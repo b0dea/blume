@@ -88,13 +88,13 @@ Regenerate the project with blume dev.
 
 oxfmt को इस तरह पैच करें कि वह उस लाइन ब्रेक को संरक्षित रखे जो सीधे किसी `:::` फ़ेंस से सटी हुई है। Blume अपनी ही रिपॉज़िटरी में यही फ़िक्स भेजता है, और आप इसे किसी भी प्रोजेक्ट में लागू कर सकते हैं।
 
-1. पैच को `patches/oxfmt@0.66.0.patch` के रूप में सेव करें:
+1. पैच को `patches/oxfmt@0.67.0.patch` के रूप में सेव करें:
 
-   ```diff patches/oxfmt@0.66.0.patch
-   diff --git a/dist/markdown-BgZGxhM2.js b/dist/markdown-BgZGxhM2.js
-   index 859231f9387a50df16419bc22b5268c4e446ddbc..dcc0ffda6f71adb27a03e3918a3db6fc7a58ffe9 100644
-   --- a/dist/markdown-BgZGxhM2.js
-   +++ b/dist/markdown-BgZGxhM2.js
+   ```diff patches/oxfmt@0.67.0.patch
+   diff --git a/dist/markdown-BMigo7Hm.js b/dist/markdown-BMigo7Hm.js
+   index bc9037f6c0de5516b139d8cdb195b1e25cd33bc0..a02c284e28bb535f9964a8a086ebb6549657e416 100644
+   --- a/dist/markdown-BMigo7Hm.js
+   +++ b/dist/markdown-BMigo7Hm.js
    @@ -4872,7 +4872,43 @@ function lu(e, t, r) {
     		case "sentence": return Oh(e, r);
     		case "word": return t.parser !== "mdx" ? zh(e, t) : Uh(e);
@@ -147,7 +147,7 @@ oxfmt को इस तरह पैच करें कि वह उस ला
    ```json package.json
    {
      "patchedDependencies": {
-       "oxfmt@0.66.0": "patches/oxfmt@0.66.0.patch"
+       "oxfmt@0.67.0": "patches/oxfmt@0.67.0.patch"
      }
    }
    ```
