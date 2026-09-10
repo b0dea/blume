@@ -1,6 +1,7 @@
 ---
 import type { GraphqlFieldRow } from "./graphql-helpers.ts";
 import { isOutputField } from "./graphql-helpers.ts";
+import Description from "./Description.astro";
 import GraphqlChip from "./GraphqlChip.astro";
 
 /**
@@ -68,10 +69,7 @@ const isRequired = (row: GraphqlFieldRow): boolean =>
                 )}
               </div>
               {row.description && (
-                <div
-                  class="mt-1 text-muted-foreground text-sm"
-                  set:text={row.description}
-                />
+                <Description class="mt-1 text-muted-foreground text-sm" text={row.description} />
               )}
               {"default" in row && row.default !== undefined && (
                 <div class="mt-1 text-muted-foreground text-xs">
