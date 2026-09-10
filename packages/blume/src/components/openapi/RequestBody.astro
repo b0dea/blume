@@ -1,4 +1,5 @@
 ---
+import Description from "./Description.astro";
 import type { SchemaLike } from "./helpers.ts";
 import SchemaTable from "./SchemaTable.astro";
 
@@ -46,10 +47,7 @@ const schema = chosen?.[1]?.schema ?? {};
   </div>
   {
     requestBody.description && (
-      <div
-        class="text-muted-foreground text-sm"
-        set:text={requestBody.description}
-      />
+      <Description class="text-muted-foreground text-sm" text={requestBody.description} />
     )
   }
   <div class="mt-3">

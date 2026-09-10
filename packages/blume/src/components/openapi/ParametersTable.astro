@@ -1,4 +1,5 @@
 ---
+import Description from "./Description.astro";
 import {
   constraints,
   resolveSchema,
@@ -70,10 +71,7 @@ const groups = SECTIONS.map((section) => ({
                 )}
               </div>
               {param.description && (
-                <div
-                  class="mt-1 text-muted-foreground text-sm"
-                  set:text={param.description}
-                />
+                <Description class="mt-1 text-muted-foreground text-sm" text={param.description} />
               )}
               {limits.length > 0 && (
                 <div class="mt-1 text-muted-foreground text-xs">
