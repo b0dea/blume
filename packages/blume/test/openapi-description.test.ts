@@ -74,7 +74,11 @@ describe("descriptionHtml", () => {
   });
 
   it("renders nothing for a description that is absent or blank", () => {
-    expect(descriptionHtml(undefined)).toBe("");
+    // A spec property need not carry one at all, which is the shape the caller
+    // guards on — declared rather than passed literally, since the linter reads
+    // a bare `undefined` argument as noise.
+    const absent: string | undefined = undefined;
+    expect(descriptionHtml(absent)).toBe("");
     expect(descriptionHtml("   \n  ")).toBe("");
   });
 });
