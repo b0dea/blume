@@ -50,7 +50,8 @@ const markdown = new Marked({
     // mailto. A bare relative href in a spec description has never yet been a link. The lookahead
     // keeps `//host` out: that is a scheme-relative URL to another origin, not a site-root path.
     link({ href, raw }: { href: string; raw: string }) {
-      const deliberate = /^(?:https?:|mailto:|#|\/(?!\/))/iu.test(href) && raw !== href;
+      const deliberate =
+        /^(?:https?:|mailto:|#|\/(?!\/))/iu.test(href) && raw !== href;
       return deliberate
         ? false
         : raw
