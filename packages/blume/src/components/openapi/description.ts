@@ -17,12 +17,21 @@ import { Marked } from "marked";
  * and already how the Ask AI island renders model Markdown.
  */
 const markdown = new Marked({
-  gfm: true,
   // `breaks` is deliberately NOT set, unlike the Ask AI island. Docstring prose is hard-wrapped at
   // 72 or 79 columns, so honouring single newlines would break every sentence mid-flow at exactly
   // the width the source file happened to use.
   breaks: false,
+  gfm: true,
   renderer: {
+    // Raw HTML is escaped rather than passed through. A description is data lifted out of a spec
+    // file, frequently generated upstream from source comments, and it is interpolated with
+    // `set:html`; the island that renders model output runs DOMPurify over it for the same
+    // reason, which needs a DOM and so is unavailable in a component that renders on the server.
+    html: ({ text }: { text: string }) =>
+      text
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;"),
     // A link is emitted only when the author clearly meant one; anything else keeps its source
     // text verbatim. Two failures drove this, and both are prose that was never Markdown.
     //
@@ -38,9 +47,10 @@ const markdown = new Marked({
     // text alone is `.`, so emitting it would silently delete the rest of the notation.
     //
     // The test for "meant one" is the href: an absolute URL, a site-root path, a fragment or a
-    // mailto. A bare relative href in a spec description has never yet been a link.
+    // mailto. A bare relative href in a spec description has never yet been a link. The lookahead
+    // keeps `//host` out: that is a scheme-relative URL to another origin, not a site-root path.
     link({ href, raw }: { href: string; raw: string }) {
-      const deliberate = /^(https?:|mailto:|\/|#)/iu.test(href) && raw !== href;
+      const deliberate = /^(?:https?:|mailto:|#|\/(?!\/))/iu.test(href) && raw !== href;
       return deliberate
         ? false
         : raw
@@ -48,15 +58,6 @@ const markdown = new Marked({
             .replaceAll("<", "&lt;")
             .replaceAll(">", "&gt;");
     },
-    // Raw HTML is escaped rather than passed through. A description is data lifted out of a spec
-    // file, frequently generated upstream from source comments, and it is interpolated with
-    // `set:html`; the island that renders model output runs DOMPurify over it for the same
-    // reason, which needs a DOM and so is unavailable in a component that renders on the server.
-    html: ({ text }: { text: string }) =>
-      text
-        .replaceAll("&", "&amp;")
-        .replaceAll("<", "&lt;")
-        .replaceAll(">", "&gt;"),
   },
 });
 
