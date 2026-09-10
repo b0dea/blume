@@ -90,4 +90,11 @@ const html = descriptionHtml(text);
     background: none;
     padding: 0;
   }
+
+  /* The scroll frame a table gets from `descriptionHtml` carries the body's own 1.5rem rhythm,
+     which is three times what everything else in a description sits at. Only the margin is
+     restated; the frame, the cell padding and the scrolling are the renderer's. */
+  .blume-api-description .blume-table-scroll {
+    margin-block: 0.5rem;
+  }
 </style>

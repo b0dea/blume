@@ -16,12 +16,25 @@ import { Marked } from "marked";
  * reference renders tens of thousands of them. `marked` is synchronous, already a dependency,
  * and already how the Ask AI island renders model Markdown.
  */
+const TABLE = /<table>[\s\S]*?<\/table>/gu;
+
 const markdown = new Marked({
   // `breaks` is deliberately NOT set, unlike the Ask AI island. Docstring prose is hard-wrapped at
   // 72 or 79 columns, so honouring single newlines would break every sentence mid-flow at exactly
   // the width the source file happened to use.
   breaks: false,
   gfm: true,
+  hooks: {
+    // GFM tables reach the page through `set:html`, so they miss the `blume:table-wrap` plugin
+    // that gives every table in the body its scroll frame — and a description sits in a column
+    // narrower than the body. Wrapping here reuses that frame rather than reinventing it; the
+    // regex is safe because a table cannot nest and this HTML is `marked`'s own output.
+    postprocess: (html: string) =>
+      html.replaceAll(
+        TABLE,
+        (table) => `<div class="blume-table-scroll" tabindex="0">${table}</div>`
+      ),
+  },
   renderer: {
     // Raw HTML is escaped rather than passed through. A description is data lifted out of a spec
     // file, frequently generated upstream from source comments, and it is interpolated with
