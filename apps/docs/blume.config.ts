@@ -1,4 +1,25 @@
 import { defineConfig } from "blume";
+import type { BlumeConfig } from "blume";
+
+// Cloudflare Web Analytics beacon token (Cloudflare dashboard → Analytics &
+// Logs → Web Analytics → your site → JS snippet). Set it in the Worker's build
+// environment; when it's absent no analytics script is rendered.
+const cloudflareAnalyticsToken = process.env.CLOUDFLARE_WEB_ANALYTICS_TOKEN;
+const analytics: BlumeConfig["analytics"] = cloudflareAnalyticsToken
+  ? {
+      scripts: [
+        {
+          attributes: {
+            "data-cf-beacon": JSON.stringify({
+              token: cloudflareAnalyticsToken,
+            }),
+          },
+          src: "https://static.cloudflareinsights.com/beacon.min.js",
+          strategy: "defer",
+        },
+      ],
+    }
+  : undefined;
 
 export default defineConfig({
   ai: {
@@ -16,9 +37,7 @@ export default defineConfig({
     },
     skills: "../../skills",
   },
-  analytics: {
-    vercel: true,
-  },
+  analytics,
   content: {
     root: "content",
     sources: [
@@ -32,8 +51,14 @@ export default defineConfig({
     ],
   },
   deployment: {
-    adapter: "vercel",
+    // Server output (MCP server) on Cloudflare Workers via @astrojs/cloudflare.
+    // The adapter reads wrangler.jsonc at this directory's root and emits the
+    // deployable config to dist/server/wrangler.json, which the `deploy` script
+    // hands to wrangler. Workers Builds doesn't expose a site URL the way Pages
+    // does, so the canonical origin is pinned here.
+    adapter: "cloudflare",
     output: "server",
+    site: "https://useblume.dev",
   },
   description:
     "Open-source, markdown-first documentation powered by Astro and Vite.",

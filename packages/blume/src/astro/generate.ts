@@ -601,19 +601,18 @@ const islandFrameworkWarnings = (
  * rather than let the build die with an opaque ERR_MODULE_NOT_FOUND from the
  * hidden generated config. Availability mirrors the search-provider check: a
  * dep resolves from the project root or from the Blume package itself.
+ * `pkgDir` is injectable for testing.
  */
-const deploymentAdapterWarnings = (
+export const deploymentAdapterWarnings = (
   deployment: ResolvedConfig["deployment"],
-  root: string
+  root: string,
+  pkgDir: string = packageRoot()
 ): string[] => {
   const dep =
     deployment.output === "server" && deployment.adapter
       ? DEPLOYMENT_ADAPTER_DEPS.get(deployment.adapter)
       : undefined;
-  if (
-    dep &&
-    !(canResolveFrom(root, dep) || canResolveFrom(packageRoot(), dep))
-  ) {
+  if (dep && !(canResolveFrom(root, dep) || canResolveFrom(pkgDir, dep))) {
     return [
       `Deployment adapter "${deployment.adapter}" needs "${dep}", which isn't installed. Run \`npm install ${dep}\` (or your package manager's equivalent).`,
     ];

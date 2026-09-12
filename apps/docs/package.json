@@ -8,6 +8,7 @@
     "preview": "blume preview",
     "typecheck": "blume check",
     "audit": "blume audit",
+    "deploy": "wrangler deploy --config dist/server/wrangler.json",
     "test:e2e": "playwright test",
     "translate": "blume translate"
   },
@@ -15,7 +16,9 @@
     "blume": "workspace:*"
   },
   "devDependencies": {
+    "@astrojs/cloudflare": "^14.3.0",
     "@axe-core/playwright": "^4.13.0",
-    "@playwright/test": "^1.63.0"
+    "@playwright/test": "^1.63.0",
+    "wrangler": "^4.129.1"
   }
 }

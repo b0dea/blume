@@ -17,6 +17,7 @@ import {
   askProviderWarnings,
   buildRuntimeData,
   collectStaged,
+  deploymentAdapterWarnings,
   detectNeedsReact,
   detectUsesMath,
   diagnosticWarning,
@@ -1859,22 +1860,21 @@ describe("generateRuntime", () => {
     ).toBe(true);
   });
 
-  it("warns when the cloudflare adapter package isn't installed", async () => {
-    const project = await scanProject(
-      await writeProject({
-        "blume.config.ts": `export default { deployment: { adapter: "cloudflare", output: "server" } };
-`,
-        "docs/index.md": "# Home\n",
-      })
-    );
-    const result = await generateRuntime(project);
-    expect(
-      result.warnings.some(
-        (w) =>
-          w.includes('Deployment adapter "cloudflare"') &&
-          w.includes("@astrojs/cloudflare")
-      )
-    ).toBe(true);
+  it("warns when the cloudflare adapter package isn't installed anywhere", async () => {
+    // The adapter may well be installed in this workspace (the docs app uses
+    // it) and linked into the Blume package, so an empty temp dir stands in
+    // for both the project root and the Blume package. Its empty
+    // `node_modules` also stops Bun resolving the package out of its global
+    // install cache, which it does for any bare specifier under a root that
+    // has no `node_modules` at all.
+    await mkdir(join(srcDir, "node_modules"));
+    const { deployment } = blumeConfigSchema.parse({
+      deployment: { adapter: "cloudflare", output: "server" },
+    });
+    const warnings = deploymentAdapterWarnings(deployment, srcDir, srcDir);
+    expect(warnings).toHaveLength(1);
+    expect(warnings[0]).toContain('Deployment adapter "cloudflare"');
+    expect(warnings[0]).toContain("Run `npm install @astrojs/cloudflare`");
   });
 
   it("stays quiet when the project installed the netlify adapter", async () => {
