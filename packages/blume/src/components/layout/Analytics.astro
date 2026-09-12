@@ -3,7 +3,7 @@ import VercelAnalytics from "@vercel/analytics/astro";
 
 // Analytics scripts injected into <head>. PostHog and custom providers use the
 // inline-snippet house style (banner/theme/JSON-LD); Vercel uses its official
-// Astro component. Loads ONLY in production builds so `blume dev` stays clean
+// Astro component; Cloudflare is its beacon script tag. Loads ONLY in production builds so `blume dev` stays clean
 // and local traffic never reaches your analytics.
 interface AnalyticsScript {
   attributes?: Record<string, string>;
@@ -14,6 +14,7 @@ interface AnalyticsScript {
 
 interface Props {
   analytics?: {
+    cloudflare?: { token: string };
     posthog?: { host?: string; key: string };
     scripts?: AnalyticsScript[];
     vercel?: boolean;
@@ -45,6 +46,14 @@ const posthogSnippet = posthog
   ? `${POSTHOG_LOADER}posthog.init(${JSON.stringify(posthog.key)},{api_host:${JSON.stringify(posthog.host ?? "https://us.i.posthog.com")}});${POSTHOG_SPA_PAGEVIEWS}`
   : null;
 
+// Cloudflare Web Analytics (manual setup): the beacon script keyed by the
+// site token, exactly as the dashboard's snippet renders it. It tracks
+// history changes itself, so client-router navigations need no extra hook.
+const cloudflareBeacon =
+  enabled && analytics?.cloudflare
+    ? JSON.stringify({ token: analytics.cloudflare.token })
+    : null;
+
 // Custom scripts: any other provider. Each is either external (`src`) or inline
 // (`content`). Explicit fields win over spread `attributes`.
 const customScripts = enabled ? (analytics?.scripts ?? []) : [];
@@ -62,6 +71,16 @@ const inlineScripts = customScripts
 ---
 
 {vercelEnabled && <VercelAnalytics />}
+{
+  cloudflareBeacon && (
+    <script
+      is:inline
+      defer
+      src="https://static.cloudflareinsights.com/beacon.min.js"
+      data-cf-beacon={cloudflareBeacon}
+    />
+  )
+}
 {posthogSnippet && <script is:inline set:html={posthogSnippet} />}
 {externalScripts.map((attrs) => <script is:inline {...attrs} />)}
 {

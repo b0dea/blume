@@ -895,6 +895,16 @@ export interface AnalyticsScript {
 
 /** Analytics providers. Configure one, several, or none. */
 export interface AnalyticsConfig {
+  /**
+   * Cloudflare Web Analytics, for a site Cloudflare doesn't proxy (manual
+   * setup). Not needed on a proxied zone with automatic RUM enabled — that
+   * injects the beacon at the edge, and configuring it here too would count
+   * every pageview twice.
+   */
+  cloudflare?: {
+    /** Site token from the Web Analytics JS snippet (`data-cf-beacon`). */
+    token: string;
+  };
   /** PostHog product analytics. */
   posthog?: {
     /** API host (for self-hosted / EU). Defaults to PostHog cloud. */

@@ -1,9 +1,9 @@
 ---
 title: Analytics
-description: First-party web analytics — Vercel Web Analytics, PostHog, or any custom script — wired up from blume.config.ts.
+description: First-party web analytics — Vercel Web Analytics, Cloudflare Web Analytics, PostHog, or any custom script — wired up from blume.config.ts.
 ---
 
-Blume injects analytics for you from a single `analytics` block in `blume.config.ts`. Vercel Web Analytics and PostHog are first-class, and a `scripts` escape hatch covers every other provider — Plausible, Fathom, Google Analytics, Umami, and the rest.
+Blume injects analytics for you from a single `analytics` block in `blume.config.ts`. Vercel Web Analytics, Cloudflare Web Analytics, and PostHog are first-class, and a `scripts` escape hatch covers every other provider — Plausible, Fathom, Google Analytics, Umami, and the rest.
 
 Analytics loads in **production builds only**. The scripts are emitted by `blume build`, never by `blume dev`, so local traffic never reaches your dashboards and you don't need a separate "development" project.
 
@@ -22,6 +22,24 @@ analytics: {
 ```
 
 No keys are needed — the script reports to the project it's deployed under. This only collects data on Vercel deployments, where the `/_vercel/insights` endpoint exists.
+
+## Cloudflare Web Analytics
+
+[Cloudflare Web Analytics](https://developers.cloudflare.com/web-analytics/) has two setups, and only one of them needs config.
+
+**Proxied zone (automatic setup).** If Cloudflare serves your site — a Worker with a custom domain, Pages, or any zone with the orange cloud on — enable Web Analytics for the zone in the Cloudflare dashboard and stop there. Cloudflare injects the beacon at the edge, so leave `analytics.cloudflare` unset; configuring it as well would count every pageview twice.
+
+**Any other host (manual setup).** For a site Cloudflare doesn't proxy, add the site under Web Analytics in the dashboard, copy the token out of the JS snippet it gives you (the `token` inside `data-cf-beacon`), and pass it here. Blume renders the same beacon tag the snippet does.
+
+```ts blume.config.ts lineNumbers
+analytics: {
+  cloudflare: {
+    token: "0123456789abcdef0123456789abcdef",
+  },
+}
+```
+
+The token is safe to ship to the browser — it only identifies the site. The beacon tracks history changes on its own, so client-router navigations count without any extra wiring.
 
 ## PostHog
 
@@ -72,6 +90,7 @@ analytics: {
 | Option | Default | Description |
 | --- | --- | --- |
 | `vercel` | `false` | Add Vercel Web Analytics (Vercel deployments only). |
+| `cloudflare.token` | — | Cloudflare Web Analytics site token (manual setup). Enables the beacon when set. |
 | `posthog.key` | — | PostHog project API key. Enables PostHog when set. |
 | `posthog.host` | `https://us.i.posthog.com` | PostHog ingestion host (EU Cloud or self-hosted). |
 | `scripts[].src` | — | External script URL. Mutually exclusive with `content`. |

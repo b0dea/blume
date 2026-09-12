@@ -1,7 +1,8 @@
 /**
  * Send a custom analytics event to every analytics platform configured in
  * `blume.config.ts`. Mirrors the providers wired by `Analytics.astro`: Vercel
- * Web Analytics and PostHog are first-class; any other provider added through
+ * Web Analytics and PostHog are first-class (Cloudflare Web Analytics is too,
+ * but has no custom-event API to forward to); any other provider added through
  * `analytics.scripts` is reached via best-effort global detection or the
  * `blume:track` CustomEvent, which fires unconditionally so a project can bridge
  * the event to anything. Every call no-ops cleanly when a provider isn't present

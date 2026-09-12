@@ -362,6 +362,23 @@ describe("analytics config", () => {
     );
   });
 
+  it("accepts a cloudflare web analytics token", async () => {
+    const dir = await makeDir(
+      'export default { analytics: { cloudflare: { token: "0123456789abcdef" } } };'
+    );
+    const result = await loadConfig(dir);
+    expect(result.config.analytics?.cloudflare?.token).toBe("0123456789abcdef");
+  });
+
+  it("rejects an empty cloudflare web analytics token", async () => {
+    const dir = await makeDir(
+      'export default { analytics: { cloudflare: { token: "" } } };'
+    );
+    const error = await loadError(dir);
+    expect(error).toBeInstanceOf(BlumeError);
+    expect(error.diagnostic.code).toBe("BLUME_CONFIG_INVALID");
+  });
+
   it("rejects a script with both src and content", async () => {
     const dir = await makeDir(
       'export default { analytics: { scripts: [{ src: "https://x.test/a.js", content: "noop()" }] } };'

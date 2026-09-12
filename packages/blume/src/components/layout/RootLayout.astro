@@ -84,6 +84,7 @@ interface Props {
     key: string;
   } | null;
   analytics?: {
+    cloudflare?: { token: string };
     posthog?: { host?: string; key: string };
     scripts?: {
       attributes?: Record<string, string>;

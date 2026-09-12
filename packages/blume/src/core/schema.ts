@@ -1220,6 +1220,14 @@ const analyticsScriptSchema = z
   });
 
 const analyticsConfigSchema = z.strictObject({
+  // Cloudflare Web Analytics in manual (JS snippet) mode; the token comes from
+  // the site's snippet in the dashboard. A zone Cloudflare proxies with
+  // automatic RUM injection on needs no config at all.
+  cloudflare: z
+    .strictObject({
+      token: z.string().min(1),
+    })
+    .optional(),
   posthog: z
     .strictObject({
       host: z.string().optional(),
