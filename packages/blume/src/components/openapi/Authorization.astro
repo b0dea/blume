@@ -1,4 +1,5 @@
 ---
+import Description from "./Description.astro";
 import {
   type OperationSecurity,
   schemeCarrier,
@@ -54,10 +55,7 @@ const { security } = Astro.props;
                     )}
                   </div>
                   {resolved.scheme?.description && (
-                    <div
-                      class="mt-1 text-muted-foreground text-sm"
-                      set:text={resolved.scheme.description}
-                    />
+                    <Description class="mt-1 text-muted-foreground text-sm" text={resolved.scheme.description} />
                   )}
                   {resolved.scopes.length > 0 && (
                     <div class="mt-1 flex flex-wrap items-center gap-1 text-xs">

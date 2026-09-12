@@ -23,6 +23,7 @@ import {
 import { buildRequest, defaultValues } from "./request.ts";
 import { languageSamplePanels } from "./sample-panels.ts";
 import { sampleLanguages } from "./snippets.ts";
+import Description from "./Description.astro";
 import GraphqlChip from "./GraphqlChip.astro";
 import GraphqlFieldsTable from "./GraphqlFieldsTable.astro";
 import GraphqlType from "./GraphqlType.astro";
@@ -154,9 +155,9 @@ const returnRoute = field ? routes.get(field.type.name) : undefined;
               />
             </div>
             {document.types[field.type.name]?.description && (
-              <p
+              <Description
                 class="mt-1 text-muted-foreground text-sm"
-                set:text={document.types[field.type.name]?.description}
+                text={document.types[field.type.name]?.description}
               />
             )}
           </section>

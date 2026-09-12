@@ -7,6 +7,7 @@ import {
   graphqlRoutes,
   graphqlUsage,
 } from "./graphql-helpers.ts";
+import Description from "./Description.astro";
 import GraphqlChip from "./GraphqlChip.astro";
 import GraphqlFieldsTable from "./GraphqlFieldsTable.astro";
 import MethodBadge from "./MethodBadge.astro";
@@ -98,10 +99,7 @@ const SECTION_HEADING = "mb-2 font-semibold text-foreground text-sm";
                   )}
                 </div>
                 {value.description && (
-                  <div
-                    class="mt-1 text-muted-foreground text-sm"
-                    set:text={value.description}
-                  />
+                  <Description class="mt-1 text-muted-foreground text-sm" text={value.description} />
                 )}
                 {value.deprecationReason && (
                   <div class="mt-1 text-muted-foreground text-xs">
