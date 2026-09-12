@@ -28,6 +28,26 @@ describe("descriptionHtml", () => {
     expect(html).toContain(host);
   });
 
+  it("leaves a bare www host and a bare email as text", () => {
+    // GFM autolinks these too, and marked prefixes the missing `http://` or
+    // `mailto:` — so `raw !== href` would have read both as deliberate links.
+    const html = descriptionHtml(
+      "Such as www.yourstore.myshopify.com or ops@example.com."
+    );
+    expect(html).not.toContain("<a ");
+    expect(html).toContain("www.yourstore.myshopify.com");
+    expect(html).toContain("ops@example.com");
+  });
+
+  it("holds an image to the same href policy as a link", () => {
+    expect(descriptionHtml("![logo](https://example.com/logo.png)")).toContain(
+      '<img src="https://example.com/logo.png"'
+    );
+    const demoted = descriptionHtml("![x](javascript:alert(1))");
+    expect(demoted).not.toContain("<img");
+    expect(demoted).toContain("![x](javascript:alert(1))");
+  });
+
   it("keeps regex notation that only looks like a link", () => {
     // Debezium's column-list wording: `[.](columnName1|columnName2)` is EXACTLY
     // `[text](href)`. Emitting the link text alone would delete the notation,
@@ -48,6 +68,8 @@ describe("descriptionHtml", () => {
     // `//host` is a network-path reference to another origin, not a path on
     // this site — the one shape the "site-root" half of the policy must reject.
     const html = descriptionHtml("See [elsewhere](//attacker.example).");
+    const angle = descriptionHtml("See <https://example.com/guide> now.");
+    expect(angle).toContain('href="https://example.com/guide"');
     expect(html).not.toContain("<a ");
     expect(html).toContain("[elsewhere](//attacker.example)");
   });

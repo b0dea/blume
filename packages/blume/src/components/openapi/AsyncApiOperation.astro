@@ -23,6 +23,7 @@ import { asyncSampleLanguages } from "./async-snippets.ts";
 import { languageSamplePanels } from "./sample-panels.ts";
 import { buildMessage, defaultMessageValues } from "./message.ts";
 import { messageModel } from "./message-model.ts";
+import Description from "./Description.astro";
 import MessageComposer from "./MessageComposer.astro";
 import Authorization from "./Authorization.astro";
 import Bindings from "./Bindings.astro";
@@ -156,9 +157,10 @@ const channelBindings = bindingGroups(channel?.bindings);
                     : "Message"}
                 </div>
                 {named.message.description && (
-                  <p class="mb-2 text-muted-foreground text-sm">
-                    {named.message.description}
-                  </p>
+                  <Description
+                    class="mb-2 text-muted-foreground text-sm"
+                    text={named.message.description}
+                  />
                 )}
                 {named.message.contentType && (
                   <div class="mb-2 text-muted-foreground text-xs">

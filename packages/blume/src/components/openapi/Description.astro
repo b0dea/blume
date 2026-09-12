@@ -58,6 +58,15 @@ const html = descriptionHtml(text);
     margin-block: 0.25rem;
   }
 
+  /* A heading in a description is a label for the paragraph under it, not a section of the
+     page: it keeps the description's own size and only gains the weight and colour of a label.
+     Without this it inherits the reset's unstyled heading and is indistinguishable from text. */
+  .blume-api-description :is(h1, h2, h3, h4, h5, h6) {
+    color: var(--color-foreground);
+    font-weight: 600;
+    margin-block: 0.5rem;
+  }
+
   .blume-api-description strong {
     color: var(--color-foreground);
     font-weight: 600;

@@ -18,6 +18,17 @@ import { Marked } from "marked";
  */
 const TABLE = /<table>[\s\S]*?<\/table>/gu;
 
+/**
+ * An href the author can have meant: an absolute URL, a site-root path, a fragment or a mailto.
+ * A bare relative href in a spec description has never yet been a link, and the lookahead keeps
+ * `//host` out: that is a scheme-relative URL to another origin, not a site-root path.
+ */
+const DELIBERATE_HREF = /^(?:https?:|mailto:|#|\/(?!\/))/iu;
+
+/** The source text of a demoted construct, made safe for `set:html`. */
+const escapeHtml = (text: string): string =>
+  text.replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;");
+
 const markdown = new Marked({
   // `breaks` is deliberately NOT set, unlike the Ask AI island. Docstring prose is hard-wrapped at
   // 72 or 79 columns, so honouring single newlines would break every sentence mid-flow at exactly
@@ -40,11 +51,12 @@ const markdown = new Marked({
     // file, frequently generated upstream from source comments, and it is interpolated with
     // `set:html`; the island that renders model output runs DOMPurify over it for the same
     // reason, which needs a DOM and so is unavailable in a component that renders on the server.
-    html: ({ text }: { text: string }) =>
-      text
-        .replaceAll("&", "&amp;")
-        .replaceAll("<", "&lt;")
-        .replaceAll(">", "&gt;"),
+    html: ({ text }: { text: string }) => escapeHtml(text),
+    // An image is held to the same href policy as a link, for the same reason: `![x](src)` is the
+    // one Markdown construct that fetches a resource, and a `javascript:` or relative source in a
+    // description is notation rather than a picture.
+    image: ({ href, raw }: { href: string; raw: string }) =>
+      DELIBERATE_HREF.test(href) ? false : escapeHtml(raw),
     // A link is emitted only when the author clearly meant one; anything else keeps its source
     // text verbatim. Two failures drove this, and both are prose that was never Markdown.
     //
@@ -59,18 +71,17 @@ const markdown = new Marked({
     // Rendering the demoted case as `raw` rather than as `text` is what keeps that intact: the
     // text alone is `.`, so emitting it would silently delete the rest of the notation.
     //
-    // The test for "meant one" is the href: an absolute URL, a site-root path, a fragment or a
-    // mailto. A bare relative href in a spec description has never yet been a link. The lookahead
-    // keeps `//host` out: that is a scheme-relative URL to another origin, not a site-root path.
+    // The test for "meant one" is the href (see `DELIBERATE_HREF`) plus the shape of the source:
+    // an author-written link starts with `[` (inline or reference style) or `<` (an angle
+    // autolink). A GFM bare autolink never does — `https://…`, `www.…` or an email — and
+    // comparing `raw` to `href` is not enough to catch it, because marked prefixes the missing
+    // `http://` or `mailto:` for the last two, so the two strings differ exactly as they would
+    // for a deliberate link.
     link({ href, raw }: { href: string; raw: string }) {
       const deliberate =
-        /^(?:https?:|mailto:|#|\/(?!\/))/iu.test(href) && raw !== href;
-      return deliberate
-        ? false
-        : raw
-            .replaceAll("&", "&amp;")
-            .replaceAll("<", "&lt;")
-            .replaceAll(">", "&gt;");
+        DELIBERATE_HREF.test(href) &&
+        (raw.startsWith("[") || raw.startsWith("<"));
+      return deliberate ? false : escapeHtml(raw);
     },
   },
 });
