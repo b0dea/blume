@@ -68,45 +68,97 @@ export interface AskRetrievalOptions {
 const EXCERPT_LEAD = 160;
 
 /**
- * Common words dropped from the retrieval query before locating the relevant
- * excerpt region, so short filler ("how does…", "what is…") doesn't drag the
- * window toward incidental matches instead of the meaningful terms.
+ * Remove English filler from retrieval and excerpt queries. Keep content verbs
+ * such as "sign", "file" and "close", which can name documentation topics.
  */
 const STOPWORDS = new Set([
+  "a",
   "about",
+  "again",
+  "against",
+  "all",
+  "am",
+  "an",
   "and",
+  "any",
   "are",
   "as",
   "at",
   "be",
+  "been",
+  "before",
+  "being",
+  "both",
   "but",
   "by",
   "can",
+  "did",
   "do",
   "does",
+  "done",
+  "each",
+  "every",
   "for",
   "from",
+  "get",
+  "got",
+  "had",
+  "has",
+  "have",
+  "having",
+  "he",
+  "her",
+  "hers",
+  "him",
+  "his",
   "how",
+  "i",
+  "if",
   "in",
   "into",
   "is",
   "it",
   "its",
+  "may",
+  "me",
+  "might",
+  "mine",
+  "must",
   "my",
+  "no",
+  "nor",
+  "not",
   "of",
   "on",
   "or",
+  "other",
   "our",
+  "ours",
+  "own",
+  "shall",
+  "she",
+  "should",
+  "so",
+  "some",
+  "than",
   "that",
   "the",
+  "their",
+  "theirs",
+  "them",
+  "then",
+  "there",
   "these",
+  "they",
   "this",
   "those",
   "to",
+  "us",
   "use",
   "used",
   "using",
   "was",
+  "we",
   "were",
   "what",
   "when",
@@ -114,9 +166,12 @@ const STOPWORDS = new Set([
   "which",
   "who",
   "why",
+  "will",
   "with",
+  "would",
   "you",
   "your",
+  "yours",
 ]);
 
 /** A run of letters, combining marks and digits inside a word-like segment. */
@@ -174,6 +229,57 @@ const lastUserMessage = (messages: AskMessage[]): string => {
     }
   }
   return "";
+};
+
+/** Meaningful terms below which a follow-up cannot stand as a query on its own. */
+const MIN_QUERY_TERMS = 3;
+
+const FOLLOW_UP_OPENERS = new Set(["also", "and", "but", "then"]);
+const ANAPHORA = new Set([
+  "it",
+  "its",
+  "that",
+  "them",
+  "these",
+  "they",
+  "this",
+  "those",
+]);
+
+const isFollowUp = (message: string): boolean => {
+  const words = segmentQuery(message);
+  const [first] = words;
+  return (
+    (first !== undefined && FOLLOW_UP_OPENERS.has(first)) ||
+    words.some((word) => ANAPHORA.has(word))
+  );
+};
+
+/**
+ * Short follow-ups need the subject from earlier user turns. Exclude assistant
+ * turns so an incorrect answer cannot reinforce its own retrieval results.
+ */
+const retrievalQuery = (messages: AskMessage[]): string => {
+  const asked = messages
+    .filter((message) => message?.role === "user" && message.content?.trim())
+    .map((message) => message.content.trim())
+    .toReversed();
+  const [latest = "", ...earlier] = asked;
+  const terms = queryTerms(latest);
+  if (terms.length >= MIN_QUERY_TERMS || !isFollowUp(latest)) {
+    return terms.join(" ");
+  }
+  let index = 0;
+  while (terms.length < MIN_QUERY_TERMS && index < earlier.length) {
+    const message = earlier[index] ?? "";
+    index += 1;
+    for (const term of queryTerms(message)) {
+      if (!terms.includes(term)) {
+        terms.push(term);
+      }
+    }
+  }
+  return terms.join(" ");
 };
 
 /**
@@ -248,6 +354,164 @@ export const relevantExcerpt = (
   return withEllipsis(Math.max(0, best - lead));
 };
 
+/** A Markdown heading at level 2 or deeper — where a page divides itself. */
+const SECTION_HEADING = /^ {0,3}#{2,6}[\t ]+.+$/u;
+const CODE_FENCE = /^ {0,3}(?<run>`{3,}|~{3,})(?<rest>.*)$/u;
+
+type Fence = { delimiter: "`" | "~"; length: number } | null;
+
+const nextFence = (line: string, fence: Fence): Fence => {
+  const groups = line.match(CODE_FENCE)?.groups;
+  const run = groups?.run;
+  if (run === undefined) {
+    return fence;
+  }
+  const rest = groups?.rest ?? "";
+  const delimiter = run.startsWith("`") ? ("`" as const) : ("~" as const);
+  if (fence === null) {
+    if (delimiter === "`" && rest.includes("`")) {
+      return fence;
+    }
+    return { delimiter, length: run.length };
+  }
+  return fence.delimiter === delimiter &&
+    run.length >= fence.length &&
+    rest.trim() === ""
+    ? null
+    : fence;
+};
+
+const sectionStarts = (content: string): number[] => {
+  const starts: number[] = [];
+  let fence: Fence = null;
+  let offset = 0;
+  for (const rawLine of content.split("\n")) {
+    const line = rawLine.endsWith("\r") ? rawLine.slice(0, -1) : rawLine;
+    const next = nextFence(line, fence);
+    if (fence === null && next === null && SECTION_HEADING.test(line)) {
+      starts.push(offset);
+    }
+    fence = next;
+    offset += rawLine.length + 1;
+  }
+  return starts;
+};
+
+/** Count term prefixes at the word boundaries used by the query tokenizer. */
+const termHits = (text: string, terms: string[]): number => {
+  let hits = 0;
+  const words = segmentQuery(text).flatMap((piece) => piece.match(TERM) ?? []);
+  for (const word of words) {
+    for (const term of terms) {
+      if (word.startsWith(term)) {
+        hits += 1;
+      }
+    }
+  }
+  return hits;
+};
+
+const excerptLongSection = (
+  section: string,
+  query: string,
+  max: number
+): string => {
+  const [heading = "", ...rest] = section.split("\n");
+  const body = rest.join("\n").trim();
+  if (!SECTION_HEADING.test(heading) || body === "") {
+    return relevantExcerpt(section, query, max);
+  }
+  const room = max - heading.length - 1;
+  if (room < MIN_EXCERPT_CHARS) {
+    return relevantExcerpt(section, query, max);
+  }
+  return `${heading}\n${relevantExcerpt(body, query, room)}`;
+};
+
+/**
+ * Preserve headings and lists by selecting whole sections with the most query
+ * matches, then emitting them in document order. Oversized sections fall back
+ * to a relevant window; ellipses mark omitted content.
+ */
+export const sectionExcerpt = (
+  content: string,
+  query: string,
+  max: number
+): string => {
+  const trimmed = content.normalize("NFC").trim();
+  if (trimmed.length <= max) {
+    return trimmed;
+  }
+  const terms = queryTerms(query);
+  if (terms.length === 0) {
+    return relevantExcerpt(trimmed, query, max);
+  }
+
+  const headings = sectionStarts(trimmed);
+  if (headings.length === 0) {
+    return relevantExcerpt(trimmed, query, max);
+  }
+  // The text above the first heading is the page's own lead-in, and is a
+  // section like any other; `headings[0] === 0` means there is none.
+  const starts = headings[0] === 0 ? headings : [0, ...headings];
+  const sections = starts
+    .map((start, index) => ({
+      index,
+      text: trimmed
+        .slice(start, index + 1 < starts.length ? starts[index + 1] : undefined)
+        .trim(),
+    }))
+    .filter((section) => section.text !== "");
+
+  const ranked = sections
+    .map((section) => ({ ...section, hits: termHits(section.text, terms) }))
+    .filter((section) => section.hits > 0)
+    .toSorted((a, b) => b.hits - a.hits || a.index - b.index);
+  const [bestSection] = ranked;
+  if (!bestSection) {
+    return relevantExcerpt(trimmed, query, max);
+  }
+  if (bestSection.text.length > max) {
+    // The window lands wherever the terms cluster, which is rarely the first
+    // line — so the heading that names what the model is reading would be the
+    // first thing cut. Hold it back and window only the body beneath it.
+    return excerptLongSection(bestSection.text, query, max);
+  }
+
+  const render = (selected: typeof ranked): string => {
+    const ordered = selected.toSorted((a, b) => a.index - b.index);
+    const parts: string[] = [];
+    let previous = -1;
+    for (const section of ordered) {
+      if (previous !== -1 && section.index !== previous + 1) {
+        parts.push("…");
+      }
+      parts.push(section.text);
+      previous = section.index;
+    }
+    const [first] = ordered;
+    if (first && first.index > 0) {
+      parts.unshift("…");
+    }
+    if (previous < sections.length - 1) {
+      parts.push("…");
+    }
+    return parts.join("\n\n");
+  };
+
+  const chosen: typeof ranked = [];
+  for (const section of ranked) {
+    const candidate = [...chosen, section];
+    if (render(candidate).length <= max + 2) {
+      chosen.push(section);
+    }
+  }
+  if (chosen.length === 0) {
+    return excerptLongSection(bestSection.text, query, max);
+  }
+  return render(chosen);
+};
+
 /**
  * Build the request-time grounding function for the Ask AI endpoint.
  *
@@ -288,10 +552,15 @@ export const createAskContext = (
 
   return async (messages, page) => {
     const list = Array.isArray(messages) ? messages : [];
-    const query = lastUserMessage(list);
-    if (!query) {
+    // The raw question decides whether there is anything to answer; the derived
+    // query decides what is retrieved and which part of each page is quoted.
+    // A question of nothing but stopwords still retrieves on itself rather than
+    // on an empty string, which would match every page equally.
+    const asked = lastUserMessage(list);
+    if (!asked) {
       return;
     }
+    const query = retrievalQuery(list) || asked;
 
     // The current page anchors retrieval to its locale and is injected first.
     const current = page?.path
@@ -315,7 +584,7 @@ export const createAskContext = (
         return;
       }
       seen.add(doc.route);
-      const body = relevantExcerpt(
+      const body = sectionExcerpt(
         doc.content,
         query,
         Math.min(excerptChars, budget)

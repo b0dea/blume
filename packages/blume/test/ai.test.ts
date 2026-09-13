@@ -4,7 +4,11 @@ import { tmpdir } from "node:os";
 
 import { join } from "pathe";
 
-import { createAskContext, relevantExcerpt } from "../src/ai/ask-context.ts";
+import {
+  createAskContext,
+  relevantExcerpt,
+  sectionExcerpt,
+} from "../src/ai/ask-context.ts";
 import type { AskData } from "../src/ai/ask-context.ts";
 import { buildAskData } from "../src/ai/ask-data.ts";
 import { askBackendRuntimeDep, resolveAskBackend } from "../src/ai/ask.ts";
@@ -1147,6 +1151,110 @@ const docsBlock = (system: string | undefined): string => {
 };
 
 describe("createAskContext", () => {
+  it("retrieves on meaningful terms instead of question filler", async () => {
+    const ground = createAskContext(
+      {
+        documents: [
+          {
+            content:
+              "Matter workflows cover opening, updating, and closing a matter.",
+            description: "Matter workflows",
+            locale: "",
+            route: "/matters",
+            title: "Matters",
+          },
+          {
+            content: "How do I work with a page? ".repeat(40),
+            description: "General help",
+            locale: "",
+            route: "/general",
+            title: "General help",
+          },
+        ],
+        site: null,
+      },
+      { retrieval: { maxResults: 1 } }
+    );
+    const system = await ground([
+      { content: "How do I work with a matter?", role: "user" },
+    ]);
+    expect(system).toContain("Matters (/matters)");
+    expect(system).not.toContain("General help (/general)");
+  });
+
+  it("uses earlier user context to retrieve for a short follow-up", async () => {
+    const ground = createAskContext(
+      {
+        documents: [
+          {
+            content: "Close and archive a matter from its settings page.",
+            description: "Close a matter",
+            locale: "",
+            route: "/matters/close",
+            title: "Close a matter",
+          },
+          {
+            content: "Close the browser tab after finishing your session.",
+            description: "Close a browser tab",
+            locale: "",
+            route: "/browser/close",
+            title: "Close a browser tab",
+          },
+        ],
+        site: null,
+      },
+      { retrieval: { maxResults: 1 } }
+    );
+    const system = await ground([
+      { content: "How do I work with a matter?", role: "user" },
+      { content: "See the matter guide.", role: "assistant" },
+      { content: "And how do I close it?", role: "user" },
+    ]);
+    expect(system).toContain("Close a matter (/matters/close)");
+    expect(system).not.toContain("Close a browser tab (/browser/close)");
+
+    const withoutOpener = await ground([
+      { content: "What are the billing options?", role: "user" },
+      { content: "How do I work with a matter?", role: "user" },
+      { content: "See the matter guide.", role: "assistant" },
+      { content: "How do I close it?", role: "user" },
+    ]);
+    expect(withoutOpener).toContain("Close a matter (/matters/close)");
+    expect(withoutOpener).not.toContain("Close a browser tab (/browser/close)");
+  });
+
+  it("does not carry history into a short standalone topic", async () => {
+    const ground = createAskContext(
+      {
+        documents: [
+          {
+            content: "Pricing plans and subscription costs.",
+            description: "Pricing",
+            locale: "",
+            route: "/pricing",
+            title: "Pricing",
+          },
+          {
+            content: "Close and archive a matter. Matter close settings.",
+            description: "Close matter",
+            locale: "",
+            route: "/matter",
+            title: "Matter",
+          },
+        ],
+        site: null,
+      },
+      { retrieval: { maxResults: 1 } }
+    );
+    const system = await ground([
+      { content: "How do I close a matter?", role: "user" },
+      { content: "See the matter guide.", role: "assistant" },
+      { content: "Pricing?", role: "user" },
+    ]);
+    expect(system).toContain("Pricing (/pricing)");
+    expect(system).not.toContain("Matter (/matter)");
+  });
+
   it("grounds the prompt in the retrieved page and asks the model to cite", async () => {
     const ground = createAskContext(askData);
     const system = await ground([
@@ -1443,6 +1551,10 @@ describe("createAskContext", () => {
 });
 
 describe("relevantExcerpt", () => {
+  it("returns short content unchanged", () => {
+    expect(relevantExcerpt("Short page", "page", 100)).toBe("Short page");
+  });
+
   it("keeps the window on the match when case mapping changes lengths", () => {
     // Turkish İ lowercases to two characters ("i" + U+0307). Index math on a
     // lowercased copy of the content would drift past the real position and
@@ -1507,6 +1619,172 @@ describe("relevantExcerpt", () => {
       (Intl as { Segmenter: typeof Intl.Segmenter | undefined }).Segmenter =
         original;
     }
+  });
+});
+
+describe("sectionExcerpt", () => {
+  it("returns short content unchanged", () => {
+    expect(sectionExcerpt("Short page", "page", 100)).toBe("Short page");
+  });
+
+  it("keeps complete relevant sections in document order", () => {
+    const content = [
+      "A long introduction. ".repeat(30),
+      "## Opening",
+      "Open a project. ".repeat(20),
+      "## Closing",
+      "Close and archive the matter safely.",
+      "## Cleanup",
+      "Remove temporary files. ".repeat(20),
+    ].join("\n");
+    const excerpt = sectionExcerpt(content, "close matter", 180);
+    expect(excerpt).toContain("## Closing");
+    expect(excerpt).toContain("Close and archive the matter safely.");
+    expect(excerpt).not.toContain("## Opening");
+    expect(excerpt).not.toContain("## Cleanup");
+    expect(excerpt.startsWith("…")).toBe(true);
+    expect(excerpt.endsWith("…")).toBe(true);
+  });
+
+  it("orders multiple selected sections by their source position", () => {
+    const content = [
+      "## First",
+      "Beta details.",
+      "## Omitted",
+      "Unrelated padding. ".repeat(30),
+      "## Last",
+      "Alpha alpha details.",
+    ].join("\n");
+    const excerpt = sectionExcerpt(content, "alpha beta", 100);
+    expect(excerpt.indexOf("## First")).toBeLessThan(
+      excerpt.indexOf("## Last")
+    );
+    expect(excerpt).toContain("\n\n…\n\n");
+  });
+
+  it("keeps the matching section when only its omission marker exceeds the budget", () => {
+    const best = `## Match\ntargetword${"x".repeat(61)}`;
+    const content = `${best}\n## Other\n${"padding ".repeat(40)}`;
+    expect(sectionExcerpt(content, "targetword", 80)).toBe(best);
+  });
+
+  it("accounts for every omission marker in the excerpt budget", () => {
+    const content = Array.from({ length: 40 }, (_, index) =>
+      index % 2 === 0
+        ? `## Relevant ${index}\nterm`
+        : `## Omitted ${index}\n${"padding ".repeat(20)}`
+    ).join("\n");
+    expect(sectionExcerpt(content, "term", 200).length).toBeLessThanOrEqual(
+      200
+    );
+  });
+
+  for (const fence of ["```", "~~~~"]) {
+    it(`does not treat headings inside ${fence} code fences as sections`, () => {
+      const content = [
+        "## Real section",
+        "Some setup.",
+        `${fence}bash`,
+        "## fake command comment",
+        "targetword is below the comment",
+        fence,
+        "## Next",
+        "unrelated ".repeat(50),
+      ].join("\n");
+      const excerpt = sectionExcerpt(content, "targetword", 120);
+      expect(excerpt).toContain("## Real section");
+      expect(excerpt).toContain(`${fence}bash\n## fake command comment`);
+      expect(excerpt).toContain(`targetword is below the comment\n${fence}`);
+    });
+  }
+
+  it("does not open a fence for an inline backtick span", () => {
+    const content = [
+      "```inline```",
+      "## Target",
+      "targetword details.",
+      "## Appendix",
+      "padding ".repeat(40),
+    ].join("\n");
+    expect(sectionExcerpt(content, "targetword", 80)).toContain("## Target");
+  });
+
+  it("requires a matching bare delimiter to close a fence", () => {
+    const content = [
+      "## Real section",
+      "````bash",
+      "~~~",
+      "```",
+      "````still code",
+      "## fake command comment",
+      "targetword",
+      "````",
+      "## Next",
+      "unrelated ".repeat(50),
+    ].join("\n");
+    const excerpt = sectionExcerpt(content, "targetword", 140);
+    expect(excerpt).toContain("## Real section");
+    expect(excerpt).toContain("````still code\n## fake command comment");
+    expect(excerpt).toContain("targetword\n````");
+  });
+
+  it("does not treat a four-space indented delimiter as a fence", () => {
+    const content = [
+      "    ```",
+      "## Target",
+      "targetword details.",
+      "## Appendix",
+      "padding ".repeat(40),
+    ].join("\n");
+    expect(sectionExcerpt(content, "targetword", 80)).toContain("## Target");
+  });
+
+  it("scores word segments inside unspaced scripts", () => {
+    const content = [
+      "## Terminology",
+      "ファイル is mentioned but this does not explain configuration.",
+      "## Configuration",
+      "設定ファイルで認証情報を指定します。設定ファイルを保存します。",
+      "## Appendix",
+      "padding ".repeat(40),
+    ].join("\n");
+    const excerpt = sectionExcerpt(content, "ファイル", 100);
+    expect(excerpt).toContain("## Configuration");
+    expect(excerpt).toContain("設定ファイルで認証情報を指定します。");
+  });
+
+  it("falls back to a window without useful terms or matching sections", () => {
+    const content = `Introduction ${"padding ".repeat(40)}\n## Details\nMore padding.`;
+    expect(sectionExcerpt(content, "how is it", 80)).toStartWith(
+      "Introduction"
+    );
+    expect(sectionExcerpt(content, "missing", 80)).toStartWith("Introduction");
+  });
+
+  it("keeps a heading when a matching section exceeds the budget", () => {
+    const content = `## Closing\n${"padding ".repeat(40)}close the matter here`;
+    const excerpt = sectionExcerpt(content, "close matter", 240);
+    expect(excerpt).toStartWith("## Closing\n");
+    expect(excerpt).toContain("close the matter");
+  });
+
+  it("uses a plain window when an oversized match has no usable heading", () => {
+    const preamble = `${"padding ".repeat(40)}targetword`;
+    expect(
+      sectionExcerpt(
+        `${preamble}\n## Other\nNothing relevant.`,
+        "targetword",
+        80
+      )
+    ).not.toContain("## Other");
+
+    const heading = `## ${"long ".repeat(30)}targetword`;
+    expect(
+      sectionExcerpt(`${heading}\n## Other\nNothing.`, "targetword", 80)
+    ).toContain("targetword");
+
+    const crowded = `## ${"context ".repeat(12)}\n${"padding ".repeat(30)}targetword`;
+    expect(sectionExcerpt(crowded, "targetword", 120)).toContain("targetword");
   });
 });
 
