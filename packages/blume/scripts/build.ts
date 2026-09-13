@@ -50,6 +50,9 @@ const result = await Bun.build({
   // Mirror the src/ tree so the entry lands at dist/cli/index.js.
   root: srcDir,
   sourcemap: "linked",
+  // Preserve lazy command boundaries in the published bundle. Without splitting,
+  // Bun hoists external imports from every command into the entry chunk.
+  splitting: true,
   target: "node",
 });
 

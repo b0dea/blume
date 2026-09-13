@@ -1,24 +1,16 @@
 import { defineCommand, runMain } from "citty";
 
 import { getBlumeVersion } from "../core/version.ts";
-import { addCommand } from "./commands/add.ts";
-import { auditCommand } from "./commands/audit.ts";
-import { buildCommand } from "./commands/build.ts";
-import { checkCommand } from "./commands/check.ts";
-import { devCommand } from "./commands/dev.ts";
-import { doctorCommand } from "./commands/doctor.ts";
-import { ejectCommand } from "./commands/eject.ts";
-import { evalCommand } from "./commands/eval.ts";
-import { initCommand } from "./commands/init.ts";
-import { mcpStdioCommand } from "./commands/mcp-stdio.ts";
-import { previewCommand } from "./commands/preview.ts";
-import { syncCommand } from "./commands/sync.ts";
-import { translateCommand } from "./commands/translate.ts";
-import { validateCommand } from "./commands/validate.ts";
-import { versionCommand } from "./commands/version.ts";
 import { loadEnvFiles } from "./env.ts";
 import { normalizeHostArgs } from "./host-args.ts";
 import { reportInternalError } from "./internal-error.ts";
+
+const lazyCommand =
+  <Module, Key extends keyof Module>(load: () => Promise<Module>, key: Key) =>
+  async (): Promise<Module[Key]> => {
+    const module = await load();
+    return module[key];
+  };
 
 const main = defineCommand({
   meta: {
@@ -27,21 +19,36 @@ const main = defineCommand({
     version: getBlumeVersion(),
   },
   subCommands: {
-    add: addCommand,
-    audit: auditCommand,
-    build: buildCommand,
-    check: checkCommand,
-    dev: devCommand,
-    doctor: doctorCommand,
-    eject: ejectCommand,
-    eval: evalCommand,
-    init: initCommand,
-    "mcp-stdio": mcpStdioCommand,
-    preview: previewCommand,
-    sync: syncCommand,
-    translate: translateCommand,
-    validate: validateCommand,
-    version: versionCommand,
+    add: lazyCommand(() => import("./commands/add.ts"), "addCommand"),
+    audit: lazyCommand(() => import("./commands/audit.ts"), "auditCommand"),
+    build: lazyCommand(() => import("./commands/build.ts"), "buildCommand"),
+    check: lazyCommand(() => import("./commands/check.ts"), "checkCommand"),
+    dev: lazyCommand(() => import("./commands/dev.ts"), "devCommand"),
+    doctor: lazyCommand(() => import("./commands/doctor.ts"), "doctorCommand"),
+    eject: lazyCommand(() => import("./commands/eject.ts"), "ejectCommand"),
+    eval: lazyCommand(() => import("./commands/eval.ts"), "evalCommand"),
+    init: lazyCommand(() => import("./commands/init.ts"), "initCommand"),
+    "mcp-stdio": lazyCommand(
+      () => import("./commands/mcp-stdio.ts"),
+      "mcpStdioCommand"
+    ),
+    preview: lazyCommand(
+      () => import("./commands/preview.ts"),
+      "previewCommand"
+    ),
+    sync: lazyCommand(() => import("./commands/sync.ts"), "syncCommand"),
+    translate: lazyCommand(
+      () => import("./commands/translate.ts"),
+      "translateCommand"
+    ),
+    validate: lazyCommand(
+      () => import("./commands/validate.ts"),
+      "validateCommand"
+    ),
+    version: lazyCommand(
+      () => import("./commands/version.ts"),
+      "versionCommand"
+    ),
   },
 });
 
