@@ -1474,6 +1474,26 @@ describe("render-mdx", () => {
       description:
         "List pets Reference for the GET /pets endpoint in the Example API.",
     });
+
+    // The word can sit before a qualifier, be plural, or come from the
+    // reference label when the spec has no title; "OpenAPI" is a product
+    // name, not an API name, so it still gets the suffix.
+    const overviewOf = (
+      over: Partial<ApiSpecData>
+    ): ReturnType<typeof overviewMdx>["data"]["seo"] =>
+      overviewMdx(specData(over)).data.seo;
+    expect(overviewOf({ title: "Example API v2" })).toStrictEqual({
+      description: "Example API v2 reference.",
+    });
+    expect(overviewOf({ title: "Payments APIs" })).toStrictEqual({
+      description: "Payments APIs reference.",
+    });
+    expect(overviewOf({ label: "API Reference", title: "" })).toStrictEqual({
+      description: "API Reference reference.",
+    });
+    expect(overviewOf({ title: "OpenAPI" })).toStrictEqual({
+      description: "OpenAPI API reference.",
+    });
   });
 
   it("renders one overview section per tag slug, not per tag name", () => {
