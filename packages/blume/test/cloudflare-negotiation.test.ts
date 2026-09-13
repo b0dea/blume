@@ -107,6 +107,7 @@ const loadWorker = async (workerText: string): Promise<WorkerModule> => {
 };
 
 interface HarnessCalls {
+  assetRequests: Request[];
   assets: string[];
   server: string[];
 }
@@ -119,12 +120,13 @@ interface Harness {
 const makeEnv = (
   options: { assetsStatus?: number; serverResponse?: () => Response } = {}
 ): Harness => {
-  const calls: HarnessCalls = { assets: [], server: [] };
+  const calls: HarnessCalls = { assetRequests: [], assets: [], server: [] };
   return {
     calls,
     env: {
       ASSETS: {
         fetch: (request: Request): Promise<Response> => {
+          calls.assetRequests.push(request);
           calls.assets.push(request.url);
           const status = options.assetsStatus ?? 200;
           return Promise.resolve(
@@ -257,6 +259,76 @@ describe("negotiation worker — parity with the dev middleware helpers", () => 
 });
 
 describe("negotiation worker — responses", () => {
+  it("serves known prerendered page JSON before Astro's API catch-all", async () => {
+    const worker = await loadWorker(workerText({ base: "/site/" }));
+    const { calls, env } = makeEnv();
+    const response = await worker.fetch(
+      new Request(
+        "https://site.test/site/api/docs/pages/docs/quickstart.json?view=agent",
+        {
+          headers: { authorization: "Bearer test" },
+          method: "HEAD",
+        }
+      ),
+      env,
+      {}
+    );
+    expect(calls.assets).toStrictEqual([
+      "https://site.test/site/api/docs/pages/docs/quickstart.json?view=agent",
+    ]);
+    expect(calls.server).toStrictEqual([]);
+    expect(calls.assetRequests[0]?.method).toBe("HEAD");
+    expect(calls.assetRequests[0]?.headers.get("authorization")).toBe(
+      "Bearer test"
+    );
+    expect(response.status).toBe(200);
+  });
+
+  it("recognizes the home and percent-encoded page JSON assets", async () => {
+    const worker = await loadWorker(workerText());
+    for (const path of [
+      "/api/docs/pages/index.json",
+      "/api/docs/pages/ja/%E3%81%AF%E3%81%98%E3%82%81%E3%81%AB.json",
+    ]) {
+      const { calls, env } = makeEnv();
+      // oxlint-disable-next-line no-await-in-loop -- sequential vectors
+      await worker.fetch(new Request(`https://site.test${path}`), env, {});
+      expect(calls.assets).toStrictEqual([`https://site.test${path}`]);
+      expect(calls.server).toStrictEqual([]);
+    }
+  });
+
+  it("keeps unknown page JSON and non-GET requests on the Astro Worker", async () => {
+    const worker = await loadWorker(workerText());
+    const { calls, env } = makeEnv();
+    await worker.fetch(
+      new Request("https://site.test/api/docs/pages/unknown.json"),
+      env,
+      {}
+    );
+    await worker.fetch(
+      new Request("https://site.test/api/docs/pages/docs/quickstart.json", {
+        method: "POST",
+      }),
+      env,
+      {}
+    );
+    expect(calls.assets).toStrictEqual([]);
+    expect(calls.server).toHaveLength(2);
+  });
+
+  it("falls back to Astro when a known page JSON asset is missing", async () => {
+    const worker = await loadWorker(workerText());
+    const { calls, env } = makeEnv({ assetsStatus: 404 });
+    await worker.fetch(
+      new Request("https://site.test/api/docs/pages/docs/quickstart.json"),
+      env,
+      {}
+    );
+    expect(calls.assets).toHaveLength(1);
+    expect(calls.server).toHaveLength(1);
+  });
+
   it("serves the .md mirror with charset, Vary, and home headers", async () => {
     const worker = await loadWorker(workerText());
     const { env } = makeEnv();

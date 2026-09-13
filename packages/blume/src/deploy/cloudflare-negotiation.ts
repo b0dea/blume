@@ -15,10 +15,10 @@
  *    content routes so the platform routes their requests to the Worker
  *    instead of serving the static HTML directly (other assets keep their
  *    zero-Worker fast path).
- * 2. A generated entry Worker that fronts the adapter's: when the client
- *    prefers `text/markdown` it serves the page's prerendered `.md` mirror
- *    from the ASSETS binding, and it delegates everything else to the Astro
- *    Worker untouched.
+ * 2. A generated entry Worker that fronts the adapter's: it serves known
+ *    prerendered per-page JSON documents from the ASSETS binding, does the
+ *    same for a page's `.md` mirror when the client prefers `text/markdown`,
+ *    and delegates everything else to the Astro Worker.
  *
  * Cloudflare does not apply `_headers` to worker-first routes, so the wrapper
  * also re-stamps what the static layer would otherwise add on the routes it
@@ -264,12 +264,12 @@ export const buildNegotiationWorker = (
 //
 // Request-time \`Accept: text/markdown\` negotiation for a Cloudflare server
 // build. \`assets.run_worker_first\` routes content-page requests here instead
-// of the platform's static layer; a client that prefers Markdown gets the
-// page's prerendered \`.md\` mirror from the assets binding, a configured
-// redirect is answered with its exact configured status, and every other
-// request is delegated to the Astro Worker untouched. \`_headers\` does not
-// apply to worker-first routes, so the homepage Link header and the Markdown
-// charset are re-stamped here.
+// of the platform's static layer; known prerendered page JSON is served from
+// the assets binding before Astro's API catch-all, a client that prefers
+// Markdown gets the page's prerendered \`.md\` mirror, and a configured redirect
+// is answered with its exact configured status. Other requests are delegated
+// to the Astro Worker. \`_headers\` does not apply to worker-first routes, so
+// the homepage Link header and the Markdown charset are re-stamped here.
 import server from ${JSON.stringify(options.mainSpecifier)};
 
 const ROUTES = new Set(${routes});
@@ -363,6 +363,31 @@ const markdownVariantUrl = (rawUrl) => {
   return BASE_PREFIX + encodeURI(target) + ".md" + query;
 };
 
+const isPageJsonAsset = (pathname) => {
+  let path = pathname;
+  if (BASE_PREFIX) {
+    if (!path.startsWith(BASE_PREFIX + "/")) {
+      return false;
+    }
+    path = path.slice(BASE_PREFIX.length);
+  }
+  const prefix = "/api/docs/pages/";
+  if (!path.startsWith(prefix) || !path.endsWith(".json")) {
+    return false;
+  }
+  const rawRoute = path.slice(prefix.length, -".json".length);
+  if (!rawRoute) {
+    return false;
+  }
+  let route = rawRoute === "index" ? "/" : "/" + rawRoute;
+  try {
+    route = decodeURIComponent(route);
+  } catch {
+    // Keep the raw path; it simply won't match a content route.
+  }
+  return ROUTES.has(route);
+};
+
 const isHomePath = (pathname) => {
   let path = pathname;
   if (BASE_PREFIX) {
@@ -398,6 +423,12 @@ export default {
     const variant = markdownVariantUrl(url.pathname + url.search);
     const home = isHomePath(url.pathname);
     const assets = env[ASSETS_BINDING];
+    if (assets !== undefined && isPageJsonAsset(url.pathname)) {
+      const asset = await assets.fetch(request);
+      if (asset.ok) {
+        return asset;
+      }
+    }
     if (
       variant !== null &&
       assets !== undefined &&
