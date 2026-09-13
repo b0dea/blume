@@ -158,6 +158,10 @@ const clip = (text: string, max: number): string => {
 };
 
 const apiName = (spec: ApiSpecData): string => spec.title || spec.label;
+const apiNamePhrase = (spec: ApiSpecData): string => {
+  const name = apiName(spec);
+  return /\bAPIs?$/iu.test(name) ? name : `${name} API`;
+};
 
 /** Human phrase for each GraphQL page kind, for meta descriptions. */
 const GRAPHQL_MEMBER_PHRASES = {
@@ -196,13 +200,13 @@ const operationDescription = (
   // document a root field or a named type.
   let suffix: string;
   if (spec.kind === "asyncapi") {
-    suffix = `Reference for the ${operation.method} operation on ${operation.path} in the ${apiName(spec)} API.`;
+    suffix = `Reference for the ${operation.method} operation on ${operation.path} in the ${apiNamePhrase(spec)}.`;
   } else if (spec.kind === "graphql") {
     // SAFETY: the GraphQL extractor only ever assigns member kinds as the
     // method (see `extractGraphqlOperations`).
-    suffix = `Reference for the ${operation.path} ${GRAPHQL_MEMBER_PHRASES[operation.method as GraphqlMember]} in the ${apiName(spec)} API.`;
+    suffix = `Reference for the ${operation.path} ${GRAPHQL_MEMBER_PHRASES[operation.method as GraphqlMember]} in the ${apiNamePhrase(spec)}.`;
   } else {
-    suffix = `Reference for the ${operation.method.toUpperCase()} ${operation.path} endpoint in the ${apiName(spec)} API.`;
+    suffix = `Reference for the ${operation.method.toUpperCase()} ${operation.path} endpoint in the ${apiNamePhrase(spec)}.`;
   }
   const prose = clip(
     plainProse(operation.description || operation.summary),
@@ -350,7 +354,7 @@ export const overviewMdx = (
   const seo: RenderedPageData["seo"] = {
     description:
       clip(plainProse(spec.description), META_DESCRIPTION_MAX) ||
-      `${apiName(spec)} API reference.`,
+      `${apiNamePhrase(spec)} reference.`,
   };
   if (reference?.noindex) {
     seo.noindex = true;
