@@ -24,6 +24,7 @@
     "apps/docs": {
       "name": "docs",
       "dependencies": {
+        "@ai-sdk/openai": "^4.0.78",
         "blume": "workspace:*",
       },
       "devDependencies": {

@@ -1,4 +1,5 @@
 import { defineConfig } from "blume";
+import { openai } from "blume/ai";
 import { cloudflare } from "blume/deploy";
 import { filesystem, githubReleases } from "blume/sources";
 
@@ -38,6 +39,12 @@ export default defineConfig({
       enabled: true,
     },
     skills: "../../skills",
+  },
+  ai: {
+    assistant: {
+      enabled: true,
+      provider: openai({ model: "gpt-6-luna" }),
+    },
   },
   content: {
     sources: [
