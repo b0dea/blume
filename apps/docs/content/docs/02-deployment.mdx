@@ -206,7 +206,7 @@ When a feature needs a runtime secret, Blume warns at `blume dev`/`build` if it'
 | Feature | Variable |
 | --- | --- |
 | Assistant (AI Gateway) | `AI_GATEWAY_API_KEY` (or Vercel OIDC) |
-| Assistant (other adapters) | the adapter's default key env var (`OPENROUTER_API_KEY`, `LLMGATEWAY_API_KEY`, `INKEEP_API_KEY`), or the `apiKeyEnv` you passed it |
+| Assistant (other adapters) | the adapter's default key env var (`OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, `GEMINI_API_KEY`, `XAI_API_KEY`, `OPENROUTER_API_KEY`, `LLMGATEWAY_API_KEY`, `INKEEP_API_KEY`), or the `apiKeyEnv` you passed it |
 | Mixedbread search | `MIXEDBREAD_API_KEY` |
 | [Content sources](/docs/content/sources) | `NOTION_TOKEN` (`notion()`), `SANITY_TOKEN` (`sanity()`), `CONTENTFUL_ACCESS_TOKEN` (`contentful()`), `PAYLOAD_API_KEY` (`payload()`), `STRAPI_API_TOKEN` (`strapi()`), `GITHUB_TOKEN` (`githubReleases()`, and `mdxRemote()` reading from GitHub) |
 

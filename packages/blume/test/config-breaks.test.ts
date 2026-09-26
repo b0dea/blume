@@ -230,14 +230,14 @@ describe("ai.assistant provider", () => {
       messages(
         parse({ ai: { assistant: { provider: "openai-compatible" } } })
       )[0]
-    ).toContain("`provider: openaiCompatible({ model })`");
+    ).toContain("`provider: openai({ model })`");
   });
 
   it("lists the adapters for a provider value that was never a 1.x name", () => {
     const hint =
-      'ai.assistant.provider takes an adapter from "blume/ai": gateway(), openrouter(), llmgateway(), inkeep(), or openaiCompatible().';
+      'ai.assistant.provider takes an adapter from "blume/ai": openai(), anthropic(), gemini(), grok(), gateway(), openrouter(), llmgateway(), or inkeep().';
     expect(
-      messages(parse({ ai: { assistant: { provider: "anthropic" } } }))
+      messages(parse({ ai: { assistant: { provider: "ollama" } } }))
     ).toEqual([hint]);
     expect(messages(parse({ ai: { assistant: { provider: 42 } } }))).toEqual([
       hint,
@@ -276,6 +276,20 @@ describe("ai.assistant provider", () => {
       )
     ).toEqual([
       'ai.assistant.model moved into the provider adapter: `provider: inkeep({ model })`, imported from "blume/ai".',
+    ]);
+    expect(
+      messages(
+        parse({
+          ai: {
+            assistant: {
+              provider: { ...inkeepDescriptor, kind: "anthropic" },
+              reasoning: "low",
+            },
+          },
+        })
+      )
+    ).toEqual([
+      'ai.assistant.reasoning moved into the provider adapter: `provider: anthropic({ reasoning })`, imported from "blume/ai".',
     ]);
     expect(
       messages(parse({ ai: { assistant: { apiKeyEnv: "KEY", headers: {} } } }))

@@ -604,10 +604,10 @@ export interface AssistantConfig {
   instructions?: string;
   /**
    * Which backend answers: the descriptor an adapter factory returns —
-   * `gateway({ model })`, `openrouter({ model, reasoning })`,
-   * `llmgateway({ model })`, `inkeep({ model })`, or
-   * `openaiCompatible({ baseUrl, name, model, apiKeyEnv })`, all exported
-   * from `blume/ai`. Each adapter owns its model, key env var, reasoning
+   * `openai({ model, baseUrl })`, `anthropic({ model })`,
+   * `gemini({ model })`, `grok({ model })`, `gateway({ model })`,
+   * `openrouter({ model, reasoning })`, `llmgateway({ model })`, or
+   * `inkeep({ model })`, all exported from `blume/ai`. Each adapter owns its model, key env var, reasoning
    * mapping, and `providerOptions` passthrough. Defaults to
    * `gateway({ model: "openai/gpt-5.5" })`.
    */
@@ -630,9 +630,9 @@ export interface AssistantConfig {
   /**
    * Let the model search the docs and read whole pages itself, over several
    * steps, instead of answering only from the excerpts retrieved up front.
-   * Defaults to `true` for `gateway()`, `openrouter()`, and `llmgateway()`,
-   * and to `false` for `openaiCompatible()`, whose model may not support tool
-   * calling. `inkeep()` does its own retrieval and ignores it.
+   * Defaults to `true`, except for `openai()` with a `baseUrl`, whose model
+   * may not support tool calling. `inkeep()` does its own retrieval and
+   * ignores it.
    */
   tools?: boolean;
 }

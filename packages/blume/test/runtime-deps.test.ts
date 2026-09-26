@@ -4,7 +4,7 @@ import { tmpdir } from "node:os";
 
 import { join } from "pathe";
 
-import { openaiCompatible, openrouter } from "../src/ai/ask.ts";
+import { anthropic, openai, openrouter } from "../src/ai/ask.ts";
 import {
   assistantProviderDependencies,
   deploymentAdapterDependencies,
@@ -91,16 +91,21 @@ describe("assistantProviderDependencies", () => {
   });
 
   it("stays quiet when the assistant provider SDK is resolvable", () => {
-    const ask = parsedAsk({
-      enabled: true,
-      provider: openaiCompatible({
+    // Blume's own package resolves the workspace-installed SDKs: the
+    // OpenAI-compatible one for a custom endpoint, and each direct
+    // provider's own.
+    for (const provider of [
+      openai({
         apiKeyEnv: "K",
         baseUrl: "https://api.example.com/v1",
         model: "m",
       }),
-    });
-    // Blume's own package resolves the workspace-installed SDK.
-    expect(assistantProviderDependencies(ask, root)).toEqual([]);
+      openai({ model: "m" }),
+      anthropic({ model: "m" }),
+    ]) {
+      const ask = parsedAsk({ enabled: true, provider });
+      expect(assistantProviderDependencies(ask, root)).toEqual([]);
+    }
   });
 });
 

@@ -17,7 +17,7 @@ import {
   readPage,
   searchDocs,
 } from "../src/ai/ask-tools.ts";
-import { openaiCompatible, resolveAskBackend } from "../src/ai/ask.ts";
+import { openai, resolveAskBackend } from "../src/ai/ask.ts";
 import { askEndpointTemplate } from "../src/astro/templates.ts";
 import { blumeConfigSchema } from "../src/core/schema.ts";
 
@@ -245,7 +245,7 @@ const loadRoute = async (): Promise<AskRoute> => {
     ai: {
       assistant: {
         enabled: true,
-        provider: openaiCompatible({
+        provider: openai({
           apiKeyEnv: "TEST_KEY",
           baseUrl: `http://localhost:${upstream.port}/v1`,
           model: "m",

@@ -239,7 +239,7 @@ export default defineConfig({
 
 </CodeGroup>
 
-The adapters are `gateway()`, `openrouter()`, `llmgateway()`, `inkeep()`, and `openaiCompatible({ baseUrl, name, model, apiKeyEnv })`. `model`, `apiKeyEnv`, `baseUrl`, `headers`, and `reasoning` move into the adapter; `enabled`, `instructions`, `retrieval`, `suggestions`, `cors`, and `endpoint` move to `ai.assistant` unchanged. Leaving `provider` unset still uses the AI Gateway.
+A 1.x `provider` name maps onto `gateway()`, `openrouter()`, `llmgateway()`, or `inkeep()`, and `openai-compatible` onto `openai({ baseUrl, name, model, apiKeyEnv })`; the [adapter list](/docs/configuration/assistant#adapters) has the rest. `model`, `apiKeyEnv`, `baseUrl`, `headers`, and `reasoning` move into the adapter; `enabled`, `instructions`, `retrieval`, `suggestions`, `cors`, and `endpoint` move to `ai.assistant` unchanged. Leaving `provider` unset still uses the AI Gateway.
 
 The rename reaches every name that said Ask AI:
 

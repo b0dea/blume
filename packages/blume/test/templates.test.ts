@@ -6,10 +6,13 @@ import { pathToFileURL } from "node:url";
 import { join } from "pathe";
 
 import {
+  anthropic,
   gateway,
+  gemini,
+  grok,
   inkeep,
   llmgateway,
-  openaiCompatible,
+  openai,
   openrouter,
   resolveAskBackend,
 } from "../src/ai/ask.ts";
@@ -1821,7 +1824,11 @@ const EVERY_ADAPTER = [
   openrouter({ model: "x/y" }),
   llmgateway({ model: "m" }),
   inkeep({ model: "m" }),
-  openaiCompatible(COMPATIBLE),
+  openai({ model: "m" }),
+  openai(COMPATIBLE),
+  anthropic({ model: "m" }),
+  gemini({ model: "m" }),
+  grok({ model: "m" }),
 ];
 
 describe("askEndpointTemplate", () => {
@@ -2001,11 +2008,50 @@ describe("askEndpointTemplate", () => {
     expect(out).not.toContain("reasoning");
   });
 
+  it("generates the OpenAI route through OpenAI's own SDK", () => {
+    const out = askEndpointTemplate(
+      backendFor({
+        enabled: true,
+        provider: openai({ model: "gpt-5.5", reasoning: "low" }),
+      })
+    );
+    expect(out).toContain('import { createOpenAI } from "@ai-sdk/openai";');
+    expect(out).not.toContain("@ai-sdk/openai-compatible");
+    expect(out).toContain(
+      'const provider = createOpenAI({\n  apiKey: getSecret("OPENAI_API_KEY"),\n});'
+    );
+    expect(out).toContain('if (!getSecret("OPENAI_API_KEY"))');
+    expect(out).toContain("const ground = createAskContext(askData);");
+    expect(out).toContain(
+      'model: provider("gpt-5.5"),\n      instructions,\n      messages,\n      reasoning: "low",\n      onError({ error })'
+    );
+  });
+
+  it("generates the Anthropic, Gemini, and Grok routes through their own SDKs", () => {
+    for (const [provider, factory, pkg] of [
+      [
+        anthropic({ model: "claude-sonnet-5" }),
+        "createAnthropic",
+        "@ai-sdk/anthropic",
+      ],
+      [gemini({ model: "gemini-3.5-flash" }), "createGoogle", "@ai-sdk/google"],
+      [grok({ model: "grok-4.7" }), "createXai", "@ai-sdk/xai"],
+    ] as const) {
+      const out = askEndpointTemplate(backendFor({ enabled: true, provider }));
+      expect(out).toContain(`import { ${factory} } from "${pkg}";`);
+      expect(out).toContain(`const provider = ${factory}({`);
+      expect(out).toContain(
+        `model: provider(${JSON.stringify(provider.options.model)}),`
+      );
+      expect(out).toContain("const ground = createAskContext(askData);");
+    }
+  });
+
   it("generates the OpenAI-compatible route from the configured endpoint", () => {
     const out = askEndpointTemplate(
       backendFor({
         enabled: true,
-        provider: openaiCompatible({
+        provider: openai({
           ...COMPATIBLE,
           name: "acme",
           reasoning: "low",
@@ -2032,7 +2078,9 @@ describe("askEndpointTemplate", () => {
       openrouter({ model: "x/y", providerOptions, reasoning: "low" }),
       llmgateway({ model: "m", providerOptions }),
       inkeep({ model: "m", providerOptions }),
-      openaiCompatible({ ...COMPATIBLE, providerOptions }),
+      openai({ model: "m", providerOptions }),
+      openai({ ...COMPATIBLE, providerOptions }),
+      anthropic({ model: "m", providerOptions }),
     ]) {
       expect(
         askEndpointTemplate(backendFor({ enabled: true, provider }))
@@ -2075,7 +2123,7 @@ describe("askEndpointTemplate", () => {
     const compatible = askEndpointTemplate(
       backendFor({
         enabled: true,
-        provider: openaiCompatible({ ...COMPATIBLE, headers }),
+        provider: openai({ ...COMPATIBLE, headers }),
       })
     );
     // Sits between the key and the name so the API key's `Authorization`

@@ -15,9 +15,13 @@ import { buildAskData } from "../src/ai/ask-data.ts";
 import { resolveAskBackend } from "../src/ai/ask.ts";
 // The factories through the `blume/ai` entry a config imports them from.
 import {
+  anthropic,
   gateway,
+  gemini,
+  grok,
   inkeep,
   llmgateway,
+  openai,
   openaiCompatible,
   openrouter,
 } from "../src/ai/index.ts";
@@ -1971,25 +1975,65 @@ describe("ask adapter factories", () => {
       requiredSecrets: ["INKEEP_API_KEY"],
       runtimeDeps: ["@ai-sdk/openai-compatible"],
     });
-    expect(openaiCompatible(COMPATIBLE)).toStrictEqual({
-      kind: "openai-compatible",
+    // OpenAI itself through its own SDK; a custom endpoint through the
+    // OpenAI-compatible one.
+    expect(openai({ model: "gpt-5.5" })).toStrictEqual({
+      kind: "openai",
+      options: { model: "gpt-5.5" },
+      requiredSecrets: ["OPENAI_API_KEY"],
+      runtimeDeps: ["@ai-sdk/openai"],
+    });
+    expect(openai(COMPATIBLE)).toStrictEqual({
+      kind: "openai",
       options: COMPATIBLE,
       requiredSecrets: ["GW_KEY"],
       runtimeDeps: ["@ai-sdk/openai-compatible"],
+    });
+    // The deprecated name is the same adapter.
+    expect(openaiCompatible(COMPATIBLE)).toStrictEqual(openai(COMPATIBLE));
+    expect(anthropic({ model: "claude-sonnet-5" })).toStrictEqual({
+      kind: "anthropic",
+      options: { model: "claude-sonnet-5" },
+      requiredSecrets: ["ANTHROPIC_API_KEY"],
+      runtimeDeps: ["@ai-sdk/anthropic"],
+    });
+    expect(gemini({ model: "gemini-3.5-flash" })).toStrictEqual({
+      kind: "gemini",
+      options: { model: "gemini-3.5-flash" },
+      requiredSecrets: ["GEMINI_API_KEY"],
+      runtimeDeps: ["@ai-sdk/google"],
+    });
+    expect(grok({ model: "grok-4.7" })).toStrictEqual({
+      kind: "grok",
+      options: { model: "grok-4.7" },
+      requiredSecrets: ["XAI_API_KEY"],
+      runtimeDeps: ["@ai-sdk/xai"],
     });
     // A renamed key env var is what the descriptor declares.
     expect(
       openrouter({ apiKeyEnv: "OR_KEY", model: "x/y" }).requiredSecrets
     ).toStrictEqual(["OR_KEY"]);
     expect(gateway({ apiKeyEnv: "GW" }).requiredSecrets).toStrictEqual(["GW"]);
+    for (const provider of [
+      openai({ apiKeyEnv: "K", model: "m" }),
+      anthropic({ apiKeyEnv: "K", model: "m" }),
+      gemini({ apiKeyEnv: "K", model: "m" }),
+      grok({ apiKeyEnv: "K", model: "m" }),
+    ]) {
+      expect(provider.requiredSecrets).toStrictEqual(["K"]);
+    }
     // Plain data: the generated and ejected routes inline the descriptor, so
     // it must survive a JSON round trip, and the schema must take it as-is.
     for (const provider of [
       gateway(),
+      openai({ model: "m" }),
+      openai(COMPATIBLE),
+      anthropic({ model: "m" }),
+      gemini({ model: "m" }),
+      grok({ model: "m" }),
       openrouter({ model: "x/y" }),
       llmgateway({ model: "m" }),
       inkeep({ model: "m" }),
-      openaiCompatible(COMPATIBLE),
     ]) {
       // A JSON round trip on purpose (not structuredClone): the route is
       // written with JSON.stringify, which would drop anything non-JSON.
@@ -2058,17 +2102,53 @@ describe("resolveAskBackend", () => {
 
     const compatible = backendFor({
       enabled: true,
-      provider: openaiCompatible(COMPATIBLE),
+      provider: openai(COMPATIBLE),
     });
     expect(compatible).toMatchObject({
       grounded: true,
-      kind: "openai-compatible",
+      kind: "openai",
       label: "OpenAI-compatible",
+      // A self-hosted model may not call tools.
+      toolsByDefault: false,
     });
     expect(compatible.template.setup).toContain(
       'baseURL: "https://gw.example/v1"'
     );
     expect(compatible.template.setup).toContain('name: "openai-compatible"');
+  });
+
+  it("calls OpenAI, Anthropic, Gemini, and Grok directly through their own SDKs", () => {
+    for (const [provider, label, factory, env] of [
+      [openai({ model: "m" }), "OpenAI", "createOpenAI", "OPENAI_API_KEY"],
+      [
+        anthropic({ model: "m" }),
+        "Anthropic",
+        "createAnthropic",
+        "ANTHROPIC_API_KEY",
+      ],
+      [gemini({ model: "m" }), "Gemini", "createGoogle", "GEMINI_API_KEY"],
+      [grok({ model: "m" }), "Grok", "createXai", "XAI_API_KEY"],
+    ] as const) {
+      const backend = backendFor({ enabled: true, provider });
+      expect(backend).toMatchObject({
+        grounded: true,
+        kind: provider.kind,
+        label,
+        toolsByDefault: true,
+      });
+      expect(backend.template.imports[1]).toBe(
+        `import { ${factory} } from "${provider.runtimeDeps[0]}";`
+      );
+      // No base URL or provider name: the SDK's own endpoint and name.
+      expect(backend.template.setup).toBe(
+        `\nconst provider = ${factory}({\n  apiKey: getSecret("${env}"),\n});\n`
+      );
+      expect(backend.template.model).toBe('provider("m")');
+      expect(backend.template.keyCheck).toContain(
+        `The assistant is not configured: set ${env}.`
+      );
+      expect(backend.template.fields).toStrictEqual([]);
+    }
   });
 
   it("honors apiKeyEnv, baseUrl, and name overrides", () => {
@@ -2090,9 +2170,24 @@ describe("resolveAskBackend", () => {
 
     const named = backendFor({
       enabled: true,
-      provider: openaiCompatible({ ...COMPATIBLE, name: "acme" }),
+      provider: openai({ ...COMPATIBLE, name: "acme" }),
     });
     expect(named.template.setup).toContain('name: "acme"');
+    // OpenAI's own SDK takes the name too.
+    expect(
+      backendFor({
+        enabled: true,
+        provider: openai({ model: "m", name: "acme" }),
+      }).template.setup
+    ).toBe(
+      '\nconst provider = createOpenAI({\n  apiKey: getSecret("OPENAI_API_KEY"),\n  name: "acme",\n});\n'
+    );
+    const claude = backendFor({
+      enabled: true,
+      provider: anthropic({ apiKeyEnv: "CLAUDE_KEY", model: "m" }),
+    });
+    expect(claude.template.setup).toContain('apiKey: getSecret("CLAUDE_KEY")');
+    expect(claude.template.keyCheck).toContain('if (!getSecret("CLAUDE_KEY"))');
 
     // The gateway keeps its OIDC alternative around a renamed key.
     const gw = backendFor({
@@ -2125,10 +2220,17 @@ describe("resolveAskBackend", () => {
       backendFor({ enabled: true, provider: inkeep({ headers, model: "m" }) })
         .template.setup
     ).toContain(expected);
+    expect(
+      backendFor({ enabled: true, provider: grok({ headers, model: "m" }) })
+        .template.setup
+    ).toBe(
+      `\nconst provider = createXai({\n  apiKey: getSecret("XAI_API_KEY"),\n${expected}\n});\n`
+    );
     for (const provider of [
       gateway({ headers: {} }),
       openrouter({ headers: {}, model: "x/y" }),
       inkeep({ headers: {}, model: "m" }),
+      anthropic({ headers: {}, model: "m" }),
     ]) {
       expect(
         backendFor({ enabled: true, provider }).template.setup
@@ -2156,9 +2258,22 @@ describe("resolveAskBackend", () => {
     expect(
       backendFor({
         enabled: true,
-        provider: openaiCompatible({ ...COMPATIBLE, reasoning: "low" }),
+        provider: openai({ ...COMPATIBLE, reasoning: "low" }),
       }).template.fields
     ).toStrictEqual(['reasoning: "low"']);
+    // The direct providers: the same call option, which each provider's SDK
+    // maps to the model's own control (OpenAI's `reasoning_effort`,
+    // Anthropic's thinking, Gemini's thinking level, xAI's effort).
+    for (const provider of [
+      openai({ model: "m", reasoning: "minimal" }),
+      anthropic({ model: "m", reasoning: "minimal" }),
+      gemini({ model: "m", reasoning: "minimal" }),
+      grok({ model: "m", reasoning: "minimal" }),
+    ]) {
+      expect(
+        backendFor({ enabled: true, provider }).template.fields
+      ).toStrictEqual(['reasoning: "minimal"']);
+    }
     // OpenRouter: on the model as `reasoning.effort`, because its provider
     // ignores the call option — and nowhere else.
     expect(
@@ -2247,14 +2362,31 @@ describe("ai.assistant schema", () => {
       runtimeDeps: ["@ai-sdk/openai-compatible"],
     });
     expect(
-      askConfig({ enabled: true, provider: openaiCompatible(COMPATIBLE) })
-        .provider
+      askConfig({ enabled: true, provider: openai(COMPATIBLE) }).provider
     ).toStrictEqual({
-      kind: "openai-compatible",
-      options: { ...COMPATIBLE, name: "openai-compatible" },
+      kind: "openai",
+      options: COMPATIBLE,
       requiredSecrets: ["GW_KEY"],
       runtimeDeps: ["@ai-sdk/openai-compatible"],
     });
+    expect(
+      askConfig({ enabled: true, provider: openai({ model: "m" }) }).provider
+    ).toStrictEqual({
+      kind: "openai",
+      options: { apiKeyEnv: "OPENAI_API_KEY", model: "m" },
+      requiredSecrets: ["OPENAI_API_KEY"],
+      runtimeDeps: ["@ai-sdk/openai"],
+    });
+    for (const [provider, apiKeyEnv] of [
+      [anthropic({ model: "m" }), "ANTHROPIC_API_KEY"],
+      [gemini({ model: "m" }), "GEMINI_API_KEY"],
+      [grok({ model: "m" }), "XAI_API_KEY"],
+    ] as const) {
+      expect(askConfig({ enabled: true, provider }).provider).toStrictEqual({
+        ...provider,
+        options: { apiKeyEnv, model: "m" },
+      });
+    }
   });
 
   it("requires what an adapter has no default for", () => {
@@ -2262,18 +2394,17 @@ describe("ai.assistant schema", () => {
       { ...BARE, kind: "openrouter", options: {} },
       { ...BARE, kind: "llmgateway", options: {} },
       { ...BARE, kind: "inkeep", options: {} },
-      // The generic endpoint has no preset URL or key env var.
-      { ...BARE, kind: "openai-compatible", options: { model: "m" } },
+      { ...BARE, kind: "openai", options: {} },
+      { ...BARE, kind: "anthropic", options: {} },
+      { ...BARE, kind: "gemini", options: {} },
+      { ...BARE, kind: "grok", options: {} },
       {
         ...BARE,
-        kind: "openai-compatible",
+        kind: "openai",
         options: { apiKeyEnv: "K", baseUrl: "not a url", model: "m" },
       },
-      {
-        ...BARE,
-        kind: "openai-compatible",
-        options: { ...COMPATIBLE, model: "" },
-      },
+      { ...BARE, kind: "openai", options: { ...COMPATIBLE, model: "" } },
+      { ...BARE, kind: "openai", options: { model: "m", name: "" } },
       // The descriptor contract itself: a bare `{ kind, options }` is not one.
       { kind: "gateway", options: {} },
     ]) {
@@ -2632,8 +2763,14 @@ describe("ask adapter runtime dependency", () => {
       runtimeDeps({ enabled: true, provider: openrouter({ model: "x/y" }) })
     ).toContain("@openrouter/ai-sdk-provider");
     expect(
-      runtimeDeps({ enabled: true, provider: openaiCompatible(COMPATIBLE) })
+      runtimeDeps({ enabled: true, provider: openai(COMPATIBLE) })
     ).toContain("@ai-sdk/openai-compatible");
+    expect(
+      runtimeDeps({ enabled: true, provider: openai({ model: "m" }) })
+    ).toContain("@ai-sdk/openai");
+    expect(
+      runtimeDeps({ enabled: true, provider: gemini({ model: "m" }) })
+    ).toContain("@ai-sdk/google");
   });
 
   it("declares nothing when the assistant is disabled or external", () => {

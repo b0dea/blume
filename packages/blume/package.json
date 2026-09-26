@@ -194,7 +194,11 @@
     "zod": "^4.6.2"
   },
   "devDependencies": {
+    "@ai-sdk/anthropic": "^4.0.65",
+    "@ai-sdk/google": "^4.0.82",
+    "@ai-sdk/openai": "^4.0.78",
     "@ai-sdk/openai-compatible": "^3.0.48",
+    "@ai-sdk/xai": "^5.0.10",
     "@asyncapi/converter": "^2.0.2",
     "@mixedbread/sdk": "^0.77.0",
     "@notionhq/client": "^5.26.0",
@@ -216,7 +220,11 @@
     "typesense": "^3.0.6"
   },
   "peerDependencies": {
+    "@ai-sdk/anthropic": "^4.0.0",
+    "@ai-sdk/google": "^4.0.0",
+    "@ai-sdk/openai": "^4.0.0",
     "@ai-sdk/openai-compatible": "^3.0.0",
+    "@ai-sdk/xai": "^5.0.0",
     "@astrojs/cloudflare": "^14.0.0",
     "@astrojs/netlify": "^8.0.0",
     "@astrojs/svelte": "^9.0.0",
@@ -232,7 +240,19 @@
     "typesense": "^3.0.0"
   },
   "peerDependenciesMeta": {
+    "@ai-sdk/anthropic": {
+      "optional": true
+    },
+    "@ai-sdk/google": {
+      "optional": true
+    },
+    "@ai-sdk/openai": {
+      "optional": true
+    },
     "@ai-sdk/openai-compatible": {
+      "optional": true
+    },
+    "@ai-sdk/xai": {
       "optional": true
     },
     "@astrojs/cloudflare": {
