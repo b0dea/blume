@@ -164,6 +164,7 @@ import {
   runtimeTsconfigTemplate,
   featuresTemplate,
   navFragmentTemplate,
+  consentClientTemplate,
   searchClientTemplate,
   searchEndpointTemplate,
   stagedContentDir,
@@ -1970,6 +1971,7 @@ export const generateRuntime = async (
   const askPath = join(srcDir, "generated", "Ask.astro");
   const themePath = join(srcDir, "generated", "app.css");
   const searchClientPath = join(srcDir, "generated", "search-client.ts");
+  const consentClientPath = join(srcDir, "generated", "consent-client.ts");
   const featuresPath = join(srcDir, "generated", "features.ts");
   const examplesPath = join(srcDir, "generated", "examples.ts");
   const examplesThemePath = join(srcDir, "generated", "examples.css");
@@ -2131,6 +2133,7 @@ export const generateRuntime = async (
           aliases: resolveTsconfigAliases(context.root),
           askPath,
           config,
+          consentClientPath,
           contentRoot: docsCollection.base,
           contentRoutes,
           context,
@@ -2295,6 +2298,7 @@ export const generateRuntime = async (
     }),
     writeNotFoundPage(write, srcDir, pages, project.graph.pages),
     write(searchClientPath, searchClientTemplate(config)),
+    write(consentClientPath, consentClientTemplate(config.consent)),
     write(featuresPath, featuresTemplate(clientFeatures)),
   ]);
 

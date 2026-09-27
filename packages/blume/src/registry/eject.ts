@@ -63,6 +63,7 @@ import {
   rssEndpointTemplate,
   runtimeDependencies,
   runtimeTsconfigTemplate,
+  consentClientTemplate,
   searchClientTemplate,
   searchEndpointTemplate,
   staticJsonEndpointTemplate,
@@ -673,6 +674,7 @@ export const eject = async (
       content: astroConfigTemplate({
         askPath: "./src/generated/Ask.astro",
         config,
+        consentClientPath: "./src/generated/consent-client.ts",
         contentRoot: relContext.contentRoot,
         contentRoutes: project.manifest.routes.map((route) => route.path),
         context: relContext,
@@ -875,8 +877,9 @@ export const eject = async (
     );
   }
 
-  // The client-feature loaders behind the `blume:features` alias, and the
-  // provider-specific client loader behind `blume:search-client`.
+  // The client-feature loaders behind the `blume:features` alias, the
+  // provider-specific client loader behind `blume:search-client`, and the
+  // consent adapter's browser module behind `blume:consent-client`.
   files.push(
     {
       content: featuresTemplate(features),
@@ -885,6 +888,10 @@ export const eject = async (
     {
       content: searchClientTemplate(config),
       path: join(genDir, "search-client.ts"),
+    },
+    {
+      content: consentClientTemplate(config.consent),
+      path: join(genDir, "consent-client.ts"),
     }
   );
 

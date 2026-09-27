@@ -99,6 +99,7 @@ const ASK_PATH = "/p/.blume/src/generated/Ask.astro";
 const EXAMPLES_PATH = "/p/.blume/src/generated/examples.ts";
 const EXAMPLES_THEME_PATH = "/p/.blume/src/generated/examples.css";
 const SEARCH_CLIENT_PATH = "/p/.blume/src/generated/search-client.ts";
+const CONSENT_CLIENT_PATH = "/p/.blume/src/generated/consent-client.ts";
 const FEATURES_PATH = "/p/.blume/src/generated/features.ts";
 const THEME_PATH = "/p/.blume/src/generated/app.css";
 
@@ -976,6 +977,7 @@ describe("astroConfigTemplate", () => {
     const out = astroConfigTemplate({
       askPath: ASK_PATH,
       config: configured,
+      consentClientPath: CONSENT_CLIENT_PATH,
       contentRoutes: [],
       context: context(),
       examplesPath: EXAMPLES_PATH,
@@ -1013,6 +1015,7 @@ describe("astroConfigTemplate", () => {
     const out = astroConfigTemplate({
       askPath: ASK_PATH,
       config,
+      consentClientPath: CONSENT_CLIENT_PATH,
       contentRoutes: [],
       context: context(),
       examplesPath: EXAMPLES_PATH,
@@ -1054,6 +1057,9 @@ describe("astroConfigTemplate", () => {
     expect(out).not.toContain('"blume:data":');
     expect(out).not.toContain('"blume:openapi":');
     expect(out).toContain('"blume:ask": "/p/.blume/src/generated/Ask.astro"');
+    expect(out).toContain(
+      '"blume:consent-client": "/p/.blume/src/generated/consent-client.ts"'
+    );
     expect(out).toContain(
       'includeHmrPlugin("/p/.blume/src/generated/includes.json")'
     );
@@ -1134,6 +1140,7 @@ describe("astroConfigTemplate", () => {
     const out = astroConfigTemplate({
       askPath: ASK_PATH,
       config: serverConfig,
+      consentClientPath: CONSENT_CLIENT_PATH,
       contentRoutes: [],
       context: context(),
       examplesPath: EXAMPLES_PATH,
@@ -1178,6 +1185,7 @@ describe("astroConfigTemplate", () => {
     const out = astroConfigTemplate({
       askPath: ASK_PATH,
       config: basedConfig,
+      consentClientPath: CONSENT_CLIENT_PATH,
       contentRoutes: [],
       context: context(),
       examplesPath: EXAMPLES_PATH,
@@ -1204,6 +1212,7 @@ describe("astroConfigTemplate", () => {
     const out = astroConfigTemplate({
       askPath: ASK_PATH,
       config: basedConfig,
+      consentClientPath: CONSENT_CLIENT_PATH,
       contentRoutes: [],
       context: context(),
       examplesPath: EXAMPLES_PATH,
@@ -1231,6 +1240,7 @@ describe("astroConfigTemplate", () => {
     const out = astroConfigTemplate({
       askPath: ASK_PATH,
       config,
+      consentClientPath: CONSENT_CLIENT_PATH,
       contentRoutes: [],
       context: context(),
       examplesPath: EXAMPLES_PATH,
@@ -1256,6 +1266,7 @@ describe("astroConfigTemplate", () => {
     const out = astroConfigTemplate({
       askPath: ASK_PATH,
       config,
+      consentClientPath: CONSENT_CLIENT_PATH,
       contentRoutes: [],
       context: context(),
       examplesPath: EXAMPLES_PATH,
@@ -1282,6 +1293,7 @@ describe("astroConfigTemplate", () => {
     const out = astroConfigTemplate({
       askPath: ASK_PATH,
       config: cloudflareConfig,
+      consentClientPath: CONSENT_CLIENT_PATH,
       contentRoutes: [],
       context: context(),
       examplesPath: EXAMPLES_PATH,
@@ -1305,6 +1317,7 @@ describe("astroConfigTemplate", () => {
     const out = astroConfigTemplate({
       askPath: ASK_PATH,
       config: cloudflareConfig,
+      consentClientPath: CONSENT_CLIENT_PATH,
       contentRoutes: [],
       context: context(),
       examplesPath: EXAMPLES_PATH,
@@ -1331,6 +1344,7 @@ describe("astroConfigTemplate", () => {
     const out = astroConfigTemplate({
       askPath: ASK_PATH,
       config: nodeConfig,
+      consentClientPath: CONSENT_CLIENT_PATH,
       contentRoutes: [],
       context: context(),
       examplesPath: EXAMPLES_PATH,
@@ -1358,6 +1372,7 @@ describe("astroConfigTemplate", () => {
       const out = astroConfigTemplate({
         askPath: ASK_PATH,
         config: cloudflareConfig,
+        consentClientPath: CONSENT_CLIENT_PATH,
         contentRoutes: [],
         context: context({
           outDir: join(root, ".blume"),
@@ -1394,6 +1409,7 @@ describe("astroConfigTemplate", () => {
       const out = astroConfigTemplate({
         askPath: ASK_PATH,
         config: cloudflareConfig,
+        consentClientPath: CONSENT_CLIENT_PATH,
         contentRoutes: [],
         context: context({
           outDir: root,
@@ -1420,6 +1436,7 @@ describe("astroConfigTemplate", () => {
     const out = astroConfigTemplate({
       askPath: ASK_PATH,
       config: vercelConfig,
+      consentClientPath: CONSENT_CLIENT_PATH,
       contentRoutes: [],
       context: context(),
       examplesPath: EXAMPLES_PATH,
@@ -1445,6 +1462,7 @@ describe("astroConfigTemplate", () => {
       config: blumeConfigSchema.parse({
         deployment: vercel(),
       }),
+      consentClientPath: CONSENT_CLIENT_PATH,
       contentRoutes: [],
       context: context(),
       examplesPath: EXAMPLES_PATH,
@@ -1472,6 +1490,7 @@ describe("astroConfigTemplate", () => {
       config: blumeConfigSchema.parse({
         deployment: vercel(),
       }),
+      consentClientPath: CONSENT_CLIENT_PATH,
       contentRoutes: [],
       context: context({
         distDir: "/p/.blume-verify/dist",
@@ -1496,6 +1515,7 @@ describe("astroConfigTemplate", () => {
     const out = astroConfigTemplate({
       askPath: ASK_PATH,
       config: blumeConfigSchema.parse({ deployment: vercel() }),
+      consentClientPath: CONSENT_CLIENT_PATH,
       contentRoutes: [],
       context: context({ distDir: "./dist", outDir: ".", root: "." }),
       examplesPath: EXAMPLES_PATH,
@@ -1518,6 +1538,7 @@ describe("astroConfigTemplate", () => {
     const out = astroConfigTemplate({
       askPath: ASK_PATH,
       config,
+      consentClientPath: CONSENT_CLIENT_PATH,
       contentRoutes: [],
       context: context({ distDir: "./dist", outDir: ".", root: "." }),
       examplesPath: EXAMPLES_PATH,
@@ -1539,6 +1560,7 @@ describe("astroConfigTemplate", () => {
     const out = astroConfigTemplate({
       askPath: ASK_PATH,
       config,
+      consentClientPath: CONSENT_CLIENT_PATH,
       contentRoutes: [],
       context: context(),
       examplesPath: EXAMPLES_PATH,
@@ -1604,6 +1626,7 @@ describe("astroConfigTemplate", () => {
       config: blumeConfigSchema.parse({
         deployment: node(),
       }),
+      consentClientPath: CONSENT_CLIENT_PATH,
       contentRoutes: [],
       context: context(),
       examplesPath: EXAMPLES_PATH,
@@ -1623,6 +1646,7 @@ describe("astroConfigTemplate", () => {
       aliases: { "@": "/proj/src", "@ui": "/proj/src/components/ui" },
       askPath: ASK_PATH,
       config,
+      consentClientPath: CONSENT_CLIENT_PATH,
       contentRoutes: [],
       context: context(),
       examplesPath: EXAMPLES_PATH,
@@ -1646,6 +1670,7 @@ describe("astroConfigTemplate", () => {
       aliases: { "@": "/proj/src", "@ui": "/proj/src/components/ui" },
       askPath: ASK_PATH,
       config,
+      consentClientPath: CONSENT_CLIENT_PATH,
       contentRoutes: [],
       context: context({ pagesRoot: "/p/pages" }),
       examplesPath: EXAMPLES_PATH,
@@ -1685,6 +1710,7 @@ describe("astroConfigTemplate workspace root", () => {
     const out = astroConfigTemplate({
       askPath: ASK_PATH,
       config,
+      consentClientPath: CONSENT_CLIENT_PATH,
       contentRoutes: [],
       context: context({
         contentRoot: join(root, "docs"),
@@ -2549,6 +2575,7 @@ describe("package / tsconfig templates", () => {
     const out = astroConfigTemplate({
       askPath: "./src/generated/Ask.astro",
       config,
+      consentClientPath: "./src/generated/consent-client.ts",
       contentRoutes: ["/guide"],
       context: context(),
       examplesPath: "./src/generated/examples.ts",
@@ -2608,6 +2635,7 @@ describe("astroConfigTemplate image config", () => {
     astroConfigTemplate({
       askPath: ASK_PATH,
       config: parsed,
+      consentClientPath: CONSENT_CLIENT_PATH,
       contentRoutes: [],
       context: context(),
       examplesPath: EXAMPLES_PATH,

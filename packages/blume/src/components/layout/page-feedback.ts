@@ -1,3 +1,4 @@
+import { track } from "./analytics-client.ts";
 /**
  * The "Was this page helpful?" rating (`PageFeedback.astro`). A rating is
  * sent as a `feedback` analytics event, the buttons give way to a thank-you,
@@ -13,8 +14,7 @@
  * rebuilds the widget from server-rendered markup, so the handlers always
  * bind to the freshly swapped-in elements.
  */
-import type { BlumeConsent } from "../../consent/client.ts";
-import { track } from "./analytics-client.ts";
+import type { BlumeConsent } from "./consent/types.ts";
 
 /** The longest comment the box takes. */
 export const COMMENT_MAX_LENGTH = 1000;

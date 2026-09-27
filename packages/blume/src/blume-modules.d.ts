@@ -15,6 +15,13 @@ declare module "blume:search-client" {
   export const createSearch: () => Fn | Promise<Fn>;
 }
 
+declare module "blume:consent-client" {
+  /** Start the configured consent adapter's browser module (see `consentClientTemplate`); a no-op for one without. */
+  // oxlint-disable-next-line typescript/consistent-type-imports
+  type Consent = import("./components/layout/consent/types.ts").BlumeConsent;
+  export const startConsentClient: (consent: Consent) => void;
+}
+
 declare module "blume:ask" {
   /** The generated Ask trigger (see `askComponentTemplate`); empty when Ask is off. */
   // Mirrors the generated `.blume/src/env.d.ts` declaration: the trigger's type

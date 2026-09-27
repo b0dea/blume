@@ -5,11 +5,11 @@ import path from "node:path";
 
 import {
   CONSENT_STORAGE_KEY,
-  HELD_SCRIPTS,
-  startConsent,
+  start as startNative,
   storedChoice,
-} from "../src/consent/client.ts";
-import type { BlumeConsent } from "../src/consent/client.ts";
+} from "../src/components/layout/consent/native.ts";
+import type { BlumeConsent } from "../src/components/layout/consent/types.ts";
+import { HELD_SCRIPTS, startConsent } from "../src/consent/client.ts";
 import { ETHYCA_BRIDGE } from "../src/consent/ethyca.ts";
 import { CONSENT_INIT_SCRIPT } from "../src/consent/init.ts";
 import { OSANO_BRIDGE } from "../src/consent/osano.ts";
@@ -363,16 +363,31 @@ describe("CONSENT_INIT_SCRIPT", () => {
 
 describe(startConsent, () => {
   it("does nothing without the init script's state", () => {
-    startConsent();
+    let started = false;
+    startConsent(() => {
+      started = true;
+    });
+    expect(started).toBe(false);
     expect(documentListeners.size).toBe(0);
     expect(windowListeners.size).toBe(0);
+  });
+
+  it("starts the adapter's browser module once it's listening", async () => {
+    heldPage();
+    await runInline(CONSENT_INIT_SCRIPT, { kind: "custom" });
+    // A module that reports a returning reader's answer as it starts: the
+    // runtime is already listening, so the held analytics run.
+    startConsent((state) => {
+      state.set({ analytics: true });
+    });
+    expect(inserted).toHaveLength(2);
   });
 
   it("asks a new reader, and runs the analytics once they accept", async () => {
     const { init, loader } = heldPage();
     const { accept, banner } = bannerPage();
     await runInline(CONSENT_INIT_SCRIPT, { kind: "native" });
-    startConsent();
+    startConsent((state) => startNative(state, {}));
     expect(banner.hidden).toBe(false);
     expect(consent().analytics).toBe(false);
     expect(inserted).toHaveLength(0);
@@ -406,7 +421,7 @@ describe(startConsent, () => {
     heldPage();
     const { banner } = bannerPage();
     await runInline(CONSENT_INIT_SCRIPT, { kind: "native" });
-    startConsent();
+    startConsent((state) => startNative(state, {}));
     expect(banner.hidden).toBe(true);
     expect(inserted).toHaveLength(2);
 
@@ -424,7 +439,7 @@ describe(startConsent, () => {
     heldPage();
     const { banner, decline, settings } = bannerPage();
     await runInline(CONSENT_INIT_SCRIPT, { kind: "native" });
-    startConsent();
+    startConsent((state) => startNative(state, {}));
 
     fireDocument("click", settings);
     expect(banner.hidden).toBe(false);
@@ -437,7 +452,7 @@ describe(startConsent, () => {
     heldPage();
     const { decline } = bannerPage();
     await runInline(CONSENT_INIT_SCRIPT, { kind: "native" });
-    startConsent();
+    startConsent((state) => startNative(state, {}));
     decline.click();
     expect(consent().analytics).toBe(false);
     expect(inserted).toHaveLength(0);
@@ -449,7 +464,7 @@ describe(startConsent, () => {
     heldPage();
     const { accept, banner } = bannerPage();
     await runInline(CONSENT_INIT_SCRIPT, { kind: "native" });
-    startConsent();
+    startConsent((state) => startNative(state, {}));
     expect(banner.hidden).toBe(false);
     accept.click();
     expect(inserted).toHaveLength(2);
@@ -457,7 +472,7 @@ describe(startConsent, () => {
 
   it("gets by on a page without the banner", async () => {
     await runInline(CONSENT_INIT_SCRIPT, { kind: "native" });
-    startConsent();
+    startConsent((state) => startNative(state, {}));
     consent().open?.();
     fireDocument("astro:after-swap");
     expect(consent().analytics).toBe(false);

@@ -17,12 +17,15 @@
  * factory returns a plain descriptor (see `core/adapter.ts`).
  *
  * Adding a consent manager: a factory and option schema in its own module,
- * a member of `consentAdapterSchema` (`schema.ts`), and its tags in
- * `consentHead` (`head.ts`): the manager's loader, then a constant bridge
- * script that calls `window.blumeConsent.set({ analytics })` with the
- * reader's choice on load and on every change, and sets
- * `window.blumeConsent.open` to reopen the manager's preferences (see
- * `init.ts` for the contract, and `osano.ts` for an example).
+ * and a member of `consentAdapterSchema` (`schema.ts`). Then connect it to
+ * `window.blumeConsent` (see `init.ts` for the contract): report the reader's
+ * choice with `set({ analytics })` on load and on every change, and set
+ * `open` to reopen the manager's preferences. A hosted manager does that
+ * with tags in `consentHead` (`head.ts`): its loader, then a constant bridge
+ * script (`osano.ts` is an example). A manager that ships as an npm package
+ * does it in a browser module instead, registered in `clients.ts`, with its
+ * packages in the factory's `runtimeDeps` (`native()`'s banner is the
+ * example).
  */
 export type { AdapterDescriptor, JsonValue } from "../core/adapter.ts";
 export { ethyca } from "./ethyca.ts";

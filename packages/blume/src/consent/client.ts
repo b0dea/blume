@@ -12,26 +12,10 @@
  *   one way to stop scripts that already started.
  * - Any element with `data-blume-consent-open` (the footer's Cookie settings
  *   link) reopens the adapter's preferences.
- * - Under `native()` it is the adapter too: it reads the stored answer, shows
- *   the banner until the reader picks one, and stores the pick.
+ * - An adapter with a browser module (`native()`'s banner, say) is started
+ *   from here once the runtime is listening; see `consent/clients.ts`.
  */
-
-/** What a consent adapter reports: whether the reader allows analytics. */
-export interface ConsentState {
-  analytics: boolean;
-}
-
-/** `window.blumeConsent`, created by the inline init script. */
-export interface BlumeConsent {
-  /** `null` until an adapter reports, then the reader's choice. */
-  analytics: boolean | null;
-  /** The configured adapter's kind. */
-  kind: string;
-  /** Reopen the reader's consent choices; set by the adapter. */
-  open?: () => void;
-  /** Report the reader's choice; fires `blume:consent` when it changes. */
-  set: (state: ConsentState) => void;
-}
+import type { BlumeConsent } from "../components/layout/consent/types.ts";
 
 /** The window, with the state the init script puts on it. */
 type ConsentWindow = Window & { blumeConsent?: BlumeConsent };
@@ -40,11 +24,6 @@ type ConsentWindow = Window & { blumeConsent?: BlumeConsent };
 export const HELD_SCRIPTS =
   'script[type="text/plain"][data-blume-consent="analytics"]';
 
-/** Where `native()` keeps the reader's answer. */
-export const CONSENT_STORAGE_KEY = "blume-consent";
-
-const BANNER = "[data-blume-consent-banner]";
-const CHOICE = "[data-blume-consent-choice]";
 const OPEN = "[data-blume-consent-open]";
 
 /**
@@ -76,53 +55,16 @@ export const runHeldScripts = (ran: Set<string>): void => {
   }
 };
 
-/** The stored `native()` answer, or `null` before one (or without storage). */
-export const storedChoice = (): boolean | null => {
-  try {
-    const value = localStorage.getItem(CONSENT_STORAGE_KEY);
-    if (value === "granted" || value === "denied") {
-      return value === "granted";
-    }
-  } catch {
-    // Storage blocked: ask again on every page rather than fail.
-  }
-  return null;
-};
-
-const storeChoice = (granted: boolean): void => {
-  try {
-    localStorage.setItem(CONSENT_STORAGE_KEY, granted ? "granted" : "denied");
-  } catch {
-    // Storage blocked: the answer holds for this page load only.
-  }
-};
-
-const banner = (): HTMLElement | null =>
-  document.querySelector<HTMLElement>(BANNER);
-
 /**
- * Wire this page's banner: show it while the reader hasn't answered, and
- * store and report an answer. Runs again after every client-router swap,
- * which brings a fresh, hidden banner.
+ * Start the consent runtime on this page load, then the configured adapter's
+ * browser module (`startClient`, from the generated `blume:consent-client`;
+ * none for a hosted manager, whose `<head>` tags report its answers).
  */
-const syncBanner = (consent: BlumeConsent): void => {
-  const element = banner();
-  if (!element) {
-    return;
+export const startConsent = (
+  startClient: (consent: BlumeConsent) => void = () => {
+    // No browser module: a hosted manager's <head> tags report its answers.
   }
-  element.hidden = storedChoice() !== null;
-  for (const button of element.querySelectorAll<HTMLElement>(CHOICE)) {
-    button.addEventListener("click", () => {
-      const granted = button.dataset.blumeConsentChoice === "accept";
-      storeChoice(granted);
-      element.hidden = true;
-      consent.set({ analytics: granted });
-    });
-  }
-};
-
-/** Start the consent runtime on this page load. */
-export const startConsent = (): void => {
+): void => {
   // SAFETY: ConsentWindow only adds the optional state the init script
   // creates; it's checked before use.
   const consent = (window as ConsentWindow).blumeConsent;
@@ -147,21 +89,7 @@ export const startConsent = (): void => {
       consent.open?.();
     }
   });
-  if (consent.kind === "native") {
-    consent.open = () => {
-      const element = banner();
-      if (element) {
-        element.hidden = false;
-      }
-    };
-    syncBanner(consent);
-    consent.set({ analytics: storedChoice() === true });
-  }
+  startClient(consent);
   run();
-  document.addEventListener("astro:after-swap", () => {
-    run();
-    if (consent.kind === "native") {
-      syncBanner(consent);
-    }
-  });
+  document.addEventListener("astro:after-swap", run);
 };

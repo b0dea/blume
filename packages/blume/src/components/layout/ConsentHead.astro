@@ -7,9 +7,11 @@ import type { BlumeDataConfig } from "../../core/data.ts";
 // every layout when `consent` is configured: the inline script that creates
 // `window.blumeConsent` (`consent/init.ts`), the adapter's own tags — a
 // hosted consent manager's loader and the bridge that reports its answers —
-// and the runtime that runs the held analytics (`consent/client.ts`). Like
-// analytics, a hosted manager loads in production builds only; `native()`
-// has no tags and works in `blume dev` too.
+// and the runtime that runs the held analytics (`consent/client.ts`), which
+// starts the adapter's browser module, if it has one (`blume:consent-client`,
+// see `consent/clients.ts`). Like analytics, a hosted manager loads in
+// production builds only; a browser module (`native()`'s banner) works in
+// `blume dev` too.
 interface Props {
   consent: NonNullable<BlumeDataConfig["consent"]>;
 }
@@ -29,7 +31,8 @@ const tags = import.meta.env.PROD ? consentHead(consent) : [];
   )
 }
 <script>
+  import { startConsentClient } from "blume:consent-client";
   import { startConsent } from "../../consent/client.ts";
 
-  startConsent();
+  startConsent(startConsentClient);
 </script>
