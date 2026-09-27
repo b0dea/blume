@@ -3,7 +3,7 @@
 // story's own words in the default slot: a centered stack of the wordmark,
 // the two-tone headline, and the summary, with the link back to /customers
 // at its top-left; then the panel's split, the headline numbers on the story
-// fill (story.css) beside the story's photo; the body in long-form prose
+// fill (story.css) beside the story's photo; the body in the docs' prose
 // (`story-body`), centered on the page, with the facts (industry, their docs,
 // what they moved from, the Blume features they lean on) pinned at the
 // panel's left edge; the next story's panel; and the install CTA. Each story
@@ -150,7 +150,7 @@ const next = stories.length > 1 ? stories[(index + 1) % stories.length] : null;
         <aside
           class="max-lg:mx-auto max-lg:w-full max-lg:max-w-[40rem] lg:sticky lg:top-28 lg:max-w-56 lg:self-start"
         >
-          <dl class="grid grid-cols-2 gap-x-8 gap-y-6 lg:grid-cols-1">
+          <dl class="grid grid-cols-2 gap-x-8 gap-y-6 text-sm lg:grid-cols-1">
             <div class="flex flex-col gap-1">
               <dt class="text-muted-foreground text-sm">Industry</dt>
               <dd class="text-foreground">{story.facts.industry}</dd>

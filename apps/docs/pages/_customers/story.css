@@ -31,15 +31,8 @@
   opacity: 0.14;
 }
 
-/* A story's body reads as long-form: a size up from the docs' prose
-   (0.875rem, set on `.prose` by the theme), which is tuned for scanning
-   reference pages. Paired with `.prose`, so it wins over the theme's rule. */
-.story-body.prose {
-  font-size: 1.125rem;
-  line-height: 1.75;
-}
-
-/* The story's first line starts level with the facts beside it. */
+/* A story's or guide's body is the docs' own prose; its first line starts
+   level with the facts beside it. */
 .story-body.prose > :first-child {
   margin-top: 0;
 }
