@@ -159,6 +159,7 @@ export default defineConfig({
       { label: "Agents", path: "/agents" },
       { label: "Compare", path: "/compare" },
       { label: "Customers", path: "/customers" },
+      { label: "Guides", path: "/guides" },
       {
         label: {
           de: "Änderungen",
