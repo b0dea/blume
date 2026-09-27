@@ -116,7 +116,7 @@ i18n: {
 
 Fallback pages point their canonical link at the page they copy, are left out of the search index, `llms.txt`, and the MCP and JSON API page lists, and aren't advertised as real translations in `hreflang`, so untranslated content doesn't compete for ranking. They still appear in that locale's sidebar, so navigation stays complete — a reader can reach every page in any language.
 
-Release notes from a [`githubReleases()`](/docs/content/sources#github-releases) source are the exception: they're published in one language, so they're never copied to other locales' URLs and show no language switcher.
+Release notes from a [`githubReleases()`](/docs/content/sources/github-releases) source are the exception: they're published in one language, so they're never copied to other locales' URLs and show no language switcher.
 
 :::tip
 Start by translating your most important pages — the homepage, quickstart, and top guides — and let the rest fall back. You can fill in translations over time without breaking any links.
@@ -140,7 +140,7 @@ Blume validates each result's structure — frontmatter, code fences, links — 
 
 ## The language switcher
 
-When i18n is on, a language switcher appears in the header automatically, generated from your `locales`. For each page it links the matching translation in every language; where a translation is missing it links the fallback page and marks it as not translated. There's nothing to configure. Pages from a [GitHub Releases](/docs/content/sources#github-releases) source are the exception: release notes exist in one language only, so those pages render without a switcher.
+When i18n is on, a language switcher appears in the header automatically, generated from your `locales`. For each page it links the matching translation in every language; where a translation is missing it links the fallback page and marks it as not translated. There's nothing to configure. Pages from a [GitHub Releases](/docs/content/sources/github-releases) source are the exception: release notes exist in one language only, so those pages render without a switcher.
 
 ## Routing by browser language
 

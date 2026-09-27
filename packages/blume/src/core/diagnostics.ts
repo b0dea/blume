@@ -24,6 +24,7 @@ const DOCS_BASE = "https://useblume.dev";
 const DOCS_DEPLOYMENT = "/docs/deployment";
 const DOCS_CLI_VALIDATE = "/docs/cli/validate";
 const DOCS_CONTENT_SOURCES = "/docs/content/sources";
+const DOCS_CONTENT_SOURCES_OBSIDIAN = "/docs/content/sources/obsidian";
 const DOCS_CONTENT_NAVIGATION = "/docs/content/navigation";
 const DOCS_CONTENT_INCLUDES = "/docs/content/includes";
 
@@ -73,8 +74,8 @@ const DOCS_PATHS = new Map(
     BLUME_UNKNOWN_ICON: DOCS_CONTENT_NAVIGATION,
     BLUME_UNKNOWN_OPTION: "/docs/cli",
     BLUME_UNLOADABLE_FILE_NAME: "/docs/content",
-    BLUME_WIKILINK_AMBIGUOUS: DOCS_CONTENT_SOURCES,
-    BLUME_WIKILINK_UNRESOLVED: DOCS_CONTENT_SOURCES,
+    BLUME_WIKILINK_AMBIGUOUS: DOCS_CONTENT_SOURCES_OBSIDIAN,
+    BLUME_WIKILINK_UNRESOLVED: DOCS_CONTENT_SOURCES_OBSIDIAN,
     BLUME_YARN_PNP: "/docs/quickstart",
   })
 );

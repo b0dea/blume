@@ -1,0 +1,29 @@
+---
+title: Sanity
+description: Pull documents from a Sanity dataset with the sanity() source — a GROQ query picks the documents and their Portable Text bodies become Markdown.
+---
+
+The built-in `sanity()` adapter runs a GROQ query and maps each document's fields to frontmatter and its Portable Text body to Markdown. The adapter declares `@sanity/client` as its runtime dependency — an optional peer, so install it only if you use this source.
+
+```ts blume.config.ts
+import { defineConfig } from "blume";
+import { filesystem, sanity } from "blume/sources";
+
+export default defineConfig({
+  content: {
+    sources: [
+      filesystem({ root: "docs" }),
+      sanity({
+        prefix: "guides",
+        projectId: "abc123",
+        dataset: "production",
+        query: `*[_type == "guide"]`,
+        // Field paths default to title / slug.current / body / _updatedAt
+        fields: { slug: "slug.current", body: "content" },
+      }),
+    ],
+  },
+});
+```
+
+A read token for a private dataset comes from the `SANITY_TOKEN` environment variable, which the adapter declares. Custom Portable Text block types map to Blume components through the engine's `serializers` option, available when you construct `sanitySource` directly and pass it to [`custom()`](/docs/content/sources/custom). Setting `serializers` writes the source's pages as MDX, so a component or directive a serializer returns renders.

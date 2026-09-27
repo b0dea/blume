@@ -68,7 +68,7 @@ A header [tab](/docs/content/navigation#tabs) pointing at `/changelog` opens thi
 
 ## From GitHub Releases
 
-Rather than authoring entries by hand, point the built-in [`githubReleases()` source](/docs/content/sources#github-releases) at a repo and every release becomes a `type: changelog` entry — the same timeline and feed, fed straight from the releases you already publish. Blume's own [changelog](/changelog) is built this way:
+Rather than authoring entries by hand, point the built-in [`githubReleases()` source](/docs/content/sources/github-releases) at a repo and every release becomes a `type: changelog` entry — the same timeline and feed, fed straight from the releases you already publish. Blume's own [changelog](/changelog) is built this way:
 
 ```ts blume.config.ts
 import { filesystem, githubReleases } from "blume/sources";
@@ -85,7 +85,7 @@ content: {
 }
 ```
 
-The release name becomes the title, its tag becomes `changelog.version`, and its published date sorts the timeline. Each release page also gets a unique meta description summarized from its notes — markdown stripped, section headings and changeset commit-hash prefixes dropped, trimmed to the search-snippet length [`blume audit`](/docs/cli/audit) checks for — instead of falling back to the site description. A private repo authenticates with the `GITHUB_TOKEN` environment variable. See [Content sources](/docs/content/sources#github-releases) for every option.
+The release name becomes the title, its tag becomes `changelog.version`, and its published date sorts the timeline. Each release page also gets a unique meta description summarized from its notes — markdown stripped, section headings and changeset commit-hash prefixes dropped, trimmed to the search-snippet length [`blume audit`](/docs/cli/audit) checks for — instead of falling back to the site description. A private repo authenticates with the `GITHUB_TOKEN` environment variable. See [GitHub Releases](/docs/content/sources/github-releases) for every option.
 
 ## The RSS feed
 
