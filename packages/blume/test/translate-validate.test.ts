@@ -173,6 +173,18 @@ npm install blume
     ).toContain("does not parse");
   });
 
+  it("names the YAML error and its position when the frontmatter is unparseable", () => {
+    // A translated plain-scalar value that gained a `: ` (an em dash swapped
+    // for a colon) reads as a nested mapping and fails the whole parse.
+    const reason = failReason(
+      SOURCE,
+      "---\ntitle: Instalação\ndescription: Instale o Blume: depois execute.\n---\n# Installation\n\nOlá.\n"
+    );
+    expect(reason).toBe(
+      "frontmatter does not parse as YAML: bad indentation of a mapping entry (3:29)"
+    );
+  });
+
   it("fails on an empty body", () => {
     expect(failReason(SOURCE, "---\ntitle: Installation\n---\n")).toContain(
       "empty body"
@@ -251,6 +263,7 @@ describe("prompts", () => {
     expect(prompt).toContain("sidebar.label");
     expect(prompt).toContain("seo.description");
     expect(prompt).toContain("Do not wrap it in a code fence");
+    expect(prompt).toContain("Keep the frontmatter valid YAML");
     expect(prompt).not.toContain("previous translation");
     expect(prompt.endsWith(SOURCE)).toBe(true);
   });

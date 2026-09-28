@@ -132,8 +132,14 @@ export const validateTranslation = (
   let parsed: { content: string; data: FrontmatterData };
   try {
     parsed = matter(candidate);
-  } catch {
-    return { ok: false, reason: "frontmatter does not parse as YAML" };
+  } catch (error) {
+    // js-yaml's message leads with the problem and its line:column in the
+    // file, then a multi-line code frame; the first line is enough to act on.
+    const message = error instanceof Error ? error.message : String(error);
+    return {
+      ok: false,
+      reason: `frontmatter does not parse as YAML: ${message.replace(/\n[\s\S]*$/u, "")}`,
+    };
   }
 
   const rawBody = ensureTrailingNewline(parsed.content.replace(/^\r?\n/u, ""));
