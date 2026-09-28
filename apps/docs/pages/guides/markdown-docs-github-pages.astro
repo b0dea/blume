@@ -284,8 +284,10 @@ jobs:
   </p>
   <p>
     GitHub Pages serves static files only, so leave out the Blume features that
-    need a server: the assistant, the MCP server, and the API playground's
-    built-in proxy.
+    need a server: the built-in assistant, the MCP server, the API
+    playground's built-in proxy, and Mixedbread search.{" "}
+    <a href="/guides/static-vs-server-documentation">Static or server-rendered documentation</a>{" "}
+    maps each one and the static alternatives.
   </p>
 
   <h2>Push and follow the deploy</h2>
@@ -322,7 +324,7 @@ jobs:
 
   <h2>Use a custom domain</h2>
   <p>
-    To serve the docs from a domain like <code>docs.acme.dev</code>, add it
+    To serve the docs from a domain like <code>docs.acme.example</code>, add it
     under <strong>Custom domain</strong> in the repository's Pages settings,
     then create a <code>CNAME</code> DNS record that points it at{" "}
     <code>acme.github.io</code>, and turn on <strong>Enforce HTTPS</strong>. A
@@ -335,7 +337,7 @@ jobs:
   </p>
   <CodeBlock
     code={`deployment: {
-  site: "https://docs.acme.dev",
+  site: "https://docs.acme.example",
 },`}
     lang="ts"
     title="blume.config.ts"

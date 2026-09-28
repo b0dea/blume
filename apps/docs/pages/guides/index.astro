@@ -1,15 +1,15 @@
 ---
-// The guides index (/guides): a left-aligned two-tone heading, the newest
-// guide featured large (_guides/GuideFeature.astro), then every other guide in
-// the grid beneath it, then the install CTA. guides.ts lists guides newest
-// first, so a new guide at the top of that list takes the featured spot. The
-// list is also emitted as schema.org ItemList structured data, so search and
-// answer engines read it as a collection of the guides it links to.
+// The guides index (/guides): a left-aligned two-tone heading, a row of
+// links to each section, then every guide in its section (`sections` in
+// guides.ts: one per area, like migration or hosting), each a grid of swatch
+// cards, then the install CTA. The list is also emitted as
+// schema.org ItemList structured data, so search and answer engines read it
+// as a collection of the guides it links to.
 import PageLayout from "blume/components/layout/PageLayout.astro";
+import { componentSlug } from "blume/components/slug.ts";
 import data from "blume:data";
-import GuideFeature from "../_guides/GuideFeature.astro";
 import GuideGrid from "../_guides/GuideGrid.astro";
-import { guides } from "../_guides/guides.ts";
+import { guides, sections } from "../_guides/guides.ts";
 import Footer from "../_home/Footer.astro";
 import InstallCta from "../_home/InstallCta.astro";
 import Motion from "../_home/Motion.astro";
@@ -19,7 +19,13 @@ const { config } = data;
 const pageTitle = "Blume guides";
 const pageDescription =
   "Step-by-step guides to getting things done with Blume, from deploying your docs to opening them up to AI agents.";
-const [featured, ...rest] = guides;
+const groups = sections
+  .map((section) => ({
+    guides: guides.filter((guide) => section.topics.includes(guide.topic)),
+    id: componentSlug(section.title),
+    title: section.title,
+  }))
+  .filter((group) => group.guides.length > 0);
 const itemList = JSON.stringify({
   "@context": "https://schema.org",
   "@type": "ItemList",
@@ -54,25 +60,54 @@ const itemList = JSON.stringify({
   <div
     class="mx-auto grid max-w-[1400px] gap-24 px-6 pb-20 sm:pb-24 lg:gap-32 xl:gap-40"
   >
-    <section class="flex flex-col gap-12 pt-16 sm:pt-24 lg:gap-16">
+    <div class="flex flex-col gap-12 pt-16 sm:pt-24 lg:gap-16">
       <h1 class="max-w-[30ch] text-balance font-medium text-4xl sm:text-5xl">
         <span class="block">Guides.</span>
         <span class="block text-muted-foreground">One goal at a time.</span>
       </h1>
 
-      {featured && <GuideFeature guide={featured} />}
+      <nav aria-label="Guide sections" class="border-border border-b pb-4">
+        <ul
+          class="flex flex-wrap gap-x-5 gap-y-2 text-base sm:text-sm"
+          role="list"
+        >
+          {
+            groups.map((group) => (
+              <li>
+                <a
+                  class="text-muted-foreground hover:text-foreground"
+                  href={`#${group.id}`}
+                >
+                  {group.title}
+                </a>
+              </li>
+            ))
+          }
+        </ul>
+      </nav>
 
       {
-        rest.length > 0 && (
-          <div
-            class="border-border border-t pt-12 lg:pt-16"
+        groups.map((group, index) => (
+          <section
+            aria-labelledby={group.id}
+            class:list={[
+              "flex scroll-mt-24 flex-col gap-10",
+              // The section links' underline divides the first section
+              index > 0 && "border-border border-t pt-12 lg:pt-16",
+            ]}
             data-reveal
           >
-            <GuideGrid guides={rest} level="h2" />
-          </div>
-        )
+            <h2
+              class="text-balance font-medium text-2xl text-foreground sm:text-3xl"
+              id={group.id}
+            >
+              {group.title}
+            </h2>
+            <GuideGrid guides={group.guides} level="h3" />
+          </section>
+        ))
       }
-    </section>
+    </div>
 
     <InstallCta />
   </div>

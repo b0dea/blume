@@ -5,7 +5,10 @@
 // init scaffold on main; Notion's connection, automation, and Sites steps
 // against Notion's help and developer docs, and deploy hooks against
 // Vercel's docs (September 2026). Not yet run end to end on a sample
-// database.
+// database. Review (September 2026): the missing-token and missing-SDK
+// troubleshooting now follows cli/prepare.ts and core/sources/cache.ts (a
+// fresh build's fetch error comes before the secret and dependency checks),
+// checked by calling the Notion API without a token.
 import Callout from "blume/components/content/Callout.astro";
 import CodeBlock from "blume/components/content/CodeBlock.astro";
 import GuidePage from "../_guides/GuidePage.astro";
@@ -27,7 +30,11 @@ import { guideById } from "../_guides/guides.ts";
     and custom domains as a paid add-on. If a public Notion page is all you need,
     that's the simpler path. This guide is for when you want a docs site instead:
     Notion pages side by side with Markdown pages, docs-style navigation and search,
-    and a site you host and deploy yourself.
+    and a site you host and deploy yourself. When engineers own the Markdown
+    half and another team owns Notion,{" "}
+    <a href="/guides/markdown-notion-documentation"
+      >Combine Markdown and Notion in one site</a
+    > adds the ownership rules and CI checks.
   </p>
 
   <h2>Set up the database</h2>
@@ -109,8 +116,8 @@ import { guideById } from "../_guides/guides.ts";
     <li>
       On its <strong>Content access</strong> tab, give it access to your
       database. You can also do this from the database itself: open the{" "}
-      <strong>•••</strong> menu, choose <strong>Connections</strong>, and add
-      your connection.
+      <strong>•••</strong> menu, choose <strong>Add connections</strong>, and
+      pick your connection.
     </li>
   </ol>
   <p>
@@ -245,7 +252,9 @@ npx blume preview`}
     Open the draft's URL on the preview server: it's a 404, and it's missing
     from the sidebar, the search index, and the sitemap. Set its Status to
     Done, build again, and it's there. To share a build that includes drafts
-    for review, run <code>npx blume build --preview</code>.
+    for review, run <code>npx blume build --preview</code> and deploy it only
+    behind <a href="/docs/deployment#private-docs">access protection</a>,
+    never to your public domain.
   </p>
 
   <h2>Deploy</h2>
@@ -352,19 +361,25 @@ jobs:
     is the database's and not a view's. Blume passes on Notion's own error in
     a <code>BLUME_SOURCE_FETCH_FAILED</code> diagnostic.
   </p>
-  <h3>The build warns that NOTION_TOKEN is not set</h3>
+  <h3>The build fails with an authorization error</h3>
   <p>
-    <code>BLUME_MISSING_SECRET</code> means the variable isn't set where the
-    build runs, and the fetch fails right after it. Locally, check{" "}
-    <code>.env.local</code> is in the project folder. On your host, add the
-    variable to the environment that ran the build, then redeploy: a changed
-    variable only applies to new builds.
+    <code>NOTION_TOKEN</code> isn't set where the build runs. Blume fetches
+    Notion before it checks for missing variables, so on a fresh build machine
+    the fetch fails first: <code>BLUME_SOURCE_FETCH_FAILED</code>, with
+    Notion's message that the Authorization header must use the format{" "}
+    <code>Bearer &lt;token&gt;</code>. You only see the{" "}
+    <code>BLUME_MISSING_SECRET</code> warning when Blume has a snapshot to
+    serve instead, as a dev server that fetched once already does. Locally,
+    check <code>.env.local</code> is in the folder you run Blume from. On your
+    host, add the variable to the environment that ran the build, then
+    redeploy: a changed variable only applies to new builds.
   </p>
   <h3>The build says a package isn't installed</h3>
   <p>
-    <code>BLUME_DEPENDENCY_MISSING</code> means <code>@notionhq/client</code>{" "}
-    isn't in your dependencies. The diagnostic prints the install command for
-    your package manager.
+    <code>@notionhq/client</code> isn't in your dependencies. On a fresh build
+    the fetch fails with <code>BLUME_SOURCE_FETCH_FAILED</code> and a message
+    naming the package and its install command. Install it with{" "}
+    <code>npm install @notionhq/client</code> and build again.
   </p>
   <h3>The site shows old content with a warning</h3>
   <p>

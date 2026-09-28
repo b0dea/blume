@@ -420,7 +420,7 @@ npx blume preview`}
   <ul>
     <li>
       <strong>The operation URL.</strong> <code>/api/messages/send-message</code>{" "}
-      loads on its own, not just from the sidebar.
+      loads on its own, not only from the sidebar.
     </li>
     <li>
       <strong>Search.</strong> Searching for "send a message" or{" "}
@@ -446,10 +446,11 @@ npx blume preview`}
   <h2>Deploy</h2>
   <p>
     Without the proxy, the whole site is static files in <code>dist/</code>,
-    so any static host works. Blume detects the site's URL on Vercel, Netlify,
-    and Cloudflare Pages. Anywhere else, set <code>deployment.site</code> to
-    your docs URL so the sitemap, canonical links, and Open Graph images are
-    correct. For a step-by-step static deploy, see{" "}
+    so any static host works. On Vercel and Netlify, Blume detects the site's
+    production URL. Cloudflare Pages only exposes each deploy's own URL, which
+    changes every time, and other hosts expose none, so there, set{" "}
+    <code>deployment.site</code> to your docs URL so the sitemap, canonical
+    links, and Open Graph images are correct. For a step-by-step static deploy, see{" "}
     <a href="/guides/markdown-docs-github-pages">Deploy Markdown docs to GitHub Pages</a>.
     With the proxy on, deploy to the host your adapter names; the{" "}
     <a href="/docs/deployment">deployment docs</a> cover each one.
@@ -459,7 +460,8 @@ npx blume preview`}
   <p>
     The reference is rebuilt from the spec on every build, so publishing an
     updated spec is a matter of committing it and deploying. The dev server
-    reads the spec when it starts, so restart it after you edit the spec.
+    watches your content folder and <code>blume.config.ts</code>, not a spec
+    file beside them, so restart it after you edit the spec.
   </p>
   <p>
     One change needs care. An operation's URL comes from its tag and operation
@@ -504,7 +506,9 @@ npx blume preview`}
   <p>
     That's CORS. Allow the docs origin in your API, or turn on the proxy as
     shown above. With the proxy on, a Custom base URL typed into the panel is
-    refused with a 403, because it isn't one of the spec's servers.
+    refused with a 403, because it isn't one of the spec's servers.{" "}
+    <a href="/guides/api-documentation-cors-errors">Fix CORS errors in an API documentation playground</a>{" "}
+    walks through reading the failed preflight.
   </p>
   <h3>A page's URL changed</h3>
   <p>

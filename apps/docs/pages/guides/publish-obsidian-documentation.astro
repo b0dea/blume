@@ -2,7 +2,10 @@
 // Publish Obsidian notes: checked against the Obsidian source docs, the
 // obsidian() adapter and vault loader (core/sources/obsidian.ts), init's
 // source scaffold, folder-meta discovery (project-graph.ts), and Obsidian's
-// help on links and properties. Not yet run end to end on a sample vault.
+// help on links and properties. Review (September 2026): rechecked against
+// core/sources/obsidian.ts, sources/watch.ts, and validate.ts; confirmed with
+// an fs.watch probe that trashing a note reports its original path (so it
+// does rebuild). Not yet run end to end on a sample vault.
 import Callout from "blume/components/content/Callout.astro";
 import CodeBlock from "blume/components/content/CodeBlock.astro";
 import GuidePage from "../_guides/GuidePage.astro";
@@ -11,11 +14,12 @@ import { guideById } from "../_guides/guides.ts";
 
 <GuidePage guide={guideById("publish-obsidian-documentation")}>
   <p>
-    By the end of this guide, a folder of Obsidian notes publishes as a section
-    of a docs site, with a sidebar, search, and a stable URL for every note.
-    Blume reads the vault in place, so there's no export step: you keep writing
-    in Obsidian, and wikilinks, heading links, and images resolve when the site
-    builds.
+    To publish Obsidian notes as a docs site, point Blume's{" "}
+    <code>obsidian()</code> source at the vault folder. The notes become a
+    section of the site, with a sidebar, search, and a stable URL for every
+    note. Blume reads the vault in place, so there's no export step: you keep
+    writing in Obsidian, and wikilinks, heading links, and images resolve when
+    the site builds.
   </p>
 
   <h2>When a vault fits</h2>
@@ -28,7 +32,7 @@ import { guideById } from "../_guides/guides.ts";
   </p>
   <p>
     It doesn't recreate Obsidian on the web. There's no graph view or backlinks
-    panel, and Obsidian's callouts and embeds aren't converted yet. If what you
+    panel, and Obsidian's callouts and embeds aren't converted. If what you
     want is a digital garden that looks and behaves like your vault,{" "}
     <a href="https://quartz.jzhao.xyz/">Quartz</a> is a static site generator
     built for that, with backlinks and a graph view, and{" "}
@@ -261,7 +265,7 @@ Afterward, write it up using [[Incident review]].`}
   </table>
   <p>
     Images need the most care. Obsidian inserts a pasted image as an{" "}
-    <code>![[...]]</code> embed, which Blume doesn't convert yet, so rewrite
+    <code>![[...]]</code> embed, which Blume doesn't convert, so rewrite
     each one as a Markdown image. Obsidian renders those too. Blume resolves
     the path relative to the note, so keep the image beside the note, as{" "}
     <code>deploy-flow.png</code> is here, or write the path from the note to the
@@ -335,7 +339,7 @@ sidebar:
   <p>
     Neither fails the build, so a vault in the middle of a rewrite still
     publishes. Fix this one by writing the note, or by removing the link. To
-    make CI fail on any link warning, run:
+    make CI fail on these, and on any other warning, run:
   </p>
   <CodeBlock code="npx blume validate --strict" lang="bash" />
   <p>
@@ -376,9 +380,8 @@ sidebar:
   <h2>Edit a note and rebuild</h2>
   <p>
     With <code>blume dev</code> running, edit a note in Obsidian and the page
-    updates. Rearranging panes or moving a note to the trash changes only{" "}
-    <code>.obsidian</code> and <code>.trash</code>, which Blume ignores, so
-    those don't trigger a rebuild.
+    updates. Blume ignores changes inside <code>.obsidian</code> and{" "}
+    <code>.trash</code>, so rearranging panes doesn't trigger a rebuild.
   </p>
   <p>
     The live site updates when it rebuilds. Commit the vault and push, and a
@@ -394,8 +397,9 @@ sidebar:
   <p>
     Check that it isn't in a dot-folder or a folder named in{" "}
     <code>exclude</code>, and that it doesn't have <code>draft: true</code>. A
-    note whose filename contains <code>#</code> or <code>?</code> is left out
-    with a <code>BLUME_UNLOADABLE_FILE_NAME</code> error: rename it.
+    note whose filename contains <code>#</code> or <code>?</code> can't be
+    loaded: the dev server leaves it out, and <code>blume build</code> stops,
+    both with a <code>BLUME_UNLOADABLE_FILE_NAME</code> error. Rename it.
   </p>
   <h3>An image doesn't show</h3>
   <p>
@@ -416,7 +420,7 @@ sidebar:
   </p>
   <h3>A callout shows as a quote</h3>
   <p>
-    Obsidian callouts render as plain blockquotes for now. Write the note so it
+    Obsidian callouts render as plain blockquotes. Write the note so it
     still reads well as a quote, or move that page into <code>docs/</code> as
     MDX and use a <code>:::note</code> callout.
   </p>

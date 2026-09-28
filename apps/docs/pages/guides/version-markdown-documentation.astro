@@ -1,8 +1,11 @@
 ---
 // Version your docs for a breaking release: checked against the versioning,
 // blume version, search, sitemap, and redirects docs, and against
-// core/version-cut.ts, core/schema.ts, and deploy/sitemap.ts on main. Not yet
-// run end to end on a sample project.
+// core/version-cut.ts, core/schema.ts, deploy/sitemap.ts, astro/templates.ts
+// (canonical), search/adapters/version-scope.ts, ai/mcp/tools.ts, and
+// ai/llms.ts on main. Pattern redirects are not in the current npm release
+// (checked against the blume@2.0.3 tag). Not yet run end to end on a sample
+// project.
 import Callout from "blume/components/content/Callout.astro";
 import CodeBlock from "blume/components/content/CodeBlock.astro";
 import GuidePage from "../_guides/GuidePage.astro";
@@ -300,8 +303,9 @@ console.log(message.id);`}
     engines which copy you consider current. It doesn't decide what they rank.
     To check, view the source of <code>/v1/quickstart</code> and find the{" "}
     <code>&lt;link rel="canonical"&gt;</code> tag, then run a build and read
-    the <code>sitemap.xml</code> it writes. The sitemap needs your site URL set
-    in <code>deployment.site</code>, or detected on your host.
+    the <code>sitemap.xml</code> it writes. Both the canonical tag and the
+    sitemap need your site URL, set in <code>deployment.site</code> or detected
+    on your host.
   </p>
   <p>
     <code>/v1/quickstart</code> is the case to think about. Its content differs
@@ -370,7 +374,9 @@ console.log(message.id);`}
     you point them. Update the earlier <code>/callbacks</code> redirect too, so
     it doesn't lead to a page that's gone. Pattern redirects need a host that
     reads Blume's redirect files or a server build: see{" "}
-    <a href="/docs/deployment#pattern-redirects">Pattern redirects</a>.
+    <a href="/docs/deployment#pattern-redirects">Pattern redirects</a>. The{" "}
+    <a href="/guides/documentation-url-migration-redirects">URL migration guide</a>{" "}
+    shows how to test redirects before and after you deploy.
   </p>
 
   <h2>Troubleshooting</h2>

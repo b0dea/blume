@@ -4,6 +4,9 @@
 // build gate in cli/prepare.ts, the route check in astro/generate.ts, and the
 // Connect to MCP menu in PageActions.astro on main; the Claude Code and Cursor
 // setup against their own docs. Not yet run end to end on a deployed site.
+// Review: reran the tools/list request and a GET (405) against this site's
+// local dev server; cloudflare() is Workers only (@astrojs/cloudflare 14
+// dropped Pages); Markdown negotiation per host from deploy/platforms/*.ts.
 import Callout from "blume/components/content/Callout.astro";
 import CodeBlock from "blume/components/content/CodeBlock.astro";
 import GuidePage from "../_guides/GuidePage.astro";
@@ -108,7 +111,11 @@ import { guideById } from "../_guides/guides.ts";
       <code>/llms-full.txt</code>, every page in one file.
     </li>
     <li>
-      A Markdown copy of every page: add <code>.md</code> to any page URL.
+      A Markdown copy of every page: add <code>.md</code> to any page URL. On
+      Vercel and Cloudflare, the page URL itself answers in Markdown when an
+      agent sends <code>Accept: text/markdown</code>: see{" "}
+      <a href="/guides/html-markdown-content-negotiation">Serve HTML and Markdown from the same documentation URL</a
+      >.
     </li>
   </ul>
   <p>
@@ -193,7 +200,7 @@ import { guideById } from "../_guides/guides.ts";
       </tr>
       <tr>
         <td><code>cloudflare()</code></td>
-        <td>Cloudflare Workers and Pages</td>
+        <td>Cloudflare Workers</td>
         <td>
           Install <code>@astrojs/cloudflare</code>. Set <code>site</code>.
         </td>
@@ -205,7 +212,11 @@ import { guideById } from "../_guides/guides.ts";
       </tr>
     </tbody>
   </table>
-  <p>This guide uses Vercel. Your config now looks like this:</p>
+  <p>
+    This guide uses Vercel. For Cloudflare, see{" "}
+    <a href="/guides/cloudflare-workers-documentation">Deploy documentation and an MCP endpoint to Cloudflare Workers</a
+    >. With Vercel, your config now looks like this:
+  </p>
   <CodeBlock
     code={`import { defineConfig } from "blume";
 import { vercel } from "blume/deploy";

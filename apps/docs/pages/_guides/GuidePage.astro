@@ -9,7 +9,7 @@
 // and a way to report a step that no longer works. The facts (what you'll
 // need, what it was tested with, the example project, the docs it leans on)
 // are pinned in the left column and its sections in the right. Three more
-// guides and the install CTA follow.
+// guides from the same area and the install CTA follow.
 //
 // The walkthrough's `<h2>`s get ids (github-slugger, like the docs' heading
 // anchors) so each section can be linked to and cited, and they make up the
@@ -30,7 +30,13 @@ import SectionHeading from "../_home/SectionHeading.astro";
 import TextLink from "../_home/TextLink.astro";
 import { glyph, installCopyScript } from "../_home/shared.ts";
 import GuideGrid from "./GuideGrid.astro";
-import { authors, type Guide, guides, topics } from "./guides.ts";
+import {
+  authors,
+  type Guide,
+  guides,
+  sections as indexSections,
+  topics,
+} from "./guides.ts";
 
 interface Props {
   guide: Guide;
@@ -84,13 +90,17 @@ const reportHref = config.repoUrl
     })}`
   : null;
 
-// The three guides after this one, wrapping to the start, so every page ends
-// on more; fewer when there aren't three others.
+// Three more guides, so every page ends on more: the ones after this one in
+// its own index section first (wrapping to the start), then the rest.
 const index = guides.findIndex((entry) => entry.id === guide.id);
-const more = [...guides.slice(index + 1), ...guides.slice(0, index)].slice(
-  0,
-  3
-);
+const sectionTopics = indexSections.find((section) =>
+  section.topics.includes(guide.topic)
+)?.topics ?? [guide.topic];
+const others = [...guides.slice(index + 1), ...guides.slice(0, index)];
+const more = [
+  ...others.filter((entry) => sectionTopics.includes(entry.topic)),
+  ...others.filter((entry) => !sectionTopics.includes(entry.topic)),
+].slice(0, 3);
 const link =
   "text-foreground underline decoration-foreground/20 underline-offset-4 hover:decoration-foreground";
 ---

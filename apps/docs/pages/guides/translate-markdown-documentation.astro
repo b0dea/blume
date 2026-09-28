@@ -3,8 +3,10 @@
 // translate docs, the translate command and its work list, ledger, prompts,
 // and report (packages/blume/src/translate), RootLayout's hreflang output, and
 // the repo's own translations workflow on main. Action versions checked
-// against the actions/checkout and actions/setup-node READMEs. Not yet run end
-// to end on a sample project.
+// against the actions/checkout and actions/setup-node READMEs. Per-locale
+// header-link and footer-link labels are not in the current npm release
+// (checked against the blume@2.0.3 tag's schema). Not yet run end to end on a
+// sample project.
 import Callout from "blume/components/content/Callout.astro";
 import CodeBlock from "blume/components/content/CodeBlock.astro";
 import GuidePage from "../_guides/GuidePage.astro";
@@ -30,20 +32,13 @@ import { guideById } from "../_guides/guides.ts";
     once the loop works, but every language needs someone who can read it, so
     start with the one your readers ask for most.
   </p>
-  <p>You'll need:</p>
-  <ul>
-    <li>
-      A Blume project whose pages are Markdown or MDX files in your repository.
-      Pages from a remote or CMS-backed source, like Notion, are skipped: there
-      is no local file to write their translation to.
-    </li>
-    <li>
-      Claude Code or Codex, installed and signed in. Blume runs the agent to
-      translate text, but holds no API keys and calls no model itself, so the
-      agent's usage bills to your own account with its provider.
-    </li>
-    <li>A reviewer who reads the target language.</li>
-  </ul>
+  <p>
+    Blume translates pages that are Markdown or MDX files in your repository.
+    Pages from a remote or CMS-backed source, like Notion, are skipped: there
+    is no local file to write their translation to. Blume runs Claude Code or
+    Codex to translate the text, but holds no API keys and calls no model
+    itself, so the agent's usage bills to your own account with its provider.
+  </p>
   <p>This guide starts from a project with three English pages:</p>
   <CodeBlock
     code={`docs/
@@ -173,16 +168,17 @@ blume.translations.json`}
     </li>
     <li>
       <strong>Navigation.</strong> Sidebar labels come from each page's title
-      and the folder's <code>meta.ts</code>. Header tab labels, header links,
-      and footer links live in <code>blume.config.ts</code>, not in content, so
-      give each one a per-locale map there, like{" "}
-      <code>{'label: { en: "Guides", de: "Anleitungen" }'}</code>.
+      and the folder's <code>meta.ts</code>. Header tab labels live in{" "}
+      <code>blume.config.ts</code>, not in content, so give each one a
+      per-locale map there, like{" "}
+      <code>{'label: { en: "Guides", de: "Anleitungen" }'}</code>. Header links
+      and footer links take the same map.
     </li>
   </ul>
   <p>Then check every link and anchor in both languages, and read the site:</p>
   <CodeBlock
     code={`npx blume validate
-npm run dev`}
+npx blume dev`}
     lang="bash"
   />
   <p>
@@ -318,7 +314,7 @@ jobs:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v7
         with:
-          node-version: 22
+          node-version: 24
           cache: npm
       - run: npm ci
       - run: npx blume translate --check`}
@@ -369,6 +365,16 @@ jobs:
     <code>hreflang</code> alternates need your site's absolute URL. Blume
     detects it on Vercel, Netlify, and Cloudflare Pages. On any other host, set{" "}
     <code>deployment.site</code> in your config.
+  </p>
+  <h3>German pages name the English page as canonical</h3>
+  <p>
+    The English page sets <code>seo.canonical</code> in its frontmatter.{" "}
+    <code>blume translate</code> copies every frontmatter key it doesn't
+    translate, so the German page inherits that URL. Remove{" "}
+    <code>seo.canonical</code> from the English page unless it really points
+    elsewhere, then retranslate. The{" "}
+    <a href="/guides/multilingual-documentation-hreflang">hreflang guide</a>{" "}
+    walks through the fix and the audit that catches it.
   </p>
   <h3>The agent isn't found</h3>
   <p>

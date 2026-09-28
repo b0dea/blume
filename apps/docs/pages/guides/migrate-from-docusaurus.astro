@@ -1,8 +1,10 @@
 ---
 // Migrate from Docusaurus: checked against the migration docs, the
-// blume-migrate skill (references/docusaurus.md), and the deployment,
-// versioning, blog, and islands docs on main. Not yet run end to end on a
-// sample Docusaurus repository.
+// blume-migrate skill (SKILL.md, references/docusaurus.md), `blume migrate`
+// (cli/commands/migrate.ts, migrate/migrate.ts), the syntax docs (inline
+// `$$` math), and the deployment, versioning, blog, and islands docs on main;
+// Docusaurus's doc ID and URL rules against docusaurus.io. Not yet run end to
+// end on a sample Docusaurus repository.
 import CodeBlock from "blume/components/content/CodeBlock.astro";
 import GuidePage from "../_guides/GuidePage.astro";
 import { guideById } from "../_guides/guides.ts";
@@ -119,15 +121,17 @@ import { guideById } from "../_guides/guides.ts";
     live one and keep the list outside the repository:
   </p>
   <CodeBlock
-    code={`curl -s https://docs.example.com/sitemap.xml \\
+    code={`curl -s https://docs.acme.example/sitemap.xml \\
   | grep -o '<loc>[^<]*' \\
-  | sed 's#<loc>https://docs.example.com##' > ../old-urls.txt`}
+  | sed -e 's#<loc>https://docs.acme.example##' -e 's#\\(.\\)/$#\\1#' \\
+  > ../old-urls.txt`}
     lang="bash"
   />
   <p>
-    Replace <code>docs.example.com</code> with your domain in both places. You
-    also need Node.js 22.12 or later, and Claude Code or Codex installed and
-    signed in.
+    Replace <code>docs.acme.example</code> with your domain in both places. The
+    last expression drops any trailing slash, since Blume's URLs never end in
+    one. You also need Node.js 22.12 or later, and Claude Code or Codex
+    installed and signed in.
   </p>
 
   <h2>Decide where your docs live</h2>
@@ -166,7 +170,7 @@ import { guideById } from "../_guides/guides.ts";
     applies only exact redirects. On GitHub Pages, keeping <code>/docs</code>{" "}
     is the smaller change.
   </p>
-  <p>Three more settings shape your URLs:</p>
+  <p>Four more settings shape your URLs:</p>
   <ul>
     <li>
       <strong><code>url</code> and <code>baseUrl</code>.</strong> The site URL
@@ -183,6 +187,15 @@ import { guideById } from "../_guides/guides.ts";
       <code>slug: guides/start</code>.
     </li>
     <li>
+      <strong><code>id</code> frontmatter.</strong> Docusaurus builds a page's
+      URL from its ID, so <code>id: part1</code> in{" "}
+      <code>guides/hello.md</code> serves the page at{" "}
+      <code>/docs/guides/part1</code>. Blume has no <code>id</code> key, and the
+      skill drops it, so the page moves to its file path,{" "}
+      <code>guides/hello</code>. Where an ID differs from its filename, replace
+      it with <code>slug: guides/part1</code>.
+    </li>
+    <li>
       <strong>Versions.</strong> Docusaurus serves your latest release at{" "}
       <code>/docs/</code> and the unreleased <code>docs/</code> folder at{" "}
       <code>/docs/next</code>. The agent migrates the version readers see at{" "}
@@ -197,15 +210,20 @@ import { guideById } from "../_guides/guides.ts";
   <p>
     To use Codex, swap <code>--claude</code> for <code>--codex</code>. On pnpm
     12, run it with <code>pnpm dlx --allow-build=esbuild</code> instead of{" "}
-    <code>npx</code>. Leave out <code>docusaurus</code> and Blume detects it
-    from your config file.
+    <code>npx</code>, since pnpm 12 won't run esbuild's install script until you
+    approve it. Leave out <code>docusaurus</code> and Blume detects the source
+    from your <code>docusaurus.config</code> file. Run it with neither flag and
+    it only prints where the skill lives, for another agent to use.
   </p>
   <p>
-    The agent opens in your terminal with Blume's migration playbook loaded,
-    and it asks before each edit. Because it's interactive, tell it your
-    decisions up front: whether to keep <code>/docs</code>, which versions to
-    keep, and whether the repository also holds a library whose scripts and
-    dependencies must stay. Then it:
+    <code>blume migrate</code> converts nothing itself. It names the source,
+    then opens the agent in your terminal on the <code>blume-migrate</code>{" "}
+    skill that ships inside the package, pointed at the skill's Docusaurus
+    reference. The agent runs interactively, so its edits go through its usual
+    permission prompts. Tell it your decisions up front: whether to keep{" "}
+    <code>/docs</code>, which versions to keep, and whether the repository also
+    holds a library whose scripts and dependencies must stay. Following the
+    skill, it:
   </p>
   <ol>
     <li>
@@ -233,7 +251,7 @@ import { guideById } from "../_guides/guides.ts";
   </ol>
   <p>
     It finishes with a summary of what it migrated, dropped, and approximated.
-    Keep it open for the review.
+    Keep it: it's your checklist for the review.
   </p>
 
   <h2>Review the diff</h2>
@@ -253,16 +271,24 @@ import { guideById } from "../_guides/guides.ts";
       and its old <code>/docs/category/</code> URL should have a redirect.
     </li>
     <li>
-      <strong>Category pages.</strong> Blume doesn't list a folder's pages on
-      its index page, so each <code>&lt;DocCardList /&gt;</code> should now be
-      a <code>&lt;CardGroup&gt;</code> of links. A deleted one leaves an empty
-      page.
+      <strong>Category pages.</strong> The skill turns each{" "}
+      <code>&lt;DocCardList /&gt;</code> into a <code>&lt;CardGroup&gt;</code>{" "}
+      with a card per page, which goes stale as pages change. Setting{" "}
+      <a href="/docs/content/navigation#directory-listings">directory: "card"</a>{" "}
+      in the folder's <code>meta.ts</code> lists them for you instead, below the
+      index page's content, and suits a generated-index category too.
     </li>
     <li>
       <strong>Blog.</strong> Posts should carry a <code>date</code>, and the
       old dated URLs like <code>/blog/2024/01/31/post</code> should redirect.
       Blume doesn't generate a blog index, so check that the agent wrote a{" "}
       <code>blog/index.mdx</code> that links your posts.
+    </li>
+    <li>
+      <strong>Math.</strong> The skill treats inline <code>$x$</code> as
+      unsupported, so the agent may have moved a formula onto its own line or
+      dropped it. Blume renders inline math written with two dollar signs,
+      like <code>$$x^2$$</code> inside a sentence, so put those back.
     </li>
     <li>
       <strong>Dependencies.</strong> Only the Docusaurus packages and scripts
@@ -349,13 +375,17 @@ done < ../old-urls.txt`}
     lang="bash"
   />
   <p>
-    Add a redirect for each path it prints, and run it again until it prints
-    nothing. <code>blume dev</code> answers pattern redirects, so the loop
-    passes even for patterns a static host like GitHub Pages ignores. Run it
-    once more against the deployed site.
+    Redirects count as passing, since <code>-L</code> follows them. Add a
+    redirect for each path it prints, and run it again until it prints nothing.{" "}
+    <code>blume dev</code> answers pattern redirects, so the loop passes even
+    for patterns a static host like GitHub Pages ignores. Run it once more
+    against the deployed site. For status codes, patterns, and
+    what each host does with them, see{" "}
+    <a href="/guides/documentation-url-migration-redirects">Move documentation URLs while preserving old links</a>.
   </p>
   <p>
-    Blume's URLs never end in a slash. If your Docusaurus config set{" "}
+    The dev server answers a slashed URL with a 404, which is why the list has
+    no trailing slashes. If your Docusaurus config set{" "}
     <code>trailingSlash: true</code>, links elsewhere on the web point at the
     slashed form, so check a few of them on the deployed site too. Hosts
     differ in what they do with the extra slash.
@@ -375,30 +405,32 @@ npx blume validate --strict`}
     prose, HTML comments, and <code>style</code> attributes written as strings.
     Each error names the file and line. Then{" "}
     <code>blume validate --strict</code> checks every internal link, heading
-    anchor, and asset, and fails on warnings too.
+    anchor, and asset, and fails on warnings too. Fix what they report rather
+    than passing <code>--no-strict</code>, which drops the pages that fail.
   </p>
 
   <h2>Deploy</h2>
   <p>
     Many Docusaurus sites live on GitHub Pages, and a Blume site can stay there.
-    Blume can't detect your URL on GitHub Pages, so set it, plus the{" "}
-    <code>base</code> your project URL needs:
+    Blume can't detect your URL on GitHub Pages, so keep it as{" "}
+    <code>deployment.site</code>:
   </p>
   <CodeBlock
     code={`import { defineConfig } from "blume";
 
 export default defineConfig({
   // ...everything the migration wrote
-  deployment: {
-    base: "/my-project",
-    site: "https://example.github.io",
-  },
+  deployment: { site: "https://docs.acme.example" },
 });`}
     lang="ts"
     title="blume.config.ts"
   />
   <p>
-    Drop <code>base</code> if the site serves from its domain's root.{" "}
+    A project site without a custom domain, like{" "}
+    <code>https://acme.github.io/widget-sdk/</code>, splits into{" "}
+    <code>site: "https://acme.github.io"</code> and{" "}
+    <code>base: "/widget-sdk"</code>, where Docusaurus had{" "}
+    <code>url</code> and <code>baseUrl</code>.{" "}
     <a href="/guides/markdown-docs-github-pages">Deploy Markdown docs to GitHub Pages</a>{" "}
     has the full Actions workflow. Keep to exact redirects there, since GitHub
     Pages ignores patterns. For any other host, see{" "}
@@ -439,11 +471,13 @@ export default defineConfig({
   </p>
   <h3>The build fails on a page's frontmatter</h3>
   <p>
-    Blume's frontmatter schema is strict. Docusaurus keys like{" "}
-    <code>pagination_next</code>, <code>hide_title</code>, and{" "}
+    Blume's frontmatter schema is strict, and{" "}
+    <code>BLUME_FRONTMATTER_INVALID</code> names the page and key. Docusaurus
+    keys like <code>pagination_next</code>, <code>hide_title</code>, and{" "}
     <code>sidebar_class_name</code> have no Blume equivalent, so remove them.{" "}
     <code>sidebar_label</code> and <code>sidebar_position</code> map to{" "}
-    <code>sidebar.label</code> and <code>sidebar.order</code>.
+    <code>sidebar.label</code> and <code>sidebar.order</code>, and an{" "}
+    <code>id</code> that set the URL becomes a <code>slug</code>.
   </p>
   <h3>Images 404</h3>
   <p>

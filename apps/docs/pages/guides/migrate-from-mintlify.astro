@@ -1,6 +1,7 @@
 ---
 // Migrate from Mintlify: checked against the migration docs, the
-// blume-migrate skill (references/mintlify.md), and the deployment docs on
+// blume-migrate skill (SKILL.md, references/mintlify.md), `blume migrate`
+// (cli/commands/migrate.ts, migrate/migrate.ts), and the deployment docs on
 // main. Not yet run end to end on a sample Mintlify repository.
 import Callout from "blume/components/content/Callout.astro";
 import CodeBlock from "blume/components/content/CodeBlock.astro";
@@ -49,12 +50,27 @@ import { guideById } from "../_guides/guides.ts";
         <td>Header tabs, one folder each</td>
       </tr>
       <tr>
+        <td>Anchors</td>
+        <td>Featured links, pinned above the sidebar</td>
+      </tr>
+      <tr>
+        <td>Navbar links and the primary button</td>
+        <td>
+          <code>navigation.actions</code> and <code>navigation.cta</code> in the
+          header
+        </td>
+      </tr>
+      <tr>
         <td><code>&lt;Note&gt;</code>, <code>&lt;Tip&gt;</code>, <code>&lt;Warning&gt;</code></td>
         <td><code>:::note</code>, <code>:::tip</code>, <code>:::warning</code></td>
       </tr>
       <tr>
         <td><code>&lt;AccordionGroup&gt;</code> of <code>&lt;Accordion&gt;</code></td>
         <td><code>&lt;Accordion&gt;</code> of <code>&lt;AccordionItem&gt;</code></td>
+      </tr>
+      <tr>
+        <td><code>&lt;Tabs&gt;</code></td>
+        <td><code>&lt;Tabs inline&gt;</code>, which keeps Mintlify's borderless look</td>
       </tr>
       <tr>
         <td>Snippets in <code>/snippets</code></td>
@@ -100,30 +116,37 @@ import { guideById } from "../_guides/guides.ts";
     the repository:
   </p>
   <CodeBlock
-    code={`curl -s https://docs.example.com/sitemap.xml \\
+    code={`curl -s https://docs.acme.example/sitemap.xml \\
   | grep -o '<loc>[^<]*' \\
-  | sed 's#<loc>https://docs.example.com##' > ../old-urls.txt`}
+  | sed -e 's#<loc>https://docs.acme.example##' -e 's#\\(.\\)/$#\\1#' \\
+  > ../old-urls.txt`}
     lang="bash"
   />
   <p>
-    Replace <code>docs.example.com</code> with your docs domain in both places.
-    Finally, check that you have Node.js 22.12 or later, and that Claude Code or
-    Codex is installed and signed in.
+    Replace <code>docs.acme.example</code> with your docs domain in both places.
+    The last expression drops any trailing slash, since Blume's URLs never end
+    in one. Finally, check that you have Node.js 22.12 or later, and that Claude
+    Code or Codex is installed and signed in.
   </p>
 
   <h2>Run the migration</h2>
   <p>From the root of your Mintlify repository, run:</p>
   <CodeBlock code="npx blume migrate mintlify --claude" lang="bash" />
   <p>
-    To use Codex instead, swap <code>--claude</code> for <code>--codex</code>.
-    On pnpm 12, run it with <code>pnpm dlx --allow-build=esbuild</code> instead
-    of <code>npx</code>, since pnpm 12 won't run esbuild's install script until
-    you approve it.
+    To use Codex, swap <code>--claude</code> for <code>--codex</code>. On pnpm
+    12, run it with <code>pnpm dlx --allow-build=esbuild</code> instead of{" "}
+    <code>npx</code>, since pnpm 12 won't run esbuild's install script until you
+    approve it. Leave out <code>mintlify</code> and Blume detects the source
+    from your <code>docs.json</code> or <code>mint.json</code>. Run it with
+    neither flag and it only prints where the skill lives, for another agent
+    to use.
   </p>
   <p>
-    Blume confirms the source from your <code>docs.json</code>, then opens the
-    agent in your terminal with Blume's migration playbook loaded. Every edit
-    goes through the agent's own permission prompts. The agent:
+    <code>blume migrate</code> converts nothing itself. It names the source,
+    then opens the agent in your terminal on the <code>blume-migrate</code>{" "}
+    skill that ships inside the package, pointed at the skill's Mintlify
+    reference. The agent runs interactively, so its edits go through its usual
+    permission prompts. Following the skill, it:
   </p>
   <ol>
     <li>
@@ -141,13 +164,14 @@ import { guideById } from "../_guides/guides.ts";
     </li>
     <li>Adds a redirect for every URL that moves.</li>
     <li>
-      Swaps Mintlify for Blume in <code>package.json</code>, then runs{" "}
-      <code>blume build</code> and <code>blume validate</code> until both pass.
+      Swaps Mintlify for Blume in <code>package.json</code>, or creates one if
+      the repository has none, then runs <code>blume build</code> and{" "}
+      <code>blume validate</code> until both pass.
     </li>
   </ol>
   <p>
     It finishes with a summary of what it migrated, dropped, and approximated.
-    Save that summary: it's your review checklist for the next step.
+    Keep it: it's your checklist for the review.
   </p>
   <Callout type="info">
     The codemod is deterministic, but the rest is an agent's judgment, so two
@@ -157,8 +181,8 @@ import { guideById } from "../_guides/guides.ts";
 
   <h2>Review the diff</h2>
   <p>
-    Start with <code>git diff --stat</code> for the shape of the change, then
-    work through it in this order.
+    Start with <code>git diff --stat</code> for the shape of the change, run{" "}
+    <code>npx blume dev</code>, and work through it in this order.
   </p>
   <ul>
     <li>
@@ -168,8 +192,7 @@ import { guideById } from "../_guides/guides.ts";
       falls back to a Blume default on purpose.
     </li>
     <li>
-      <strong>Navigation.</strong> Run <code>npx blume dev</code> and click
-      through every tab. Each Mintlify tab should be a header tab over its own
+      <strong>Navigation.</strong> Click through every tab. Each Mintlify tab should be a header tab over its own
       folder, anchors should sit at the top of the sidebar, and header links
       should be in the header.
     </li>
@@ -196,12 +219,12 @@ import { guideById } from "../_guides/guides.ts";
   </p>
   <CodeBlock
     code={`{
-  "group": "Analytics",
+  "group": "Webhooks",
   "pages": [
-    "analytics/overview",
+    "webhooks/overview",
     {
       "group": "Reference",
-      "pages": ["analytics/events", "analytics/properties"]
+      "pages": ["webhooks/events", "webhooks/signatures"]
     }
   ]
 }`}
@@ -210,20 +233,21 @@ import { guideById } from "../_guides/guides.ts";
   />
   <p>
     Blume builds the sidebar from folders, so if those files stay where they
-    are, the Reference group disappears and its pages join Analytics. The agent
+    are, the Reference group disappears and its pages join Webhooks. The agent
     should have either moved them into a subfolder or told you it didn't. To
     keep the group, move the pages into a folder named after it and add a
     redirect for each moved URL:
   </p>
   <CodeBlock
-    code={`git mv analytics/events.mdx analytics/reference/events.mdx
-git mv analytics/properties.mdx analytics/reference/properties.mdx`}
+    code={`mkdir -p webhooks/reference
+git mv webhooks/events.mdx webhooks/reference/events.mdx
+git mv webhooks/signatures.mdx webhooks/reference/signatures.mdx`}
     lang="bash"
   />
   <CodeBlock
     code={`redirects: [
-  { from: "/analytics/events", to: "/analytics/reference/events", status: 308 },
-  { from: "/analytics/properties", to: "/analytics/reference/properties", status: 308 },
+  { from: "/webhooks/events", to: "/webhooks/reference/events", status: 308 },
+  { from: "/webhooks/signatures", to: "/webhooks/reference/signatures", status: 308 },
 ],`}
     lang="ts"
     title="blume.config.ts"
@@ -252,7 +276,9 @@ done < ../old-urls.txt`}
     For each path it prints, add a redirect to <code>blume.config.ts</code>.
     Mintlify's permanent redirects map to <code>status: 308</code>, and a
     pattern like <code>/beta/:slug*</code> covers a whole section in one entry.
-    Run the loop again until it prints nothing.
+    Run the loop again until it prints nothing. For status codes, patterns, and
+    what each host does with them, see{" "}
+    <a href="/guides/documentation-url-migration-redirects">Move documentation URLs while preserving old links</a>.
   </p>
 
   <h2>Build and validate</h2>
@@ -306,13 +332,13 @@ export default defineConfig({
     so check which one yours uses.
   </p>
 
-  <h2>Switch your domain</h2>
+  <h2>Switch over</h2>
   <p>
     Merge the branch, add your docs domain to the Vercel project, and update the
     DNS record that points it at Mintlify so it points at Vercel instead. Leave
     the Mintlify project running until the new site has served traffic for a
-    while and the URL check passes on production. Rolling back is then just
-    changing the DNS record back.
+    while and the URL check passes on production. Rolling back is then a matter
+    of changing the DNS record back.
   </p>
   <p>
     Your redirects carry old links and bookmarks to the new pages. Search
@@ -337,9 +363,9 @@ export default defineConfig({
   <h3>The build fails on a page's frontmatter</h3>
   <p>
     Blume's frontmatter schema is strict, so a key Mintlify accepted but Blume
-    doesn't is a build error. The error names the page and key: map it to a
-    Blume key or remove it. The codemod handles the common ones, so these are
-    usually custom keys.
+    doesn't is a build error. <code>BLUME_FRONTMATTER_INVALID</code> names the
+    page and key: map it to a Blume key or remove it. The codemod handles the
+    common ones, so these are usually custom keys.
   </p>
   <h3>An icon is missing</h3>
   <p>
@@ -361,7 +387,7 @@ export default defineConfig({
   <h3>Links to API endpoints 404</h3>
   <p>
     Blume builds operation URLs from the tag and operation ID, like{" "}
-    <code>/api-reference/models/list-models</code>, which rarely match
+    <code>/api-reference/messages/get-message</code>, which rarely match
     Mintlify's. <code>blume validate</code> catches internal links to fix;
     add redirects for the old endpoint URLs other sites link to.
   </p>
