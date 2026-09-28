@@ -137,6 +137,23 @@ Auf Vercel und Cloudflare aktiviert ein Server-Build außerdem die [Content Nego
 Serverfunktionen haben ihre eigene Konfiguration — der Assistent benötigt beispielsweise einen API-Schlüssel für ein Modell. Zur Einrichtung siehe den [Assistenten-Leitfaden](/docs/configuration/assistant).
 :::
 
+## Private Dokumentation [#private-docs]
+
+Blume hat keine eigene Anmeldung. Ein statischer Build besteht aus reinen Dateien, und jeder, der den Host erreichen kann, kann alles in `dist/` abrufen. Um eine Site privat zu halten, aktiviere den Zugriffsschutz deines Hosts, der jede Anfrage prüft, bevor eine Datei ausgeliefert wird:
+
+- **Vercel**: [Deployment Protection](https://vercel.com/docs/deployment-protection) mit dem Geltungsbereich **All Deployments**, sodass die Produktion abgedeckt ist und nicht nur Previews. Vercel Authentication lässt Mitglieder deines Vercel-Teams hinein; Password Protection lässt bei kostenpflichtigen Plänen jeden mit einem gemeinsamen Passwort hinein.
+- **Netlify**: [Passwortschutz](https://docs.netlify.com/manage/security/secure-access-to-sites/password-protection/) für alle Deployments, mit einem gemeinsamen Passwort oder bei Enterprise-Plänen mit Team-Login.
+- **Cloudflare**: [Cloudflare Access](https://developers.cloudflare.com/workers/configuration/cloudflare-access/) auf dem Worker, der die Site ausliefert (**Workers & Pages**, dann dein Worker, dann **Access**), was jede Domain abdeckt, unter der er antwortet. Lege anhand von E-Mail-Adresse, E-Mail-Domain oder Mitgliedschaft im Cloudflare-Konto fest, wer sich anmelden darf.
+- **GitHub Pages**: Veröffentliche die Site privat aus einer Organisation auf GitHub Enterprise Cloud, dann können nur Personen mit Lesezugriff auf das Repository sie ansehen.
+- **Dein eigener Server**: Setze eine Authentifizierung vor `dist/`, etwa `auth_basic` von nginx oder einen Identity-Aware Proxy.
+
+Der Schutz des Hosts funktioniert bei [Server-Builds](#server-rendering) genauso. Er deckt die gesamte Site ab: Um einige Seiten öffentlich zu halten, veröffentliche sie als separate Site.
+
+Alles, was Blume nach `dist/` schreibt, liegt hinter dem Schutz, darunter Seiten, der Suchindex, die `.md`-Kopien, `llms.txt` und Open-Graph-Bilder. Einige Funktionen reichen über ihn hinaus:
+
+- Ein gehosteter [Suchanbieter](/docs/configuration/search) (Algolia, Orama Cloud, Typesense oder Mixedbread) hält eine eigene Kopie deiner Inhalte bei diesem Dienst vor. Die integrierten Indizes von Orama, FlexSearch und Pagefind sind Dateien in `dist/` und bleiben daher privat.
+- Dienste außerhalb des Schutzes können deine Seiten nicht lesen. **Open in chat** übergibt ChatGPT oder Claude einen Link, den sie nicht öffnen können, Linkvorschauen in Slack oder X können deine Open-Graph-Karten nicht anzeigen, und Agenten können weder `llms.txt` noch den MCP-Server lesen. Setze `ai.openInChat: false`, um die Chat-Aktionen auszublenden.
+
 ## Weiterleitungen [#redirects]
 
 Ordne alte URLs in `blume.config.ts` neuen zu:
@@ -153,12 +170,31 @@ Zwei Hosts benötigen mehr als die Datei:
 - **Vercel** liest `vercel.json` aus dem Stammverzeichnis des Projekts, nie aus dem Ausgabeverzeichnis, daher gilt die Kopie in `dist/` nur, wenn du genau diesen Ordner mit der Vercel CLI deployst (`vercel deploy dist`). Ein mit Git verbundenes Projekt liest sie nie: Es liefert die Weiterleitungsseiten und keinen der Header aus [Inhaltstypen](#content-types) aus. Kopiere die `redirects` und `headers` aus `dist/vercel.json` in die `vercel.json` im Stammverzeichnis deines Projekts oder verwende `vercel()` für einen Server-Build, dessen Routing-Konfiguration die Weiterleitungen und die Discovery-Header enthält.
 
 :::note
-`from` und `to` sind exakte Pfade — ein `:param`-Segment oder ein `*`-Platzhalter (z. B. `/blog/:slug` oder `/old/*`) lässt die Konfigurationsvalidierung fehlschlagen, da Hosts Muster unterschiedlich behandeln. Wenn du musterbasierte Regeln brauchst, behandle sie stattdessen in einer Infrastrukturdatei wie `vercel.json` (die Platzhalter-`source`-Muster unterstützt) oder in der Weiterleitungskonfiguration deines Hosts. Eine `vercel.json`, die du in `public/` mitlieferst, bleibt unverändert erhalten.
-:::
-
-:::note
 Schreibe sowohl `from` als auch `to` so, als wären sie an der Wurzel eingehängt, beginnend mit `/` (`to` kann auch eine vollständige `https://`-URL sein) — sowohl unter [`base`](#subpath-deploys) als auch unter [`basePath`](#mount-the-docs-under-a-path) schreibt Blume beide Seiten für dich um, sodass eine Weiterleitung innerhalb der Basis landet. Ein `to`, das auf eine Datei in `public/` verweist (`/files/guide.pdf`), erhält `base`, aber nicht `basePath`, da die Datei dort ausgeliefert wird. Eine Basis, die du bereits von Hand in `to` geschrieben hast, bleibt erhalten und wird nicht verdoppelt.
 :::
+
+### Musterbasierte Weiterleitungen [#pattern-redirects]
+
+Ein `from` kann viele Pfade auf einmal abdecken und wird so geschrieben, wie Mintlify und `vercel.json` es tun:
+
+```ts blume.config.ts
+redirects: [
+  { from: "/beta/:slug*", to: "/v2/:slug*" },
+  { from: "/blog/:slug", to: "/articles/:slug" },
+  { from: "/articles/concepts-*", to: "/concepts" },
+  { from: "/old/article-*", to: "/new/article-*" },
+],
+```
+
+- `:name` passt auf genau ein ganzes Segment: `/blog/:slug` deckt `/blog/hello` ab, nicht aber `/blog/a/b`.
+- `:name*` als letztes Segment passt auf den Rest des Pfads, mit beliebig vielen Segmenten: `/beta/:slug*` leitet `/beta/guides/setup` nach `/v2/guides/setup` weiter und `/beta` selbst nach `/v2`. Ein letztes Segment `*` bewirkt dasselbe.
+- `*` am Ende eines Segments passt auf den Rest des Pfads ab dieser Stelle: `/articles/concepts-*` deckt `/articles/concepts-overview` ab.
+
+`to` liest einen erfassten Wert über seinen Namen als ganzes Segment (`/:slug*`, `/:slug`) oder über ein `*` für das, worauf das `*` in `from` gepasst hat (auch `:splat`, die Schreibweise von `_redirects`, liest ihn). Ein `to`, das keinen erfassten Wert liest, leitet jeden Pfad, den das Muster abdeckt, auf eine einzige Seite weiter. Eine exakte Weiterleitung hat Vorrang vor einem Muster, das denselben Pfad abdeckt, und Muster werden in der Reihenfolge ausprobiert, in der du sie aufführst.
+
+Jeder Host erhält die Muster in seiner eigenen Syntax: Splats in `_redirects`, `path-to-regexp`-Quellen in `vercel.json` und in der Routing-Konfiguration eines `vercel()`- oder `netlify()`-Server-Builds. Die Server von `node()` und `cloudflare()` gleichen sie selbst ab, ebenso `blume dev`. Ein statischer Build schreibt für ein Muster keine Weiterleitungsseite, da er eine für jeden Pfad bräuchte, den das Muster abdeckt; ein Host, der keine dieser Dateien liest (etwa GitHub Pages), wendet daher nur die exakten Weiterleitungen an; `blume-redirects.json` führt die Muster so auf, wie du sie geschrieben hast.
+
+Ein Muster darf nicht zugleich auf eine Seite passen: Hosts sind sich uneinig, welche der beiden antwortet, daher bricht der Build mit `BLUME_REDIRECT_MATCHES_PAGE` ab und nennt die Seite. Grenze das Muster auf die Pfade ein, die verschoben wurden.
 
 ## Inhaltstypen [#content-types]
 
@@ -171,7 +207,7 @@ Wenn eine Funktion ein Laufzeit-Secret benötigt, warnt Blume bei `blume dev`/`b
 | Funktion | Variable |
 | --- | --- |
 | Assistent (AI Gateway) | `AI_GATEWAY_API_KEY` (oder Vercel OIDC) |
-| Assistent (andere Adapter) | die Standard-Schlüssel-Umgebungsvariable des Adapters (`OPENROUTER_API_KEY`, `LLMGATEWAY_API_KEY`, `INKEEP_API_KEY`) oder das `apiKeyEnv`, das du ihm übergeben hast |
+| Assistent (andere Adapter) | die Standard-Schlüssel-Umgebungsvariable des Adapters (`OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, `GEMINI_API_KEY`, `XAI_API_KEY`, `OPENROUTER_API_KEY`, `LLMGATEWAY_API_KEY`, `INKEEP_API_KEY`) oder das `apiKeyEnv`, das du ihm übergeben hast |
 | Mixedbread-Suche | `MIXEDBREAD_API_KEY` |
 | [Inhaltsquellen](/docs/content/sources) | `NOTION_TOKEN` (`notion()`), `SANITY_TOKEN` (`sanity()`), `CONTENTFUL_ACCESS_TOKEN` (`contentful()`), `PAYLOAD_API_KEY` (`payload()`), `STRAPI_API_TOKEN` (`strapi()`), `GITHUB_TOKEN` (`githubReleases()` sowie `mdxRemote()` beim Lesen aus GitHub) |
 

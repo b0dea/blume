@@ -33,9 +33,11 @@ theme: {
 }
 ```
 
-Predefinições nomeadas: `blue` (padrão), `green`, `orange`, `pink`, `purple`, `red` e `teal`.
+Predefinições nomeadas: `blue` (padrão), `green`, `orange`, `pink`, `purple`, `red` e `teal`. Cada predefinição tem um tom mais escuro para o modo claro e um tom mais claro para o modo escuro, para que o texto de destaque e os rótulos de botões atinjam o contraste WCAG AA (4,5:1) em ambos os modos.
 
 Uma string se aplica a ambos os modos de cor; passe um objeto para [uma cor de destaque diferente por modo](#dark-mode-colors).
+
+O texto sobre um preenchimento de destaque ou de ação, como o rótulo de um botão ou o número de uma etapa, é branco enquanto o branco atingir AA sobre essa cor, e escuro caso contrário. Uma cor de destaque clara recebe rótulos escuros sem nenhuma configuração extra. O [`blume audit`](/docs/cli/audit#theme-contrast-low) verifica uma cor de destaque, de ação ou de fundo personalizada com o mesmo critério.
 
 ### Raio [#radius]
 

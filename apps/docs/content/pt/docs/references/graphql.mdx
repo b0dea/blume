@@ -41,13 +41,13 @@ navigation: {
 
 ## Exemplos gerados [#generated-examples]
 
-Toda página de operação traz uma operação de exemplo completa e válida. Ela tem uma variável por argumento, tipada a partir do schema, e um selection set de profundidade limitada sobre o tipo de retorno. A página também traz variáveis de exemplo e uma resposta de exemplo que segue a mesma seleção. Os exemplos de código mostram a requisição HTTP exata (um `POST` JSON de `{ query, variables }`) em cada linguagem configurada:
+Toda página de operação traz uma operação de exemplo completa e válida. Ela tem uma variável por argumento, tipada a partir do schema, e um selection set de profundidade limitada sobre o tipo de retorno. A página também traz variáveis de exemplo e uma resposta de exemplo que segue a mesma seleção. Os exemplos de código mostram a requisição HTTP exata (um `POST` JSON de `{ query, variables }`) em cada linguagem configurada. As mesmas [linguagens](/docs/references/openapi#code-samples-and-schemas) do `openapi()` estão disponíveis, e `codeSamples: false` não mostra nenhum exemplo:
 
 ```ts blume.config.ts lineNumbers
 reference: [
   graphql({
     spec: "./schema.graphql",
-    codeSamples: ["curl", "js"],   // built in: curl, js, python
+    codeSamples: ["curl", "js"],   // any language openapi() offers
   }),
 ],
 ```

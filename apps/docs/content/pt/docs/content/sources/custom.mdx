@@ -1,0 +1,40 @@
+---
+title: Fontes personalizadas
+description: >-
+  Conecte qualquer backend ao Blume com custom() — passe um objeto que implemente a interface ContentSource ou um engine integrado com serializers personalizados.
+---
+
+Qualquer objeto que implemente a interface `ContentSource` pode ser passado para `custom()`. É assim que um adapter com serializers personalizados — ou qualquer backend que não venha integrado — se conecta sem que o SDK dele entre na instalação principal:
+
+```ts blume.config.ts
+import { defineConfig } from "blume";
+import { custom, filesystem } from "blume/sources";
+import { sanitySource } from "blume/sources/sanity.ts";
+
+export default defineConfig({
+  content: {
+    sources: [
+      filesystem({ root: "docs" }),
+      custom(
+        sanitySource({
+          name: "guides",
+          prefix: "guides",
+          projectId: "abc123",
+          dataset: "production",
+          query: `*[_type == "guide"]`,
+          // Map custom Portable Text blocks to Blume components
+          serializers: {
+            callout: (block) => `<Callout>${block.text}</Callout>`,
+          },
+        })
+      ),
+    ],
+  },
+});
+```
+
+Uma fonte criada com uma das factories de engine do Blume, como a `sanitySource` acima, é reconstruída com o contexto do comando em execução. Assim, ela lê rascunhos com `--preview` e guarda o snapshot em `.blume/cache`, do mesmo jeito que o adapter integrado. Uma fonte feita por você pode fazer o mesmo implementando `withContext(ctx)` e retornando a si mesma reconstruída com esse contexto.
+
+`custom()` recebe uma instância de `ContentSource` em vez de um objeto de opções, então não tem onde passar as [opções compartilhadas](/docs/content/sources#adapters) `prefix` ou `pollInterval`. A própria fonte define a propriedade `prefix`, e a nova busca dos dados funciona do jeito que o método `watch` dela implementar. Como ela carrega uma instância viva em vez de dados simples, não declara nenhuma dependência de runtime nem secret própria — a instância cuida disso sozinha.
+
+Uma fonte personalizada que lê arquivos locais deve definir `sourcePath` em cada entrada e `contentRoot` na própria fonte. O `sourcePath` identifica o arquivo nos diagnósticos e resolve imagens relativas ao lado dele. Já o `contentRoot` limita o `log` do git usado para datar as páginas. Sem ele, as páginas da fonte ficam sem a [data de "Última atualização"](/docs/configuration#last-modified) obtida pelo git.

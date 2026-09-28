@@ -69,7 +69,7 @@ A big batch of components landed this release — columns, frames, trees, and to
 
 ## GitHub Releases から [#from-github-releases]
 
-エントリを手作業で書く代わりに、組み込みの [`githubReleases()` ソース](/docs/content/sources#github-releases)をリポジトリに向ければ、すべてのリリースが `type: changelog` エントリになります — 同じタイムラインとフィードが、すでに公開しているリリースから直接供給されます。Blume 自身の[変更履歴](/changelog)もこの方法で構築されています:
+エントリを手作業で書く代わりに、組み込みの [`githubReleases()` ソース](/docs/content/sources/github-releases)をリポジトリに向ければ、すべてのリリースが `type: changelog` エントリになります — 同じタイムラインとフィードが、すでに公開しているリリースから直接供給されます。Blume 自身の[変更履歴](/changelog)もこの方法で構築されています:
 
 ```ts blume.config.ts
 import { filesystem, githubReleases } from "blume/sources";
@@ -86,7 +86,7 @@ content: {
 }
 ```
 
-リリース名がタイトルになり、そのタグが `changelog.version` になり、公開日でタイムラインがソートされます。各リリースページには、そのノートから要約された固有のメタディスクリプションも付与されます — マークダウンを除去し、セクション見出しと changeset のコミットハッシュ接頭辞を削除し、[`blume audit`](/docs/cli/audit) がチェックする検索スニペットの長さに切り詰めたもので、サイトの説明にフォールバックすることはありません。プライベートリポジトリは `GITHUB_TOKEN` 環境変数で認証します。すべてのオプションについては[コンテンツソース](/docs/content/sources#github-releases)を参照してください。
+リリース名がタイトルになり、そのタグが `changelog.version` になり、公開日でタイムラインがソートされます。各リリースページには、そのノートから要約された固有のメタディスクリプションも付与されます — マークダウンを除去し、セクション見出しと changeset のコミットハッシュ接頭辞を削除し、[`blume audit`](/docs/cli/audit) がチェックする検索スニペットの長さに切り詰めたもので、サイトの説明にフォールバックすることはありません。プライベートリポジトリは `GITHUB_TOKEN` 環境変数で認証します。すべてのオプションについては[GitHub Releases](/docs/content/sources/github-releases)を参照してください。
 
 ## RSS フィード [#the-rss-feed]
 

@@ -1,0 +1,30 @@
+---
+title: Sanity
+description: >-
+  sanity() सोर्स के माध्यम से किसी Sanity dataset से दस्तावेज़ प्राप्त करें — एक GROQ क्वेरी दस्तावेज़ों का चयन करती है और उनकी Portable Text बॉडी Markdown में परिवर्तित हो जाती है।
+---
+
+अंतर्निहित `sanity()` एडैप्टर एक GROQ क्वेरी चलाता है। यह प्रत्येक दस्तावेज़ के फ़ील्ड्स को फ्रंटमैटर में और उसकी Portable Text बॉडी को Markdown में मैप करता है। यह एडैप्टर `@sanity/client` को अपनी रनटाइम डिपेंडेंसी के रूप में घोषित करता है। यह एक वैकल्पिक peer डिपेंडेंसी है, इसलिए इसे केवल तभी इंस्टॉल करें जब आप इस सोर्स का उपयोग करते हों।
+
+```ts blume.config.ts
+import { defineConfig } from "blume";
+import { filesystem, sanity } from "blume/sources";
+
+export default defineConfig({
+  content: {
+    sources: [
+      filesystem({ root: "docs" }),
+      sanity({
+        prefix: "guides",
+        projectId: "abc123",
+        dataset: "production",
+        query: `*[_type == "guide"]`,
+        // Field paths default to title / slug.current / body / _updatedAt
+        fields: { slug: "slug.current", body: "content" },
+      }),
+    ],
+  },
+});
+```
+
+किसी निजी dataset के लिए रीड टोकन `SANITY_TOKEN` एनवायरनमेंट वेरिएबल से लिया जाता है, जिसे एडैप्टर घोषित करता है। कस्टम Portable Text ब्लॉक टाइप्स, इंजन के `serializers` विकल्प के माध्यम से Blume कंपोनेंट्स में मैप होते हैं। यह विकल्प तब उपलब्ध होता है जब आप `sanitySource` को सीधे बनाते हैं और उसे [`custom()`](/docs/content/sources/custom) में पास करते हैं। `serializers` सेट करने पर सोर्स के पेज MDX के रूप में लिखे जाते हैं। इससे serializer द्वारा लौटाया गया कोई भी कंपोनेंट या डायरेक्टिव रेंडर हो जाता है।

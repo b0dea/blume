@@ -35,3 +35,17 @@ Blume は自動化をホストしません。リポジトリ履歴の読み取�
 ```text
 Use the blume-update-docs skill. Review the PRs merged within the last 7 days and compare them to the docs content. Ignore work behind feature flags. If docs need updates, make them, verify the docs build, and open a blume/* PR. If not, report what you checked and do not open a PR.
 ```
+
+## サイト独自のスキルの作成 [#writing-your-sites-skill]
+
+`blume-write-skill` は、[あなた自身のドキュメント向けのエージェントスキル](/docs/discoverability/agent-discovery#your-sites-skill)を作成します。これはドキュメントに基づいた 1 つの `SKILL.md` で、コーディングエージェントに製品の使い方（セットアップ、中核となる概念、よくあるタスク、注意点）を教えます。各トピックには対応するページへのリンクが付きます。このスキルは、Blume が `/skill.md` に生成するページマップの代わりになります。最も手軽な実行方法は `blume skill` です。スキルの配置場所を判断し、パッケージにバンドルされたスキルを使って Codex または Claude Code を起動します。
+
+```bash
+blume skill --claude   # or --codex
+```
+
+他のエージェントから使うには、インストールしてください。
+
+```bash
+npx skills add haydenbleasel/blume --skill blume-write-skill
+```

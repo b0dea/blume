@@ -50,6 +50,23 @@ description: >-
       default: "false",
       description: "Shorthand for seo.noindex.",
     },
+    narration: {
+      type: "boolean",
+      default: "true",
+      description:
+        "Set to false to leave this page without the Listen to this page player when narration is on.",
+    },
+    related: {
+      type: "(string | { [title]: string })[] | false",
+      description:
+        "Pages to suggest at the foot of this one, up to ten: root-relative paths, absolute URLs, or { Title: link } to name a link. See Related pages below.",
+    },
+    pagination: {
+      type: "boolean",
+      default: "true",
+      description:
+        "Set to false to drop the previous and next links at the foot of the page. The page stays in the order, so its neighbors still link to it.",
+    },
     icon: {
       type: "string",
       description:
@@ -60,8 +77,63 @@ description: >-
       description:
         'Pin the page\'s "last updated" date (ISO or YAML date); overrides the git-derived date.',
     },
+    mode: {
+      type: '"default" | "wide" | "center" | "custom" | "frame"',
+      default: '"default"',
+      description: "What the page shows around its content. See Layout below.",
+    },
+    api: {
+      type: "string",
+      description:
+        "An endpoint this page documents by hand, as an HTTP method and a path or URL (POST /v1/users). See Hand-written API pages.",
+    },
+    authMethod: {
+      type: '"bearer" | "basic" | "key" | "none"',
+      description:
+        "How an api page's endpoint authenticates, over the site's api.auth.",
+    },
+    playground: {
+      type: '"interactive" | "simple" | "none"',
+      default: '"interactive"',
+      description:
+        "What an api page shows: the Try it panel and samples, the samples only, or neither.",
+    },
   }}
 />
+
+## लेआउट [#layout]
+
+`mode` यह तय करता है कि कोई पेज अपने कंटेंट के आसपास क्या दिखाता है:
+
+| मोड | साइडबार | शीर्षक और विषय-सूची | पेज के अंत के लिंक और फ़ुटर | कंटेंट की चौड़ाई |
+| --- | --- | --- | --- | --- |
+| `default` | हाँ | हाँ | हाँ | गद्य पाठ की मानक चौड़ाई |
+| `wide` | हाँ | केवल शीर्षक | हाँ | पूरा कॉलम |
+| `center` | नहीं | केवल शीर्षक | हाँ | एक अधिक चौड़ा कॉलम, बीच में |
+| `frame` | हाँ | नहीं | नहीं | पूरा कॉलम |
+| `custom` | नहीं | नहीं | नहीं | पूरा पेज |
+
+`wide` चौड़ी तालिकाओं या डायग्राम वाले पेज के लिए उपयुक्त है, और `center` रिलीज़ नोट्स या ऊपर से नीचे तक पढ़ी जाने वाली किसी घोषणा के लिए। `custom` केवल हेडर रखता है, जो MDX में लिखे गए लैंडिंग पेज के लिए है, और `frame` साइडबार भी रखता है, जो ऐसे टूल या डैशबोर्ड के लिए है जो डॉक्स के नेविगेशन के भीतर रहता है। इन दोनों में से कोई भी पेज का शीर्षक या विवरण रेंडर नहीं करता, इसलिए आप अपनी स्वयं की हेडिंग लिखें। हर मोड में पेज खोज में बना रहता है और उसकी Markdown कॉपी भी बनी रहती है।
+
+```yaml lineNumbers
+title: Welcome
+mode: custom
+```
+
+ये मान Mintlify के मानों से मेल खाते हैं; उसके `assistant` मोड का, जो पूरे पेज पर चलने वाला चैट है, यहाँ कोई समकक्ष नहीं है।
+
+## संबंधित पेज [#related-pages]
+
+`related` उन पेजों की सूची देता है जिन्हें इस पेज के नीचे सुझाया जाना है। ये **संबंधित पेज** हेडिंग के अंतर्गत कार्ड के रूप में दिखाए जाते हैं:
+
+```yaml lineNumbers
+related:
+  - /guides/deployment
+  - Search setup: /configuration/search
+  - https://astro.build
+```
+
+रूट-सापेक्ष पथ किसी दूसरे पेज की ओर संकेत करता है, जिसे कार्ड उस पेज के शीर्षक और विवरण के साथ दिखाता है; किसी अनुवादित पेज पर, अनुवाद उपलब्ध होने पर यह उस अनुवाद से लिंक करता है। `Title: link` प्रविष्टि कार्ड का शीर्षक स्वयं सेट करती है, और कोई एब्सोल्यूट URL साइट से बाहर लिंक करता है, जिसके कार्ड पर उसका होस्ट नाम दिखाया जाता है। पथों की जाँच पेज के किसी भी अन्य लिंक की तरह की जाती है, इसलिए यदि कोई पथ किसी भी पेज से मेल नहीं खाता, तो [`blume validate`](/docs/cli/validate) उसकी रिपोर्ट करता है। यह कुंजी Mintlify की कुंजी से मेल खाती है, इसलिए माइग्रेट किए गए पेजों में यह जैसी लिखी है वैसी ही बनी रहती है।
 
 ## साइडबार [#sidebar]
 
@@ -100,7 +172,11 @@ seo:
 search:
   exclude: false
   tags: [api]
+  keywords: [install, setup]
+  boost: 3
 ```
+
+`exclude` पेज को खोज से बाहर रखता है, और `tags` उसे खोज डायलॉग में एक फ़िल्टर के अंतर्गत समूहित करता है। `keywords` ऐसे अतिरिक्त शब्द हैं जिनसे पेज, अपने स्वयं के टेक्स्ट के अलावा, खोजा जा सकता है। `boost` पेज की प्रासंगिकता को गुणा करता है: 1 से अधिक मान उसे ऊँची रैंक देता है, और 1 से कम मान नीची। [रैंकिंग](/docs/configuration/search#ranking) देखें।
 
 ## AI
 

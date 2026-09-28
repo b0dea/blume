@@ -35,6 +35,7 @@ O Blume só lê arquivos `meta.ts` de pastas que o seu conteúdo abrange: um arq
 | `order` | `number` | Posição entre grupos e páginas irmãos. Números menores vêm primeiro. |
 | `collapsed` | `boolean` | Sob o [modo de exibição `group`](/docs/content/navigation#display-modes), define se o grupo começa recolhido. |
 | `display` | `"flat" \| "group" \| "page"` | Modo de renderização deste grupo; sobrescreve o [`navigation.sidebar.display`](/docs/content/navigation#display-modes) global. |
+| `directory` | `"card" \| "accordion" \| "none"` | Lista as páginas do grupo abaixo do conteúdo da sua página `index`. As pastas aninhadas herdam essa configuração. Veja [listagens de diretório](/docs/content/navigation#directory-listings). |
 | `pages` | `string[]` | Ordem explícita dos filhos do grupo, por slug. |
 
 O array `pages` lista os filhos por slug — o nome da pasta ou do arquivo com o prefixo numérico e quaisquer parênteses removidos (portanto `01-quickstart.mdx` é `"quickstart"`). Cada filho listado recebe sua posição no array como ordem (`0`, `1`, `2`, …). Os filhos que você deixar de fora ainda aparecem, ordenados pela própria ordem: uma página `index` continua em primeiro lugar, um filho com `sidebar.order`, prefixo numérico ou um `order` no próprio `meta.ts` é posicionado por esse número entre os listados, e um filho sem nenhum deles vai depois deles. Liste todos os filhos quando o array tiver que definir a ordem completa.

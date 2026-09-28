@@ -70,9 +70,10 @@ Dabei wird der vollständige JSON-Bericht – jede betroffene Seite, nicht die D
 
 Die Auswahl an Checks ist bewusst kleiner als bei einem universellen SEO-Crawler. Vieles von dem, was ein solcher Crawler meldet, kann bei einer Blume-Site gar nicht auftreten – Blume gibt nie `rel=nofollow` aus, und die content-gehashten Bundles von Vite fehlen nie und leiten nie weiter. Diese Punkte als dauerhafte Nullen zu melden, würde dir nur beibringen, den Bericht zu ignorieren.
 
-Zwei Grenzen solltest du kennen:
+Diese Grenzen solltest du klar kennen:
 
 - **Strukturierte Daten** werden auf Wohlgeformtheit validiert (gültiges JSON, ein `@context`, ein `@type` an jedem Knoten). Blume validiert nicht gegen das vollständige schema.org-Vokabular oder die Rich-Results-Regeln von Google.
+- **Kontrast** wird für die Farben geprüft, die deine Theme-Konfiguration festlegt, nicht Element für Element. Das Audit rendert keine Seiten, daher wird eine Farbe, die du von Hand in MDX oder `theme.css` schreibst, nicht gemessen.
 - **Core Web Vitals** werden nicht geprüft. Dafür braucht es einen echten Browser, und ein Flag, das stillschweigend nichts misst, wäre schlimmer als gar keins – deshalb meldet `blume audit` die Ursachen für Layout-Verschiebungen, die es offline erkennen _kann_ (Bilder ohne `width`/`height`, übergroße Assets), und lässt den Rest vorerst außen vor.
 
 Alles, was das Audit nicht ausgeführt hat, wird als übersprungen gemeldet, statt stillschweigend als bestanden zu gelten:
@@ -88,6 +89,7 @@ Hier findest du jeden Check, den `blume audit` melden kann, gruppiert nach Kateg
 
 | Kategorie             | Schlüssel         |
 | --------------------- | ----------------- |
+| Barrierefreiheit      | `accessibility`   |
 | Inhalt                | `content`         |
 | Duplikate             | `duplicates`      |
 | Indexierbarkeit       | `indexability`    |
@@ -445,6 +447,24 @@ Behebung: Lass die hreflang-Alternate auf eine Seite zeigen, die existiert und k
 `BLUME_AUDIT_HREFLANG_CONFLICT` · Fehler · aus dem gebauten HTML
 
 Behebung: Jede Sprache in einer hreflang-Gruppe muss genau eine Seite benennen.
+
+### Barrierefreiheit [#accessibility]
+
+Diese Checks laufen auf deiner Theme-Konfiguration, nicht auf jeder einzelnen Seite: Eine Theme-Farbe ist eine Entscheidung für die ganze Site. Der Check löst Farben so auf, wie es der Build tut (der Farbton eines Presets für jeden Modus sowie weiße oder dunkle Beschriftungen auf Flächen), und misst jede Textfarbe, die das Theme darstellt, im hellen und dunklen Modus am WCAG-AA-Kontrastverhältnis für Fließtext von 4,5:1.
+
+#### Theme-Farben verfehlen den WCAG-AA-Kontrast [#theme-contrast-low]
+
+`BLUME_AUDIT_THEME_CONTRAST_LOW` · Warnung · aus der Theme-Konfiguration
+
+Behebung: Wähle für den hellen Modus einen dunkleren Farbton oder für den dunklen Modus einen helleren – pro Modus mit `theme.accent: { light, dark }`.
+
+Geprüft werden Akzenttext auf der Seite, Beschriftungen auf Akzent- und `action`-Flächen sowie Fließ- und Sekundärtext auf einem eigenen `background`. Jeder Befund nennt das Farbpaar, den Modus und das Kontrastverhältnis.
+
+#### Theme-Farbe kann nicht auf Kontrast geprüft werden [#theme-color-unchecked]
+
+`BLUME_AUDIT_THEME_COLOR_UNCHECKED` · Info · aus der Theme-Konfiguration
+
+Behebung: Gib die Farbe als Hex-Wert, `rgb()`, `hsl()`, `hwb()`, `lab()`, `lch()`, `oklab()`, `oklch()` oder als benannte Farbe an, damit ihr Kontrast geprüft werden kann.
 
 ### Assets
 

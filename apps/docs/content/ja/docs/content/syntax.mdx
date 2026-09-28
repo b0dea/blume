@@ -249,6 +249,65 @@ createServer().listen(3000);
 ```
 ````
 
+### 長い行と長いブロック [#long-lines-and-long-blocks]
+
+`wrap` を付けると、そのブロックの長い行が横にスクロールする代わりに折り返されます：
+
+```ts client.ts wrap
+const client = createClient({
+  baseUrl: "https://api.example.com/v1",
+  retries: 3,
+  timeout: 10_000,
+  headers: { "x-client": "docs" },
+});
+```
+
+````md
+```ts client.ts wrap
+const client = createClient({
+  baseUrl: "https://api.example.com/v1",
+  retries: 3,
+  timeout: 10_000,
+  headers: { "x-client": "docs" },
+});
+```
+````
+
+長いブロックに `expandable` を付けると、最初の数行だけが表示され、その下に **Show more** トグルが表示されます。開くとブロック全体が表示され、ブロック内でスクロールすることはありません。16 行未満のブロックは、隠す部分がほとんどないため通常どおりレンダリングされます。
+
+```ts routes.ts expandable
+import { defineRoutes } from "./router";
+
+export default defineRoutes({
+  home: "/",
+  docs: "/docs",
+  guides: "/docs/guides",
+  reference: "/docs/reference",
+  changelog: "/changelog",
+  blog: "/blog",
+  pricing: "/pricing",
+  about: "/about",
+  careers: "/careers",
+  contact: "/contact",
+  privacy: "/legal/privacy",
+  terms: "/legal/terms",
+  security: "/security",
+  status: "https://status.example.com",
+});
+```
+
+````md
+```ts routes.ts expandable
+import { defineRoutes } from "./router";
+
+export default defineRoutes({
+  // …every route
+});
+```
+````
+
+どちらもタイトルや `lineNumbers` と併用できます。すべてのブロックを折り返すには、代わりに `markdown.code.wrap` を設定します。
+
 ### ハイライト [#highlighting]
 
 GitHub 形式のコメントでコードに注釈を付け、行・単語・変更点に注目を集めます。コメントはレンダリング結果から取り除かれるので、コードはコピー＆ペーストしてもきれいなままです。4 種類すべてデフォルトで有効です — 設定は不要です。
@@ -626,7 +685,7 @@ Commit `blume.config.ts`, not `.blume/`.
 
 ## 数式 [#math]
 
-KaTeX で LaTeX を中央揃えのブロックとしてレンダリングします — 数式の多いドキュメントや科学系のドキュメントに便利です。数式を `$$…$$` で囲みます：
+KaTeX で LaTeX をレンダリングします。数式の多いドキュメントや科学系のドキュメントに便利です。`$$…$$` をそれぞれ独立した行に置くと、中央揃えのブロックになります：
 
 $$
 \int_0^\infty e^{-x^2}\,dx = \frac{\sqrt{\pi}}{2}
@@ -638,8 +697,14 @@ a^2 + b^2 = c^2
 $$
 ```
 
+または、文中に `$$…$$` を書くとインライン数式になります。例えばオイラーの等式 $$e^{i\pi} + 1 = 0$$ のように：
+
+```md
+Like Euler's identity $$e^{i\pi} + 1 = 0$$.
+```
+
 :::note
-数式はブロック専用で、自動的に有効になります — `$$…$$` と書けばレンダリングされ、書かなければ KaTeX のスタイルシートは一切配信されません。インラインの `$…$` 数式はありません：単独の `$`（通貨、シェル変数、コード）は常にそのままの文字列として扱われるため、エスケープすべき区切り文字も、切り替える設定もありません。数式は MDX 専用の機能です。レンダリングされたマークアップ内のクラス名（`.katex-html`、`.katex-base` など）は KaTeX 自身の内部実装であり、Blume が保証するスタイリングの契約ではありません — KaTeX のアップグレードで変わる可能性があるため、カスタムスタイルは `.katex-display` のラッパーを対象にしてください。
+数式は自動的に有効になります — `$$…$$` と書けばレンダリングされ、書かなければ KaTeX のスタイルシートは一切配信されません。ブロック数式もインライン数式も、ドル記号を 2 つ使います。単独の `$`（通貨、シェル変数、コード）は常にそのままの文字列として扱われるため、「$5 と $10」が数式になることはなく、エスケープすべき区切り文字も、切り替える設定もありません。数式は MDX 専用の機能です。レンダリングされたマークアップ内のクラス名（`.katex-html`、`.katex-base` など）は KaTeX 自身の内部実装であり、Blume が保証するスタイリングの契約ではありません — KaTeX のアップグレードで変わる可能性があるため、カスタムスタイルは `.katex-display` のラッパーを対象にしてください。
 :::
 
 ## スマート句読点 [#smart-punctuation]

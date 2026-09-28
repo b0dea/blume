@@ -69,7 +69,7 @@ Ein Header-[Tab](/docs/content/navigation#tabs), der auf `/changelog` zeigt, öf
 
 ## Aus GitHub Releases [#from-github-releases]
 
-Statt Einträge von Hand zu verfassen, richte die eingebaute [`githubReleases()`-Quelle](/docs/content/sources#github-releases) auf ein Repository, und jedes Release wird zu einem Eintrag mit `type: changelog` – dieselbe Timeline und derselbe Feed, direkt gespeist aus den Releases, die du ohnehin veröffentlichst. Blumes eigenes [Changelog](/changelog) ist so aufgebaut:
+Statt Einträge von Hand zu verfassen, richte die eingebaute [`githubReleases()`-Quelle](/docs/content/sources/github-releases) auf ein Repository, und jedes Release wird zu einem Eintrag mit `type: changelog` – dieselbe Timeline und derselbe Feed, direkt gespeist aus den Releases, die du ohnehin veröffentlichst. Blumes eigenes [Changelog](/changelog) ist so aufgebaut:
 
 ```ts blume.config.ts
 import { filesystem, githubReleases } from "blume/sources";
@@ -86,7 +86,7 @@ content: {
 }
 ```
 
-Der Name des Releases wird zum Titel, sein Tag zu `changelog.version`, und sein Veröffentlichungsdatum sortiert die Timeline. Jede Release-Seite erhält außerdem eine eindeutige Meta-Description, die aus ihren Notes zusammengefasst wird – Markdown entfernt, Abschnittsüberschriften und Changeset-Commit-Hash-Präfixe verworfen, gekürzt auf die Länge des Such-Snippets, die [`blume audit`](/docs/cli/audit) prüft – statt auf die Site-Beschreibung zurückzufallen. Ein privates Repository authentifiziert sich über die Umgebungsvariable `GITHUB_TOKEN`. Alle Optionen findest du unter [Content sources](/docs/content/sources#github-releases).
+Der Name des Releases wird zum Titel, sein Tag zu `changelog.version`, und sein Veröffentlichungsdatum sortiert die Timeline. Jede Release-Seite erhält außerdem eine eindeutige Meta-Description, die aus ihren Notes zusammengefasst wird – Markdown entfernt, Abschnittsüberschriften und Changeset-Commit-Hash-Präfixe verworfen, gekürzt auf die Länge des Such-Snippets, die [`blume audit`](/docs/cli/audit) prüft – statt auf die Site-Beschreibung zurückzufallen. Ein privates Repository authentifiziert sich über die Umgebungsvariable `GITHUB_TOKEN`. Alle Optionen findest du unter [GitHub Releases](/docs/content/sources/github-releases).
 
 ## Der RSS-Feed [#the-rss-feed]
 

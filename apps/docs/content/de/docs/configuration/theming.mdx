@@ -33,9 +33,11 @@ theme: {
 }
 ```
 
-Benannte Voreinstellungen: `blue` (Standard), `green`, `orange`, `pink`, `purple`, `red` und `teal`.
+Benannte Voreinstellungen: `blue` (Standard), `green`, `orange`, `pink`, `purple`, `red` und `teal`. Jede Voreinstellung hat einen dunkleren Farbton für den hellen Modus und einen helleren für den dunklen Modus, sodass Akzenttext und Button-Beschriftungen in beiden Modi den WCAG-AA-Kontrast (4,5:1) erfüllen.
 
 Ein String gilt für beide Farbmodi; übergib ein Objekt für [eine unterschiedliche Akzentfarbe je Modus](#dark-mode-colors).
+
+Text auf einer Akzent- oder Aktionsfläche, etwa eine Button-Beschriftung oder eine Schrittnummer, ist weiß, solange Weiß auf dieser Farbe AA erfüllt, und andernfalls dunkel. Eine helle Akzentfarbe bekommt so ohne zusätzliche Konfiguration dunkle Beschriftungen. [`blume audit`](/docs/cli/audit#theme-contrast-low) prüft eine eigene Akzent-, Aktions- oder Hintergrundfarbe anhand desselben Maßstabs.
 
 ### Eckenradius [#radius]
 
@@ -272,10 +274,10 @@ Blumes Theme ist intern mit Tailwind v4 gebaut, und die `.astro`-, `.tsx`- und `
 Styles werden in drei Ebenen aufgelöst, von denen jede die vorherige überschreibt:
 
 <Steps>
-  <Step title="Basis">
+  <Step title="Base">
     Blumes Reset, Standard-Tokens und Komponenten-Styles.
   </Step>
-  <Step title="Konfigurations-Tokens">
+  <Step title="Config tokens">
     `--blume-accent`, `--blume-radius` und die `--blume-font-*`-Tokens aus
     `theme`.
   </Step>

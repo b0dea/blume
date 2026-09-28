@@ -70,9 +70,10 @@ Isso grava o relatório JSON completo em um arquivo, com todas as páginas afeta
 
 O conjunto de verificações é propositalmente mais enxuto que o de um crawler de SEO de uso geral. Boa parte do que um crawler desses reporta não tem como acontecer em um site Blume. Ele nunca emite `rel=nofollow`, e os bundles do Vite com hash de conteúdo nunca estão faltando nem redirecionam. Reportar isso como zeros permanentes só ensinaria você a ignorar o relatório.
 
-Dois limites que vale deixar claros:
+Limites que vale deixar claros:
 
 - **Dados estruturados** são validados quanto à boa formação (JSON válido, um `@context`, um `@type` em cada nó). O Blume não valida contra o vocabulário completo do schema.org nem contra as regras de rich results do Google.
+- **Contraste** é verificado para as cores que a configuração do seu tema define, e não elemento por elemento. A auditoria não renderiza as páginas, então uma cor que você escreve à mão no MDX ou no `theme.css` não é medida.
 - **Core Web Vitals** não são verificados. Eles precisam de um navegador de verdade, e uma flag que silenciosamente não medisse nada seria pior do que não ter flag nenhuma. Por isso, `blume audit` reporta as causas de layout shift que _consegue_ ver offline (imagens sem `width`/`height`, assets grandes demais) e deixa o resto de lado por enquanto.
 
 Tudo o que a auditoria não executou é reportado como ignorado, em vez de passar silenciosamente:
@@ -88,6 +89,7 @@ Todas as verificações que `blume audit` pode reportar, agrupadas por categoria
 
 | Categoria           | Chave             |
 | ------------------- | ----------------- |
+| Acessibilidade      | `accessibility`   |
 | Conteúdo            | `content`         |
 | Duplicados          | `duplicates`      |
 | Indexabilidade      | `indexability`    |
@@ -445,6 +447,24 @@ Correção: aponte o alternate hreflang para uma página que existe e é canôni
 `BLUME_AUDIT_HREFLANG_CONFLICT` · erro · a partir do HTML gerado
 
 Correção: cada idioma de um grupo hreflang deve indicar exatamente uma página.
+
+### Acessibilidade [#accessibility]
+
+Estas verificações rodam na configuração do seu tema, e não em cada página: uma cor do tema é uma escolha única para o site inteiro. A verificação resolve as cores do mesmo jeito que o build (o tom de um preset para cada modo, e rótulos brancos ou escuros sobre preenchimentos) e mede cada cor de texto que o tema desenha em relação à razão de contraste WCAG AA para texto de corpo, 4,5:1, nos modos claro e escuro.
+
+#### Cores do tema não atingem o contraste WCAG AA [#theme-contrast-low]
+
+`BLUME_AUDIT_THEME_CONTRAST_LOW` · aviso · a partir da configuração do tema
+
+Correção: escolha um tom mais escuro para o modo claro ou um mais claro para o modo escuro, definindo cada modo com `theme.accent: { light, dark }`.
+
+Ela verifica o texto na cor de destaque sobre a página, os rótulos sobre preenchimentos de destaque e de `action`, e o texto de corpo e secundário sobre um `background` personalizado. Cada achado indica o par, o modo e a razão de contraste.
+
+#### Não é possível verificar o contraste de uma cor do tema [#theme-color-unchecked]
+
+`BLUME_AUDIT_THEME_COLOR_UNCHECKED` · info · a partir da configuração do tema
+
+Correção: escreva a cor em hex, `rgb()`, `hsl()`, `hwb()`, `lab()`, `lch()`, `oklab()`, `oklch()` ou como uma cor nomeada para que o contraste dela possa ser verificado.
 
 ### Assets
 

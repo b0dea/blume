@@ -35,3 +35,17 @@ O Blume não hospeda a automação — conecte a skill a uma tarefa agendada no 
 ```text
 Use the blume-update-docs skill. Review the PRs merged within the last 7 days and compare them to the docs content. Ignore work behind feature flags. If docs need updates, make them, verify the docs build, and open a blume/* PR. If not, report what you checked and do not open a PR.
 ```
+
+## Escrevendo a skill do seu site [#writing-your-sites-skill]
+
+A `blume-write-skill` escreve a [skill de agente da sua própria documentação](/docs/discoverability/agent-discovery#your-sites-skill): um único `SKILL.md`, baseado na documentação, que ensina um agente de programação a usar seu produto — configuração, conceitos principais, tarefas comuns e armadilhas — com cada tópico vinculado à sua página. Ela substitui o mapa de páginas que o Blume gera em `/skill.md`. A forma mais rápida de executá-la é o `blume skill`, que descobre onde a skill deve ficar e abre o Codex ou o Claude Code com a cópia incluída no pacote:
+
+```bash
+blume skill --claude   # or --codex
+```
+
+Para usá-la a partir de outro agente, instale-a:
+
+```bash
+npx skills add haydenbleasel/blume --skill blume-write-skill
+```

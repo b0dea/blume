@@ -35,7 +35,7 @@ search: {
 
 ## Usando a busca [#using-search]
 
-Abra a busca com <Badge variant="accent">⌘K</Badge> (ou `Ctrl K`), ou pressione `/` quando não estiver digitando em um campo. `Esc` a fecha, e `⌘J` (ou `Ctrl J`) alterna o painel de pré-visualização de resultados.
+Abra a busca pelo ícone de busca no cabeçalho, com <Badge variant="accent">⌘K</Badge> (ou `Ctrl K`) ou pressionando `/` quando não estiver digitando em um campo. `Esc` a fecha, e `⌘J` (ou `Ctrl J`) alterna o painel de pré-visualização de resultados.
 
 As consultas correspondem a **títulos**, **descrições** e **texto do corpo** das páginas, com as correspondências de título classificadas em primeiro lugar e as descrições acima do corpo.
 
@@ -91,6 +91,34 @@ Adicione `search.tags` ao frontmatter de uma página para agrupá-la sob um filt
 search:
   tags: [api, reference]
 ```
+
+## Classificação [#ranking]
+
+Dois campos do frontmatter definem como uma página é classificada. `search.keywords` lista termos extras pelos quais a página é encontrada, mesmo quando o texto dela não os usa. Isso é útil para uma página que os leitores procuram por um nome antigo, uma sigla ou um termo de um concorrente. `search.boost` multiplica a relevância da página: acima de 1, ela sobe; abaixo de 1, ela desce.
+
+```yaml
+search:
+  keywords: [install, setup, getting started]
+  boost: 3
+```
+
+Reserve os boosts para as poucas páginas de que os leitores mais precisam, como um guia de início rápido ou uma visão geral, com valores de 2 a 5. Use um valor abaixo de 1, como `0.5`, para uma página que deve ficar abaixo de outras com correspondência igualmente boa, como um guia legado. Mantenha os boosts abaixo de 10: acima disso, o boost abafa o quanto a página corresponde à busca, e ela passa a liderar buscas com as quais mal corresponde.
+
+O quanto um boost move uma página depende do adaptador:
+
+- O **Orama** (o padrão) e o **FlexSearch** multiplicam cada correspondência pelo boost da página antes de ordenar, então um boost de 3 conta exatamente três vezes. A busca do [servidor MCP](/docs/discoverability/mcp) e a do [assistente](/docs/configuration/assistant) classificam da mesma forma.
+- O **Pagefind** dá mais peso ao texto de uma página com boost. Ele atenua correspondências repetidas, então o ganho é menor que o multiplicador: um boost de 5 classifica a página mais acima, mas algo mais próximo do dobro. O Pagefind trata um boost acima de 10 como 10.
+- O **Algolia** e o **Typesense** ordenam pelo boost entre resultados com correspondência mais ou menos equivalente, então um boost desempata casos próximos sem colocar uma correspondência mais fraca acima de uma forte. No Algolia, a sincronização adiciona `desc(boost)` ao ranking personalizado do índice, depois de qualquer ranking que você tenha definido.
+- O **Orama Cloud** busca um conjunto maior de resultados e os reordena pela relevância multiplicada pelo boost.
+- O **Mixedbread** busca no seu próprio store, para o qual o Blume não envia nada, então boosts e palavras-chave não chegam até ele.
+
+As palavras-chave são pesquisadas em todos os adaptadores, exceto no Mixedbread.
+
+## Análise de buscas [#search-analytics]
+
+Com um [adaptador de analytics](/docs/configuration/analytics) configurado, a busca informa o que os leitores procuram. Uma consulta é registrada quando se estabiliza, após um segundo sem digitação ou quando o leitor escolhe um resultado ou fecha o diálogo, como um evento `search` com a `query`, o número de `results` e o `path` de onde a busca foi feita. Uma consulta sem resultados aparece com `results: 0`, então filtrar por esse valor lista o que a sua documentação ainda não cobre. Escolher um resultado envia um evento `search_select` com a `query`, a `position` do resultado (começando em 1) e a `url` dele, para medir a taxa de cliques.
+
+As consultas são enviadas exatamente como foram digitadas, com até 100 caracteres. A sua ferramenta de analytics as recebe da mesma forma que recebe os termos de busca de qualquer página, então trate-as como entrada do leitor. Com o [consentimento de cookies](/docs/configuration/consent) ativado, apenas os leitores que permitiram analytics são contabilizados.
 
 ## Adaptadores [#adapters]
 

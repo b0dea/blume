@@ -28,6 +28,8 @@ export default defineConfig({
 アナリティクスはオプトインです。`analytics` リストがない場合（または空の場合）、Blume は何も注入しません。
 :::
 
+先に読者の同意を求めるには、[`consent`](/docs/configuration/consent) を設定してください。設定すると、ここで紹介するすべてのアダプターは、読者がアナリティクスを許可するまで待機します。
+
 以下で扱う識別子（プロジェクトキー、測定 ID、サイトトークンなど）はすべて、プロバイダー自身のインストールスニペットに含まれる、ブラウザ側で使われる公開用のものです。各アダプターはそのスニペットをレンダリングするだけなので、ドキュメントのリポジトリにコミットしても安全です。Blume がシークレットを要求することはありません。
 
 ## アダプター [#adapters]
@@ -430,4 +432,4 @@ analytics: [
 
 ## カスタムイベント [#custom-events]
 
-Blume のページフィードバックは、クライアント API を持つ設定済みのすべてのアダプター — PostHog、Mixpanel、Heap、Segment、Hightouch、Amplitude、LogRocket、Adobe、Google Analytics、Google Tag Manager（`window.dataLayer` への `{ event }` の push として）、Plausible、Databuddy、Fathom、OneDollarStats（各プロパティの値は文字列として）、Pirsch、Clarity、Hotjar、Vercel — を通じてカスタムイベントを送信します。Cloudflare と Clearbit にはイベント API がありません。また、すべてのイベントは `detail` に `{ event, props }` を持つ `blume:track` CustomEvent として `window` 上でも発火するため、`script()` アダプターを使えば他の任意の送信先に転送できます。ビルドしたサイトのデプロイについては、[デプロイ](/docs/deployment)を参照してください。
+Blume のページフィードバック（`feedback`、および[記述式フィードバック](/docs/configuration#written-feedback)が有効な場合は `feedback_comment`）、[検索](/docs/configuration/search#search-analytics)（`search`、`search_select`）、[ナレーション](/docs/configuration/narration#analytics)プレーヤー（`narration_play`、`narration_complete`）は、クライアント API を持つ設定済みのすべてのアダプター — PostHog、Mixpanel、Heap、Segment、Hightouch、Amplitude、LogRocket、Adobe、Google Analytics、Google Tag Manager（`window.dataLayer` への `{ event }` の push として）、Plausible、Databuddy、Fathom、OneDollarStats（各プロパティの値は文字列として）、Pirsch、Clarity、Hotjar、Vercel — を通じてカスタムイベントを送信します。Cloudflare と Clearbit にはイベント API がありません。また、すべてのイベントは `detail` に `{ event, props }` を持つ `blume:track` CustomEvent として `window` 上でも発火するため、`script()` アダプターを使えば他の任意の送信先に転送できます。ビルドしたサイトのデプロイについては、[デプロイ](/docs/deployment)を参照してください。

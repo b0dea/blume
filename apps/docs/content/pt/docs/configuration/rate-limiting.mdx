@@ -1,0 +1,70 @@
+---
+title: Limite de requisições
+description: >-
+  Limite com que frequência um mesmo leitor pode chamar o assistente, o proxy do playground da API e a busca no servidor. Vem ativado por padrão, com a contagem mantida em memória, no Upstash ou no Cloudflare.
+---
+
+Cada chamada às rotas de servidor que um leitor pode acessar tem um custo para você: o [assistente](/docs/configuration/assistant) gasta tokens do modelo, o proxy do [playground da API](/docs/references/openapi#cors-and-the-proxy) repassa requisições para a sua API e a [busca do Mixedbread](/docs/configuration/search#mixedbread) faz uma consulta paga. O Blume limita com que frequência um mesmo leitor, identificado pelo endereço IP, pode chamar cada uma dessas rotas. Quem passa do limite recebe `429 Too Many Requests` com um cabeçalho `Retry-After`, e o assistente avisa para tentar de novo em alguns minutos.
+
+O limite de requisições vem ativado por padrão, com 30 requisições por leitor por rota a cada 10 minutos. É o suficiente para uma pessoa nunca chegar ao limite e pouco o bastante para barrar um script. Ele só faz diferença em um build com servidor, já que um site estático não tem rotas de servidor para limitar.
+
+```ts blume.config.ts lineNumbers
+import { defineConfig } from "blume";
+import { upstash } from "blume/ratelimit";
+
+export default defineConfig({
+  rateLimit: upstash({ requests: 30, window: 600 }), // window in seconds
+});
+```
+
+Cada rota tem sua própria contagem, então uma sessão intensa no playground não gasta as perguntas que o leitor ainda pode fazer ao assistente.
+
+## Onde a contagem fica [#where-the-count-lives]
+
+| Adaptador | Contagem mantida em | Como o limite é aplicado |
+| --- | --- | --- |
+| `memory()` | Na memória do servidor (o padrão) | Com exatidão em um único servidor; por instância em hosts serverless |
+| `upstash()` | [Upstash Redis](https://upstash.com) | Com exatidão, em qualquer host |
+| `cloudflare()` | No rate limiting do Cloudflare Workers | Por localização do Cloudflare |
+
+### Memória [#memory]
+
+`memory()` não precisa de nenhuma configuração. Em um servidor que roda como um único processo, como `deployment: node()`, a contagem é exata. Vercel, Netlify e Cloudflare rodam várias instâncias de vida curta, cada uma com sua própria contagem. Nesses hosts, ele barra uma rajada de requisições de um mesmo leitor, mas não aplica o limite com exatidão. Para ter um limite exato nesses hosts, use um dos armazenamentos compartilhados abaixo.
+
+```ts blume.config.ts lineNumbers
+import { memory } from "blume/ratelimit";
+
+rateLimit: memory({ requests: 60, window: 600 }),
+```
+
+### Upstash
+
+`upstash()` guarda a contagem no Upstash Redis, compartilhado por todas as instâncias. Crie um banco de dados (na Vercel, adicione o Upstash pelo Marketplace) e defina o endpoint REST e o token dele como `UPSTASH_REDIS_REST_URL` e `UPSTASH_REDIS_REST_TOKEN`. O Blume se comunica com a API REST do Upstash, então você não precisa instalar nada. Enquanto as duas variáveis não estiverem definidas, as rotas contam em memória e o `blume build` mostra um aviso.
+
+```ts blume.config.ts lineNumbers
+import { upstash } from "blume/ratelimit";
+
+rateLimit: upstash(),
+```
+
+### Cloudflare
+
+`cloudflare()` faz a contagem com o [rate limiting do Workers](https://developers.cloudflare.com/workers/runtime-apis/bindings/rate-limit/), para sites publicados com `deployment: cloudflare()`. O Blume declara o binding na configuração do Worker durante o build, então você não precisa configurar nada. O Cloudflare conta por localização e só aceita janelas de 10 ou 60 segundos. Por isso, os padrões dele são 10 requisições a cada 60 segundos.
+
+```ts blume.config.ts lineNumbers
+import { cloudflare } from "blume/deploy";
+import { cloudflare as cloudflareRateLimit } from "blume/ratelimit";
+
+export default defineConfig({
+  deployment: cloudflare(),
+  rateLimit: cloudflareRateLimit({ requests: 10, window: 60 }),
+});
+```
+
+O namespace do binding é definido a partir do nome do Worker, então dois sites na mesma conta não compartilham a contagem. Se quiser escolher o namespace você mesmo, defina `namespaceId`.
+
+## Como desativar [#turning-it-off]
+
+Defina `rateLimit: false` para deixar todas as requisições passarem, por exemplo quando o firewall do seu host já limita essas rotas. Uma requisição cujo endereço o host não consegue identificar sempre passa. O mesmo vale para uma requisição que o armazenamento compartilhado não consegue contar: a falha fica registrada no log, e os leitores nunca são bloqueados por uma queda do armazenamento.
+
+No caso do assistente, use o limite de requisições junto com uma [verificação de bots](/docs/configuration/assistant#bot-protection) para barrar scripts que distribuem as requisições entre muitos endereços.

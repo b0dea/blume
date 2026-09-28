@@ -1,0 +1,40 @@
+---
+title: कस्टम सोर्स
+description: >-
+  custom() के साथ किसी भी बैकएंड को Blume से जोड़ें — ContentSource इंटरफ़ेस को लागू करने वाला कोई ऑब्जेक्ट, या कस्टम सीरियलाइज़र के साथ कोई बिल्ट-इन इंजन पास करें।
+---
+
+`ContentSource` इंटरफ़ेस को लागू करने वाले किसी भी ऑब्जेक्ट को `custom()` में पास किया जा सकता है। कस्टम सीरियलाइज़र वाला एडेप्टर, या कोई भी ऐसा बैकएंड जो बिल्ट-इन नहीं है, इसी तरह जुड़ता है। इससे उसका SDK कोर इंस्टॉलेशन को प्रभावित नहीं करता:
+
+```ts blume.config.ts
+import { defineConfig } from "blume";
+import { custom, filesystem } from "blume/sources";
+import { sanitySource } from "blume/sources/sanity.ts";
+
+export default defineConfig({
+  content: {
+    sources: [
+      filesystem({ root: "docs" }),
+      custom(
+        sanitySource({
+          name: "guides",
+          prefix: "guides",
+          projectId: "abc123",
+          dataset: "production",
+          query: `*[_type == "guide"]`,
+          // Map custom Portable Text blocks to Blume components
+          serializers: {
+            callout: (block) => `<Callout>${block.text}</Callout>`,
+          },
+        })
+      ),
+    ],
+  },
+});
+```
+
+Blume की किसी इंजन फ़ैक्टरी से बना सोर्स, जैसे ऊपर दिया गया `sanitySource`, चल रहे कमांड के कॉन्टेक्स्ट पर फिर से बनाया जाता है। इसलिए यह `--preview` में ड्राफ़्ट पढ़ता है और बिल्ट-इन एडेप्टर की तरह अपना स्नैपशॉट `.blume/cache` में रखता है। आप अपने सोर्स में `withContext(ctx)` लागू करके भी यही कर सकते हैं। यह मेथड उस कॉन्टेक्स्ट पर फिर से बना सोर्स लौटाती है।
+
+`custom()` ऑप्शन ऑब्जेक्ट के बजाय एक `ContentSource` इंस्टेंस लेता है। इसलिए [साझा ऑप्शन](/docs/content/sources#adapters) `prefix` या `pollInterval` को पास करने की कोई जगह नहीं है। सोर्स अपनी `prefix` प्रॉपर्टी स्वयं सेट करता है, और री-फ़ेचिंग उसकी `watch` मेथड के अनुसार होती है। इसमें सादे डेटा के बजाय एक लाइव इंस्टेंस होता है, इसलिए यह अपनी ओर से कोई रनटाइम डिपेंडेंसी या सीक्रेट घोषित नहीं करता। इंस्टेंस इन्हें स्वयं संभालता है।
+
+लोकल फ़ाइलें पढ़ने वाले कस्टम सोर्स में हर एंट्री पर `sourcePath` और सोर्स पर `contentRoot` सेट होना चाहिए। `sourcePath` डायग्नोस्टिक्स में फ़ाइल का नाम दिखाता है और उसके बगल में रखी रिलेटिव इमेज को रिज़ॉल्व करता है। `contentRoot` उस git `log` का दायरा तय करता है जिससे पेजों की तारीख़ निकाली जाती है। इसके बिना सोर्स के पेजों को git से ["अंतिम अपडेट" की तारीख़](/docs/configuration#last-modified) नहीं मिलती।

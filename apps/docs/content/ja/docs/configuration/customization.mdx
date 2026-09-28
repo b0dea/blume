@@ -79,7 +79,7 @@ import Logo from "./components/Logo.astro";
 export default defineComponents({
   layout: {
     Logo, // brand mark + title in the header
-    Footer, // site-wide footer (no built-in — renders only when set)
+    Footer, // site-wide footer, in place of the one `footer` configures
   },
 });
 ```
@@ -97,12 +97,12 @@ export default defineComponents({
 | `Breadcrumbs` | パンくずリスト | `crumbs` |
 | `TableOfContents` | このページの目次 | `headings`、`title`、`variant` |
 | `Pagination` | 前後のページへのフッターリンク | `prev`、`next`、`strings` |
-| `Feedback` | 記事の下にある「このページは役に立ちましたか？」の評価（[`feedback`](/docs/configuration#page-feedback) が有効な場合のみレンダリングされます） | `strings` |
+| `Feedback` | 記事の下にある「このページは役に立ちましたか？」の評価（[`feedback`](/docs/configuration#page-feedback) が有効な場合のみレンダリングされます） | `strings`、`comments` |
 | `PageHeader` | 記事の上部への挿入ポイント（組み込みなし） | `page`、`headings`、`route` |
 | `PageFooter` | 記事の下部への挿入ポイント（組み込みなし） | `page`、`headings`、`route` |
-| `Footer` | コンテンツグリッドの後に配置されるサイト全体のフッター（組み込みなし） | `site`、`navigation`、`ui` |
+| `Footer` | コンテンツグリッドの後に配置される[サイトフッター](/docs/configuration#footer)（リンク、ソーシャルプロフィール、リポジトリへのリンク、Cookie 設定） | `footer`、`locale`、`site`、`navigation`、`ui` |
 
-`PageHeader`、`PageFooter`、`Footer` には組み込みコンポーネントがありません。設定するまで何もレンダリングされないため、プロモーションバナー、「最終更新日」の注記、マーケティング用フッターなどの便利な挿入ポイントになります。
+`PageHeader` と `PageFooter` には組み込みコンポーネントがありません。設定するまで何もレンダリングされないため、プロモーションバナーや「最終更新日」の注記などの便利な挿入ポイントになります。組み込みの `Footer` はリポジトリとソーシャルプロフィールへの唯一のリンクを保持しているため、`Footer` の上書き（設定では表現できないマーケティング用フッターを置く場所）でもそれらを残してください。`consent` を設定している場合は、それを再び開く手段も残してください。`data-blume-consent-open` を持つ任意の要素が [Cookie 設定](/docs/configuration/consent#changing-an-answer) のリンクとして機能します。
 
 レイアウトスロットは MDX の上書きと同じ[3 つの参照形式](#reference-form)を受け付けます。そのため、インタラクティブなヘッダーやフッターが必要な場合は、スロットにパス文字列やハイドレーション付きのディスクリプタ（`{ component, client }`）を指定できます。
 

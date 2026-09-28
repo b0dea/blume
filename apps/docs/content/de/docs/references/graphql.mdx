@@ -41,13 +41,13 @@ navigation: {
 
 ## Generierte Beispiele [#generated-examples]
 
-Jede Operationsseite enthält eine vollständige, gültige Beispiel-Operation – eine Variable pro Argument, typisiert anhand des Schemas, mit einem Selection Set begrenzter Tiefe über den Rückgabetyp. Dazu kommen passende Beispielvariablen und eine Beispielantwort, die dieselbe Selection widerspiegelt. Die Code-Beispiele zeigen den exakten HTTP-Request (ein JSON-`POST` von `{ query, variables }`) in jeder konfigurierten Sprache:
+Jede Operationsseite enthält eine vollständige, gültige Beispiel-Operation – eine Variable pro Argument, typisiert anhand des Schemas, mit einem Selection Set begrenzter Tiefe über den Rückgabetyp. Dazu kommen passende Beispielvariablen und eine Beispielantwort, die dieselbe Selection widerspiegelt. Die Code-Beispiele zeigen den exakten HTTP-Request (ein JSON-`POST` von `{ query, variables }`) in jeder konfigurierten Sprache. Dir stehen dieselben [Sprachen](/docs/references/openapi#code-samples-and-schemas) wie bei `openapi()` zur Verfügung, und mit `codeSamples: false` werden keine angezeigt:
 
 ```ts blume.config.ts lineNumbers
 reference: [
   graphql({
     spec: "./schema.graphql",
-    codeSamples: ["curl", "js"],   // built in: curl, js, python
+    codeSamples: ["curl", "js"],   // any language openapi() offers
   }),
 ],
 ```

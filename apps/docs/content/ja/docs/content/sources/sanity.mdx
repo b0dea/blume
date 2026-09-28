@@ -1,0 +1,30 @@
+---
+title: Sanity
+description: >-
+  sanity() ソースを使って Sanity データセットからドキュメントを取得します。GROQ クエリでドキュメントを選択し、その Portable Text 本文は Markdown に変換されます。
+---
+
+組み込みの `sanity()` アダプターは GROQ クエリを実行し、各ドキュメントのフィールドをフロントマターに、Portable Text の本文を Markdown にマッピングします。このアダプターはランタイム依存関係として `@sanity/client` を宣言しています。これはオプションのピア依存関係であるため、このソースを使用する場合にのみインストールしてください。
+
+```ts blume.config.ts
+import { defineConfig } from "blume";
+import { filesystem, sanity } from "blume/sources";
+
+export default defineConfig({
+  content: {
+    sources: [
+      filesystem({ root: "docs" }),
+      sanity({
+        prefix: "guides",
+        projectId: "abc123",
+        dataset: "production",
+        query: `*[_type == "guide"]`,
+        // Field paths default to title / slug.current / body / _updatedAt
+        fields: { slug: "slug.current", body: "content" },
+      }),
+    ],
+  },
+});
+```
+
+非公開データセット用の読み取りトークンは、アダプターが宣言している `SANITY_TOKEN` 環境変数から取得されます。カスタムの Portable Text ブロックタイプは、エンジンの `serializers` オプションを通じて Blume コンポーネントにマッピングされます。このオプションは、`sanitySource` を直接構築して [`custom()`](/docs/content/sources/custom) に渡す場合に利用できます。`serializers` を設定すると、そのソースのページは MDX として書き出されるため、シリアライザーが返すコンポーネントやディレクティブがレンダリングされます。

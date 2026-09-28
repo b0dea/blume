@@ -56,17 +56,63 @@ reference: [
 
 ## Codebeispiele und Schemas [#code-samples-and-schemas]
 
-`codeSamples` legt fest, welche Sprachen pro Operation gerendert werden (eingebaut: `curl`, `js`, `python`); mit `expandSchemas` starten verschachtelte Schemazeilen ausgeklappt statt eingeklappt:
+`codeSamples` legt fest, welche Sprachen pro Operation gerendert werden, und zwar in der Reihenfolge, in der du sie auflistest. Standardmäßig ist das `["curl", "js", "python"]`. Mit `expandSchemas` starten verschachtelte Schemazeilen ausgeklappt statt eingeklappt:
 
 ```ts blume.config.ts lineNumbers
 reference: [
   openapi({
     spec: "./openapi.yaml",
-    codeSamples: ["curl", "js"],
+    codeSamples: ["curl", "python", "go", "java", "csharp"],
     expandSchemas: true,
   }),
 ],
 ```
+
+Jedes Beispiel ist schlichter Code für den Request, den du direkt kopieren und einfügen kannst – geschrieben mit dem Standard- oder dem gängigsten HTTP-Client der jeweiligen Sprache:
+
+| Id           | Sprache    | Client              | Akzeptiert auch       |
+| ------------ | ---------- | ------------------- | --------------------- |
+| `curl`       | cURL       | `curl`              | `bash`, `sh`, `shell` |
+| `python`     | Python     | `requests`          | `py`                  |
+| `js`         | JavaScript | `fetch`             | `javascript`          |
+| `node`       | Node.js    | `axios`             | `nodejs`, `node.js`   |
+| `typescript` | TypeScript | `fetch`             | `ts`                  |
+| `php`        | PHP        | die curl-Extension  |                       |
+| `go`         | Go         | `net/http`          | `golang`              |
+| `java`       | Java       | `java.net.http`     |                       |
+| `ruby`       | Ruby       | `net/http`          | `rb`                  |
+| `powershell` | PowerShell | `Invoke-RestMethod` | `ps1`                 |
+| `swift`      | Swift      | `URLSession`        |                       |
+| `csharp`     | C#         | `HttpClient`        | `c#`, `cs`            |
+| `dotnet`     | .NET       | RestSharp           | `.net`, `dot-net`     |
+| `c`          | C          | libcurl             |                       |
+| `cpp`        | C++        | cpr                 | `c++`                 |
+| `kotlin`     | Kotlin     | OkHttp              | `kt`                  |
+| `rust`       | Rust       | reqwest             | `rs`                  |
+| `dart`       | Dart       | `package:http`      | `flutter`             |
+
+Jeder Wert wird nach den Regeln der jeweiligen Sprache maskiert, sodass ein Header wie `If-Match: "33a64df5"` oder ein Body mit einem `$` darin genau so bei der API ankommt, wie er geschrieben wurde.
+
+### Eigene Beispiele [#your-own-samples]
+
+Um statt eines rohen HTTP-Aufrufs dein SDK zu zeigen, füge einer Operation in der Spezifikation `x-codeSamples` hinzu. Das ist die von Redocly definierte Extension, und Speakeasy und Stainless können sie für dich schreiben. Jeder Eintrag nimmt ein `lang`, den `source` und ein optionales `label`:
+
+```yaml openapi.yaml lineNumbers
+paths:
+  /plants:
+    get:
+      x-codeSamples:
+        - lang: typescript
+          label: SDK
+          source: |
+            const plants = await planter.plants.list();
+        - lang: bash
+          label: CLI
+          source: |
+            planter list
+```
+
+Diese Beispiele werden als eigene Tabs vor den generierten gerendert und bleiben unverändert, wenn Lesende das [Try it](#try-it-playground)-Formular ändern. Die ältere Schreibweise `x-code-samples` funktioniert ebenfalls. Um nur deine eigenen Beispiele zu zeigen, setze `codeSamples: false`.
 
 ## Try-it-Playground
 
@@ -101,7 +147,7 @@ reference: [
 ],
 ```
 
-Der eingebaute Proxy leitet Requests nur an die Origins weiter, die deine Spezifikationen in `servers` deklarieren (auf Dokument-, Pfad- oder Operationsebene, mit Variablen auf ihren Standardwerten) – auch über Redirects hinweg –, sodass ein öffentliches Doku-Deployment nicht auf andere Hosts in seinem Netzwerk gerichtet werden kann. Eine im Panel eingegebene **Custom base URL** ist kein dokumentierter Server: Bei aktiviertem Proxy werden Requests an sie mit einem 403 abgelehnt. Er leitet nur die Header weiter, die das Panel selbst setzt – die eingegebenen Zugangsdaten und Header-Parameter sowie den `Content-Type` des Bodys –, sodass Cookies, Zugangsdaten, die der Browser für die Doku-Website mitschickt (etwa HTTP-Basic-Auth bei einer passwortgeschützten Preview), und Header, die dein Host hinzufügt (`X-Forwarded-For`, `CF-*`, `X-Vercel-*`), nie bei der API ankommen. Er liest einen Request-Body nur bis zu 4 MB (alles Größere erhält einen `413`), und jede Response, die er weiterleitet, enthält `Content-Security-Policy: sandbox`, `X-Content-Type-Options: nosniff` und `Cross-Origin-Resource-Policy: same-origin` – plus `Content-Disposition: attachment` bei HTML oder SVG –, sodass eine API-Fehlerseite, die ihre Eingabe zurückgibt, kein Skript auf dem Origin der Doku ausführen kann.
+Der eingebaute Proxy leitet Requests nur an die Origins weiter, die deine Spezifikationen in `servers` deklarieren (auf Dokument-, Pfad- oder Operationsebene, mit Variablen auf ihren Standardwerten) – auch über Redirects hinweg –, sodass ein öffentliches Doku-Deployment nicht auf andere Hosts in seinem Netzwerk gerichtet werden kann. Eine im Panel eingegebene **Custom base URL** ist kein dokumentierter Server: Bei aktiviertem Proxy werden Requests an sie mit einem 403 abgelehnt. Er leitet nur die Header weiter, die das Panel selbst setzt – die eingegebenen Zugangsdaten und Header-Parameter sowie den `Content-Type` des Bodys –, sodass Cookies, Zugangsdaten, die der Browser für die Doku-Website mitschickt (etwa HTTP-Basic-Auth bei einer passwortgeschützten Preview), und Header, die dein Host hinzufügt (`X-Forwarded-For`, `CF-*`, `X-Vercel-*`), nie bei der API ankommen. Er liest einen Request-Body nur bis zu 4 MB (alles Größere erhält einen `413`), und jede Response, die er weiterleitet, enthält `Content-Security-Policy: sandbox`, `X-Content-Type-Options: nosniff` und `Cross-Origin-Resource-Policy: same-origin` – plus `Content-Disposition: attachment` bei HTML oder SVG –, sodass eine API-Fehlerseite, die ihre Eingabe zurückgibt, kein Skript auf dem Origin der Doku ausführen kann. Der Proxy ist außerdem pro lesender Person [rate-limitiert](/docs/configuration/rate-limiting), wie jede Server-Route, die Lesende aufrufen können.
 
 ## Mehrere Spezifikationen [#multiple-specs]
 
@@ -118,7 +164,7 @@ reference: [
 ],
 ```
 
-`spec` ist eine Kurzform für ein `sources` mit einem einzigen Eintrag, du greifst also nur dann zu `sources`, wenn du mehr als eine Spezifikation hast. Wenn zwei Spezifikationen unterschiedliche Anzeigeoptionen brauchen – zum Beispiel andere Sprachen für die Codebeispiele –, liste stattdessen zwei `openapi()`-Adapter auf, jeden mit eigener `route`. Eine eingebettete [Scalar](/docs/references/scalar)-Referenz neben nativen Seiten ist ein eigener `scalar()`-Adapter in der Liste. Quellen werden in Listenreihenfolge aufgelöst, und wenn zwei auf dieselbe Route aufgelöst werden, gewinnt die erste (der Build warnt vor der verworfenen).
+`spec` ist eine Kurzform für ein `sources` mit einem einzigen Eintrag, du greifst also nur dann zu `sources`, wenn du mehr als eine Spezifikation hast. Wenn zwei Spezifikationen unterschiedliche Anzeigeoptionen brauchen – zum Beispiel eine andere Auswahl an Codebeispielen –, liste stattdessen zwei `openapi()`-Adapter auf, jeden mit eigener `route`. Eine eingebettete [Scalar](/docs/references/scalar)-Referenz neben nativen Seiten ist ein eigener `scalar()`-Adapter in der Liste. Quellen werden in Listenreihenfolge aufgelöst, und wenn zwei auf dieselbe Route aufgelöst werden, gewinnt die erste (der Build warnt vor der verworfenen).
 
 ### Indexierung pro Quelle [#per-source-indexing]
 
@@ -158,6 +204,36 @@ reference: [
 
 Ein [`scalar()`](/docs/references/scalar)-Embed unterstützt davon nur `noindex` – es liegt ohnehin außerhalb von Blumes Suche und `llms.txt`, daher haben die beiden `include*`-Einstellungen dort keine Wirkung.
 
+## Overlays
+
+Wenn die Spezifikation von einem anderen Tool generiert wird oder einem anderen Team gehört, halte deine Doku-Änderungen mit einem [OpenAPI Overlay](https://spec.openapis.org/overlay/latest.html) aus ihr heraus: einer separaten Datei, die Änderungen an der Spezifikation auflistet, etwa klarere Beschreibungen, eine öffentliche Server-URL oder entfernte interne Operationen. Liste Overlays neben `spec` auf. Jedes ist ein lokaler Pfad oder eine `http(s)`-URL, und sie werden der Reihe nach angewendet:
+
+```ts blume.config.ts lineNumbers
+reference: [
+  openapi({
+    spec: "./openapi.json",
+    overlays: ["./overlays/public.yaml"],
+  }),
+],
+```
+
+```yaml overlays/public.yaml lineNumbers
+overlay: 1.1.0
+info:
+  title: Public docs
+  version: 1.0.0
+actions:
+  - target: $.paths.*[?@['x-internal'] == true]
+    remove: true
+  - target: $.info
+    update:
+      description: The public Acme API.
+```
+
+Das `target` jeder Action ist ein [JSONPath](https://www.rfc-editor.org/rfc/rfc9535)-Ausdruck. `update` wird mit jedem ausgewählten Knoten zusammengeführt: Objekte werden Schlüssel für Schlüssel zusammengeführt, Arrays erhalten die neuen Einträge, und andere Werte werden ersetzt. `copy` führt einen Knoten von einer anderen Stelle der Spezifikation hinein (Overlay 1.1), und `remove: true` löscht die Ziele. Sowohl Overlay Specification 1.0 als auch 1.1 werden unterstützt.
+
+Overlays werden auf die Spezifikation in ihrer geschriebenen Form angewendet, bevor Blume sie auf OpenAPI 3.1 aktualisiert – ein Overlay zielt also auf die Version, in der du die Spezifikation geschrieben hast. Alles, was aus der Spezifikation gebaut wird, sieht das Ergebnis: die Operationsseiten, die Sidebar, die Suche, `llms.txt` und der MCP-Server. Mit `sources` gibst du jeder Quelle ihre eigenen `overlays`. Ein Overlay, das sich nicht anwenden lässt, lässt die Referenz genauso fehlschlagen wie eine unlesbare Spezifikation, sodass ein kaputtes Overlay nicht veröffentlichen kann, was es verbergen sollte.
+
 ## Autorisierung [#authorization]
 
 Operationen, die [Security-Anforderungen](https://spec.openapis.org/oas/v3.1.0#security-requirement-object) deklarieren, rendern oberhalb ihrer Parameter einen **Authorization**-Abschnitt, und die generierten Codebeispiele senden Platzhalter-Zugangsdaten (`Authorization: Bearer YOUR_TOKEN`, einen API-Key-Header oder einen Query-Key – je nachdem, was das Security-Scheme verlangt). Es gibt nichts zu konfigurieren: Blume liest `security` aus der Spezifikation, sodass die Referenz immer dem entspricht, was die API tatsächlich durchsetzt.
@@ -168,6 +244,29 @@ Die OpenAPI-Semantik wird unverändert übernommen:
 - Mehrere Anforderungseinträge sind Alternativen – gerendert als „oder“-Gruppen; alle Schemes innerhalb eines Eintrags sind gemeinsam erforderlich. Die erste Alternative fließt in die Codebeispiele ein.
 - Ein leerer `{}`-Eintrag bedeutet, dass Auth für diese Operation **optional** ist, und der Abschnitt weist darauf hin.
 - OAuth2-Scopes werden pro Scheme aufgelistet; die `description`s von Schemes aus `components.securitySchemes` werden inline gerendert.
+
+## Webhooks und Callbacks [#webhooks-and-callbacks]
+
+Auch die ausgehenden Requests deiner API werden dokumentiert. Jeder [Webhook](https://spec.openapis.org/oas/v3.1.0#oas-webhooks) im `webhooks`-Feld auf oberster Ebene der Spezifikation bekommt wie eine Operation seine eigene Seite: einsortiert unter seinem ersten Tag oder in einer **Webhooks**-Gruppe, wenn er keinen hat. Die Seite zeigt das Schema des Payloads und die Responses, die dein Endpoint zurücksenden sollte. Anstelle des Try-it-Panels und der Codebeispiele zeigt die rechte Spalte einen Beispiel-Payload, da deine API diesen Request sendet, statt ihn zu beantworten. Eine Webhook-Seite listet nur die `security` auf, die der Webhook selbst deklariert: Die `security` auf Root-Ebene der Spezifikation schützt Aufrufe an deine API und gilt daher nicht für Requests, die die API sendet.
+
+```yaml openapi.yaml lineNumbers
+webhooks:
+  newPet:
+    post:
+      summary: New pet added
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Pet"
+      responses:
+        "200":
+          description: Return a 200 to acknowledge the event.
+```
+
+Die [`callbacks`](https://spec.openapis.org/oas/v3.1.0#callback-object) einer Operation – die Requests, die deine API zurück an eine vom Aufrufer angegebene URL sendet – werden in einem **Callbacks**-Abschnitt auf der Seite dieser Operation gerendert. Jeder zeigt den URL-Ausdruck (`{$request.body#/callbackUrl}`), seine Methode, seinen Request-Body und seine erwarteten Responses. Callbacks, die unter `components.callbacks` deklariert und mit `$ref` referenziert werden, funktionieren genauso.
+
+Webhook-Seiten sind echte Seiten: Sie tauchen in der Suche, in `llms.txt` und im MCP-Server auf, und ihr Markdown teilt Agents mit, dass es sich um einen Request handelt, den die API sendet – so versucht ein Agent nicht, ihn aufzurufen.
 
 ## Scalar stattdessen einbetten [#embedding-scalar-instead]
 

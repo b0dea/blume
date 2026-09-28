@@ -137,6 +137,23 @@ Vercel と Cloudflare では、サーバービルドによって [`Accept: text/
 サーバー機能にはそれぞれ独自の設定があります — 例えばアシスタントにはモデルの API キーが必要です。セットアップについては [アシスタントガイド](/docs/configuration/assistant) を参照してください。
 :::
 
+## 非公開のドキュメント [#private-docs]
+
+Blume 自体にはサインイン機能がありません。静的ビルドは単なるファイルの集まりであり、ホストにアクセスできる人なら誰でも `dist/` 内のあらゆるものを取得できます。サイトを非公開にするには、ホストのアクセス保護を有効にしてください。アクセス保護は、ファイルが配信される前にすべてのリクエストをチェックします:
+
+- **Vercel**: [Deployment Protection](https://vercel.com/docs/deployment-protection) を **All Deployments** スコープで有効にすると、プレビューだけでなく本番も保護されます。Vercel Authentication では Vercel チームのメンバーがアクセスでき、Password Protection（有料プラン）では共有パスワードを知っている人なら誰でもアクセスできます。
+- **Netlify**: すべてのデプロイに [パスワード保護](https://docs.netlify.com/manage/security/secure-access-to-sites/password-protection/) を設定します。共有パスワードを使うか、Enterprise プランではチームログインを使います。
+- **Cloudflare**: サイトを配信する Worker に [Cloudflare Access](https://developers.cloudflare.com/workers/configuration/cloudflare-access/) を設定します（**Workers & Pages** から対象の Worker を開き、**Access** を選択）。これにより、その Worker が応答するすべてのドメインが保護されます。サインインできる人は、メールアドレス、メールドメイン、または Cloudflare アカウントのメンバーシップで指定します。
+- **GitHub Pages**: GitHub Enterprise Cloud 上の Organization からサイトをプライベートに公開すると、リポジトリへの読み取りアクセス権を持つ人だけが閲覧できるようになります。
+- **自前のサーバー**: nginx の `auth_basic` や ID 認識型プロキシ（identity-aware proxy）など、`dist/` の手前に認証を置きます。
+
+ホストの保護は [サーバービルド](#server-rendering) でも同じように機能します。保護はサイト全体に適用されるため、一部のページを公開したままにするには、それらを別のサイトとして公開してください。
+
+ページ、検索インデックス、`.md` のコピー、`llms.txt`、Open Graph 画像など、Blume が `dist/` に書き出すものはすべて保護の内側に置かれます。ただし、いくつかの機能は保護の外側に及びます:
+
+- ホスト型の [検索プロバイダー](/docs/configuration/search)（Algolia、Orama Cloud、Typesense、Mixedbread）は、コンテンツのコピーをそのサービス上に独自に保持します。組み込みの Orama、FlexSearch、Pagefind のインデックスは `dist/` 内のファイルなので、非公開のままです。
+- 保護の外側にあるサービスはページを読み取れません。**Open in chat** は ChatGPT や Claude に開けないリンクを渡すことになり、Slack や X のリンクプレビューには Open Graph カードが表示されず、エージェントは `llms.txt` や MCP サーバーを読み取れません。チャットのアクションを非表示にするには `ai.openInChat: false` を設定してください。
+
 ## リダイレクト [#redirects]
 
 `blume.config.ts` で古い URL を新しい URL にマッピングします:
@@ -153,12 +170,31 @@ redirects: [{ from: "/old", to: "/new", status: 301 }],
 - **Vercel** は `vercel.json` をプロジェクトのルートディレクトリから読み取り、出力ディレクトリからは読み取りません。そのため、`dist/` 内のコピーが適用されるのは、Vercel CLI でそのフォルダー自体をデプロイした場合（`vercel deploy dist`）のみです。Git 連携したプロジェクトはこのファイルを読み取らず、リダイレクトページを配信し、[コンテンツタイプ](#content-types) のヘッダーも一切適用されません。`dist/vercel.json` の `redirects` と `headers` をプロジェクトのルートディレクトリにある `vercel.json` にコピーするか、`vercel()` でサーバービルドを使用してください。サーバービルドでは、ルーティング設定にリダイレクトとディスカバリー用のヘッダーが含まれます。
 
 :::note
-`from` と `to` は完全一致のパスです — ホストによってパターンの扱いが異なるため、`:param` セグメントや `*` ワイルドカード（例: `/blog/:slug` や `/old/*`）を含めると設定の検証でエラーになります。パターンベースのルールが必要な場合は、`vercel.json`（ワイルドカードの `source` パターンをサポート）のようなインフラ側のファイルや、ホストのリダイレクト設定で対応してください。`public/` に配置した `vercel.json` はそのまま保持されます。
-:::
-
-:::note
 `from` と `to` はどちらもルートにマウントされている前提で、`/` から始めて書いてください（`to` は完全な `https://` URL にすることもできます） — [`base`](#subpath-deploys) でも [`basePath`](#mount-the-docs-under-a-path) でも、Blume が両側を書き換えるため、リダイレクト先はベース配下に収まります。`public/` 内のファイルを指す `to`（`/files/guide.pdf`）には `base` は付加されますが、`basePath` は付加されません。ファイルが配信されるのはその場所だからです。`to` に手動でベースを書き込んでいる場合は、二重にならずそのまま維持されます。
 :::
+
+### パターンリダイレクト [#pattern-redirects]
+
+`from` は、Mintlify や `vercel.json` と同じ書き方で、複数のパスを一度にカバーできます:
+
+```ts blume.config.ts
+redirects: [
+  { from: "/beta/:slug*", to: "/v2/:slug*" },
+  { from: "/blog/:slug", to: "/articles/:slug" },
+  { from: "/articles/concepts-*", to: "/concepts" },
+  { from: "/old/article-*", to: "/new/article-*" },
+],
+```
+
+- `:name` は 1 つのセグメント全体にマッチします: `/blog/:slug` は `/blog/hello` にはマッチしますが、`/blog/a/b` にはマッチしません。
+- 最後のセグメントに置いた `:name*` は、パスの残りの部分（任意の数のセグメント）にマッチします: `/beta/:slug*` は `/beta/guides/setup` を `/v2/guides/setup` に、`/beta` 自体を `/v2` に転送します。最後のセグメントが `*` の場合も同じです。
+- セグメントの末尾にある `*` は、その位置以降のパスの残りの部分にマッチします: `/articles/concepts-*` は `/articles/concepts-overview` にマッチします。
+
+`to` では、キャプチャを名前でセグメント全体として（`/:slug*`、`/:slug`）参照するか、`*` で `from` の `*` がマッチした部分を参照します（`_redirects` での表記である `:splat` でも参照できます）。キャプチャを参照しない `to` は、パターンがカバーするすべてのパスを 1 つのページに転送します。同じパスをカバーするパターンよりも完全一致のリダイレクトが優先され、パターンは記述した順に試されます。
+
+各ホストには、それぞれの構文でパターンが渡されます: `_redirects` ではスプラット、`vercel.json` では `path-to-regexp` 形式のソース、そして `vercel()` または `netlify()` のサーバービルドではルーティング設定です。`node()` と `cloudflare()` のサーバーは自身でパターンをマッチングし、`blume dev` も同様です。静的ビルドはパターンに対してリダイレクトページを書き出しません。パターンがカバーするすべてのパスに 1 ページずつ必要になるためです。そのため、これらのファイルをいずれも読み取らないホスト（GitHub Pages など）では、完全一致のリダイレクトのみが適用されます。`blume-redirects.json` には、パターンが記述したとおりに記載されます。
+
+パターンがページにもマッチすることはできません: 両者のどちらが応答するかはホストによって異なるため、ビルドはそのページを示して `BLUME_REDIRECT_MATCHES_PAGE` で停止します。パターンを移動したパスだけに絞り込んでください。
 
 ## コンテンツタイプ [#content-types]
 
@@ -171,7 +207,7 @@ redirects: [{ from: "/old", to: "/new", status: 301 }],
 | 機能 | 変数 |
 | --- | --- |
 | アシスタント（AI Gateway） | `AI_GATEWAY_API_KEY`（または Vercel OIDC） |
-| アシスタント（その他のアダプター） | アダプターのデフォルトのキー環境変数（`OPENROUTER_API_KEY`、`LLMGATEWAY_API_KEY`、`INKEEP_API_KEY`）、またはアダプターに渡した `apiKeyEnv` |
+| アシスタント（その他のアダプター） | アダプターのデフォルトのキー環境変数（`OPENAI_API_KEY`、`ANTHROPIC_API_KEY`、`GEMINI_API_KEY`、`XAI_API_KEY`、`OPENROUTER_API_KEY`、`LLMGATEWAY_API_KEY`、`INKEEP_API_KEY`）、またはアダプターに渡した `apiKeyEnv` |
 | Mixedbread 検索 | `MIXEDBREAD_API_KEY` |
 | [コンテンツソース](/docs/content/sources) | `NOTION_TOKEN`（`notion()`）、`SANITY_TOKEN`（`sanity()`）、`CONTENTFUL_ACCESS_TOKEN`（`contentful()`）、`PAYLOAD_API_KEY`（`payload()`）、`STRAPI_API_TOKEN`（`strapi()`）、`GITHUB_TOKEN`（`githubReleases()`、および GitHub から読み込む `mdxRemote()`） |
 

@@ -42,6 +42,22 @@ Relative Bildreferenzen innerhalb eines Partials funktionieren weiterhin: Sie we
 
 Wenn du ein Partial bearbeitest, während `blume dev` läuft, wird jede Seite neu geladen, die es einbindet.
 
+## Props
+
+Übergib Werte als Attribute an ein Partial und lies sie im Partial mit `{{name}}` aus — dieselbe Syntax wie bei [Variablen](/docs/content/variables). So bedient ein einziges Partial jede Seite, die eine Variante davon braucht:
+
+```mdx docs/_snippets/upgrade.mdx
+Upgrade to the **{{plan}}** plan to use {{feature}}.
+```
+
+```mdx docs/sso.mdx
+<include plan="Enterprise" feature="SSO">
+  ./_snippets/upgrade.mdx
+</include>
+```
+
+Ein Prop gilt für die eingebundene Datei und für alles, was diese wiederum einbindet, und hat Vorrang vor einer websiteweiten Variable mit demselben Namen. Jedes Attribut außer `lang` und `meta` ist ein Prop; Attributwerte sind reiner Text.
+
 ## Code-Dateien einbinden [#including-code-files]
 
 Ein Ziel, das nicht `.md`/`.mdx` ist, wird als umschlossener Code-Block eingebettet, wobei die Sprache aus der Dateiendung abgeleitet wird. Verwende `lang`, um die Sprache zu überschreiben (oder um eine Markdown-Datei als Quelltext anzuzeigen, statt sie einzufügen), und `meta`, um einen Fence-Meta-String wie einen Titel zu übergeben:

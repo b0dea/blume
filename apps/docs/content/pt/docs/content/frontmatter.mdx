@@ -50,6 +50,23 @@ Toda página aceita o frontmatter a seguir. Todos os campos são opcionais.
       default: "false",
       description: "Shorthand for seo.noindex.",
     },
+    narration: {
+      type: "boolean",
+      default: "true",
+      description:
+        "Set to false to leave this page without the Listen to this page player when narration is on.",
+    },
+    related: {
+      type: "(string | { [title]: string })[] | false",
+      description:
+        "Pages to suggest at the foot of this one, up to ten: root-relative paths, absolute URLs, or { Title: link } to name a link. See Related pages below.",
+    },
+    pagination: {
+      type: "boolean",
+      default: "true",
+      description:
+        "Set to false to drop the previous and next links at the foot of the page. The page stays in the order, so its neighbors still link to it.",
+    },
     icon: {
       type: "string",
       description:
@@ -60,8 +77,63 @@ Toda página aceita o frontmatter a seguir. Todos os campos são opcionais.
       description:
         'Pin the page\'s "last updated" date (ISO or YAML date); overrides the git-derived date.',
     },
+    mode: {
+      type: '"default" | "wide" | "center" | "custom" | "frame"',
+      default: '"default"',
+      description: "What the page shows around its content. See Layout below.",
+    },
+    api: {
+      type: "string",
+      description:
+        "An endpoint this page documents by hand, as an HTTP method and a path or URL (POST /v1/users). See Hand-written API pages.",
+    },
+    authMethod: {
+      type: '"bearer" | "basic" | "key" | "none"',
+      description:
+        "How an api page's endpoint authenticates, over the site's api.auth.",
+    },
+    playground: {
+      type: '"interactive" | "simple" | "none"',
+      default: '"interactive"',
+      description:
+        "What an api page shows: the Try it panel and samples, the samples only, or neither.",
+    },
   }}
 />
+
+## Layout
+
+`mode` define o que uma página mostra ao redor do conteúdo:
+
+| Modo | Barra lateral | Título e sumário | Links de fim de página e rodapé | Largura do conteúdo |
+| --- | --- | --- | --- | --- |
+| `default` | Sim | Sim | Sim | A largura padrão do texto |
+| `wide` | Sim | Só o título | Sim | A coluna inteira |
+| `center` | Não | Só o título | Sim | Uma coluna mais larga, centralizada |
+| `frame` | Sim | Não | Não | A coluna inteira |
+| `custom` | Não | Não | Não | A página inteira |
+
+`wide` combina com uma página de tabelas largas ou diagramas, e `center`, com notas de versão ou um anúncio lido de cima a baixo. `custom` mantém só o cabeçalho, para uma landing page escrita em MDX, e `frame` mantém também a barra lateral, para uma ferramenta ou dashboard que fica dentro da navegação da documentação. Nenhum dos dois renderiza o título ou a descrição da página, então escreva seu próprio título. Todos os modos continuam na busca e mantêm sua cópia em Markdown.
+
+```yaml lineNumbers
+title: Welcome
+mode: custom
+```
+
+Os valores são os mesmos do Mintlify. O modo `assistant` dele, um chat de página inteira, não tem equivalente.
+
+## Páginas relacionadas [#related-pages]
+
+`related` lista páginas para sugerir no fim desta, como cards sob o título **Páginas relacionadas**:
+
+```yaml lineNumbers
+related:
+  - /guides/deployment
+  - Search setup: /configuration/search
+  - https://astro.build
+```
+
+Um caminho relativo à raiz aponta para outra página, que o card mostra com o título e a descrição dela. Em uma página traduzida, o link vai para a tradução, quando ela existir. Uma entrada `Title: link` define o título do próprio card, e uma URL absoluta leva para fora do site, exibida com o nome do host. Os caminhos são verificados como qualquer link da página, então o [`blume validate`](/docs/cli/validate) aponta um caminho que não corresponda a nenhuma página. A chave é a mesma do Mintlify, então páginas migradas a mantêm como está.
 
 ## Barra lateral [#sidebar]
 
@@ -100,7 +172,11 @@ seo:
 search:
   exclude: false
   tags: [api]
+  keywords: [install, setup]
+  boost: 3
 ```
+
+`exclude` deixa a página fora da busca, e `tags` a agrupa sob um filtro na caixa de diálogo de busca. `keywords` são termos extras pelos quais a página pode ser encontrada, além do próprio texto dela. `boost` multiplica a relevância da página: acima de 1, ela sobe no ranking; abaixo de 1, desce. Veja [Classificação](/docs/configuration/search#ranking).
 
 ## IA [#ai]
 

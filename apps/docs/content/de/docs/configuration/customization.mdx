@@ -80,7 +80,7 @@ import Logo from "./components/Logo.astro";
 export default defineComponents({
   layout: {
     Logo, // brand mark + title in the header
-    Footer, // site-wide footer (no built-in — renders only when set)
+    Footer, // site-wide footer, in place of the one `footer` configures
   },
 });
 ```
@@ -98,12 +98,12 @@ Verdrahtete Slots:
 | `Breadcrumbs` | Der Breadcrumb-Pfad | `crumbs` |
 | `TableOfContents` | Die Gliederung „Auf dieser Seite“ | `headings`, `title`, `variant` |
 | `Pagination` | Die Zurück-/Weiter-Links im Fußbereich | `prev`, `next`, `strings` |
-| `Feedback` | Die Bewertung „War diese Seite hilfreich?“ unter dem Artikel (wird nur gerendert, wenn [`feedback`](/docs/configuration#page-feedback) aktiviert ist) | `strings` |
+| `Feedback` | Die Bewertung „War diese Seite hilfreich?“ unter dem Artikel (wird nur gerendert, wenn [`feedback`](/docs/configuration#page-feedback) aktiviert ist) | `strings`, `comments` |
 | `PageHeader` | Ein Einfügepunkt über dem Artikel (keine eingebaute Komponente) | `page`, `headings`, `route` |
 | `PageFooter` | Ein Einfügepunkt unter dem Artikel (keine eingebaute Komponente) | `page`, `headings`, `route` |
-| `Footer` | Ein seitenweiter Footer nach dem Content-Grid (keine eingebaute Komponente) | `site`, `navigation`, `ui` |
+| `Footer` | Der [seitenweite Footer](/docs/configuration#footer) nach dem Content-Grid: Links, Social-Media-Profile, der Repository-Link und die Cookie-Einstellungen | `footer`, `locale`, `site`, `navigation`, `ui` |
 
-`PageHeader`, `PageFooter` und `Footer` haben keine eingebaute Komponente — sie rendern nichts, bis du sie setzt, was sie zu praktischen Einfügepunkten für ein Werbebanner, einen „Zuletzt aktualisiert“-Hinweis oder einen Marketing-Footer macht.
+`PageHeader` und `PageFooter` haben keine eingebaute Komponente — sie rendern nichts, bis du sie setzt, was sie zu praktischen Einfügepunkten für ein Werbebanner oder einen „Zuletzt aktualisiert“-Hinweis macht. Der eingebaute `Footer` enthält die einzigen Links zu deinem Repository und deinen Social-Media-Profilen, daher sollte ein `Footer`-Override (der Ort für einen Marketing-Footer, den die Konfiguration nicht abbilden kann) sie beibehalten. Wenn `consent` gesetzt ist, behalte außerdem eine Möglichkeit bei, die Einwilligungsabfrage erneut zu öffnen: Jedes Element mit `data-blume-consent-open` funktioniert als Link zu den [Cookie-Einstellungen](/docs/configuration/consent#changing-an-answer).
 
 Layout-Slots akzeptieren dieselben [drei Referenzformen](#reference-form) wie MDX-Overrides, sodass ein Slot ein Pfad-String oder ein hydratisierter Descriptor (`{ component, client }`) sein kann, wenn du einen interaktiven Header oder Footer möchtest.
 

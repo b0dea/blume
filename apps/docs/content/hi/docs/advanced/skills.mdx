@@ -35,3 +35,17 @@ Blume इस ऑटोमेशन को होस्ट नहीं करत
 ```text
 Use the blume-update-docs skill. Review the PRs merged within the last 7 days and compare them to the docs content. Ignore work behind feature flags. If docs need updates, make them, verify the docs build, and open a blume/* PR. If not, report what you checked and do not open a PR.
 ```
+
+## अपनी साइट की स्किल लिखना [#writing-your-sites-skill]
+
+`blume-write-skill` [आपके अपने डॉक्स के लिए एजेंट स्किल](/docs/discoverability/agent-discovery#your-sites-skill) लिखता है: डॉक्स पर आधारित एक `SKILL.md`, जो किसी कोडिंग एजेंट को आपके प्रोडक्ट का उपयोग करना सिखाती है — सेटअप, मूल अवधारणाएँ, सामान्य कार्य और ध्यान रखने योग्य बारीकियाँ — जिसमें प्रत्येक विषय उसके पेज से लिंक होता है। यह उस पेज मैप का स्थान लेता है जिसे Blume `/skill.md` पर जनरेट करता है। इसे चलाने का सबसे तेज़ तरीका `blume skill` है, जो यह तय करता है कि स्किल कहाँ रखी जानी चाहिए और पैकेज में बंडल की गई प्रति पर Codex या Claude Code खोलता है:
+
+```bash
+blume skill --claude   # or --codex
+```
+
+इसे किसी अन्य एजेंट से उपयोग करने के लिए, इसे इंस्टॉल करें:
+
+```bash
+npx skills add haydenbleasel/blume --skill blume-write-skill
+```

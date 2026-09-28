@@ -92,6 +92,36 @@ A aba ativa é gravada no hash da URL, então um link abre nela; passe `hash={fa
 </Tabs>
 ```
 
+## View
+
+Escreva uma única página para vários públicos, como leitores de diferentes linguagens de programação ou frameworks, com blocos `<View>`. Cada `title` distinto vira uma opção em um seletor acima do conteúdo da página, e apenas os blocos da visualização escolhida são exibidos. O sumário acompanha essa escolha: os cabeçalhos dentro de visualizações ocultas saem dele. O texto fora de qualquer `<View>` aparece em todas as visualizações, e os blocos que compartilham um título aparecem e somem juntos, então uma página pode alternar seções compartilhadas e seções específicas de cada visualização. `icon` aparece ao lado do nome da visualização no seletor.
+
+````mdx lineNumbers
+Everyone reads this paragraph.
+
+<View title="JavaScript" icon="braces">
+
+## Install the client
+
+```bash
+npm install @acme/commerce
+```
+
+</View>
+
+<View title="Python" icon="terminal">
+
+## Install the client
+
+```bash
+pip install acme-commerce
+```
+
+</View>
+````
+
+A primeira visualização é exibida até o leitor escolher outra. O Blume lembra essa escolha entre as páginas escritas com visualizações e a grava na URL como `?view=Python`, então um link abre na mesma visualização. Um link para um cabeçalho dentro de uma visualização abre essa visualização. Use `<View>` quando a maior parte da página muda conforme a escolha, e [Tabs](#tabs) quando só uma parte dela muda. O Markdown voltado a agentes inclui todas as visualizações, cada uma sob o seu nome.
+
 ## Badge
 
 Um pequeno rótulo em linha para status ou metadados — tags de versão, marcadores de “novo” ou “beta”, níveis de estabilidade. O `variant` ajusta a cor ao significado.
@@ -559,6 +589,82 @@ export interface ButtonProps {
 `}
 />
 ```
+
+## Campos de API [#api-fields]
+
+Linhas para documentar um endpoint manualmente, um campo por vez, estilizadas como a [referência OpenAPI](/docs/references/openapi) gerada. `ParamField` é um parâmetro da requisição, nomeado pelo atributo que indica para onde ele vai: `path`, `query`, `header` ou `body`. `ResponseField` é um campo da resposta, nomeado por `name`. Ambos recebem `type`, `required`, `deprecated` e `default`, com a descrição como conteúdo; `ResponseField` também recebe os rótulos `pre` e `post` ao redor do nome.
+
+<ParamField path="userId" type="string" required>
+  O ID do usuário.
+</ParamField>
+
+<ParamField query="limit" type="integer" default={20}>
+  Quantos resultados retornar, até 100.
+</ParamField>
+
+<ResponseField name="plan" type="string" post={["beta"]}>
+  O plano do usuário.
+</ResponseField>
+
+```mdx lineNumbers
+<ParamField path="userId" type="string" required>
+  The user's ID.
+</ParamField>
+
+<ParamField query="limit" type="integer" default={20}>
+  How many results to return, up to 100.
+</ParamField>
+
+<ResponseField name="plan" type="string" post={["beta"]}>
+  The user's plan.
+</ResponseField>
+```
+
+Aninhe os campos de um objeto dentro da descrição dele com um [`Expandable`](#expandable):
+
+```mdx lineNumbers
+<ResponseField name="address" type="object">
+  Where the order ships.
+
+  <Expandable title="properties">
+    <ResponseField name="city" type="string" required>
+      City name.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+```
+
+Em uma página com o frontmatter `api`, os `ParamField`s também montam o painel Try it e os exemplos de requisição da página: veja [Páginas de API escritas à mão](/docs/references/api-pages). Os campos usam os mesmos nomes e props dos campos do Mintlify, então as páginas escritas para ele são renderizadas como estão. A cópia em Markdown da página lista cada campo com seu tipo e seus sinalizadores.
+
+### Exemplos de requisição e resposta [#request-and-response-examples]
+
+`RequestExample` e `ResponseExample` contêm blocos de código, uma aba por bloco de crase com título (`dropdown` troca para um menu de linguagens, como em [`CodeGroup`](#codegroup)). Em uma tela larga, eles ficam fixos em uma coluna ao lado da página, a requisição acima da resposta, e permanecem visíveis enquanto o leitor rola pelos campos, como fazem os exemplos de uma operação OpenAPI; a página abre mão do seu sumário para dar espaço. Em uma tela estreita, eles vêm depois do conteúdo da página.
+
+````mdx lineNumbers
+<RequestExample>
+
+```bash cURL
+curl --request POST https://api.acme.dev/v1/users \
+  --header "Authorization: Bearer $ACME_TOKEN" \
+  --data '{ "email": "ada@example.com" }'
+```
+
+```ts title="Acme SDK"
+await acme.users.create({ email: "ada@example.com" });
+```
+
+</RequestExample>
+
+<ResponseExample>
+
+```json 201
+{ "id": "usr_8f2k", "status": "invited" }
+```
+
+</ResponseExample>
+````
+
+Escreva-os em qualquer lugar no nível superior da página; cada um é movido para a coluna. Um que esteja aninhado dentro de outro componente, como um `Tab`, fica onde foi escrito.
 
 ## Informações do GitHub [#github-info]
 

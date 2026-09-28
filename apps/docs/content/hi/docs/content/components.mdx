@@ -90,6 +90,36 @@ Blume एक सुलभ, थीम-योग्य घटक सेट के 
 </Tabs>
 ```
 
+## View
+
+`<View>` ब्लॉक के साथ कई दर्शकों के लिए एक ही पेज लिखें, जैसे विभिन्न प्रोग्रामिंग भाषाओं या फ़्रेमवर्क के पाठक। हर अलग `title` पेज की सामग्री के ऊपर एक पिकर में एक विकल्प बन जाता है, और केवल चुने गए व्यू के ब्लॉक दिखाई देते हैं। विषय-सूची भी इसका अनुसरण करती है: छिपे हुए व्यू के भीतर की हेडिंग उससे हट जाती हैं। किसी भी `<View>` के बाहर का गद्य हर व्यू में दिखाई देता है, और एक ही शीर्षक साझा करने वाले ब्लॉक एक साथ दिखते और छिपते हैं, इसलिए कोई पेज साझा और व्यू-विशिष्ट सेक्शन को बारी-बारी से रख सकता है। `icon` पिकर में व्यू के नाम के बगल में दिखाया जाता है।
+
+````mdx lineNumbers
+Everyone reads this paragraph.
+
+<View title="JavaScript" icon="braces">
+
+## Install the client
+
+```bash
+npm install @acme/commerce
+```
+
+</View>
+
+<View title="Python" icon="terminal">
+
+## Install the client
+
+```bash
+pip install acme-commerce
+```
+
+</View>
+````
+
+जब तक पाठक कोई दूसरा व्यू नहीं चुनता, तब तक पहला व्यू दिखाई देता है। Blume व्यू में लिखे गए पेजों में उस चयन को याद रखता है, और उसे URL में `?view=Python` के रूप में लिखता है, इसलिए कोई लिंक उसी व्यू पर खुलता है। किसी व्यू के भीतर की हेडिंग का लिंक उस व्यू को खोलता है। जब पेज का अधिकांश भाग चयन के साथ बदलता हो तो `<View>` का उपयोग करें, और जब पेज का केवल एक भाग बदलता हो तो [Tabs](#tabs) का। एजेंट-उन्मुख Markdown में हर व्यू शामिल होता है, प्रत्येक अपने नाम के अंतर्गत।
+
 ## Badge
 
 स्थिति या मेटाडेटा के लिए एक छोटा इनलाइन लेबल — संस्करण टैग, “new” या “beta” चिह्न, स्थिरता स्तर। `variant` रंग को अर्थ के अनुसार समायोजित करता है।
@@ -558,6 +588,82 @@ export interface ButtonProps {
 `}
 />
 ```
+
+## API फ़ील्ड [#api-fields]
+
+किसी एंडपॉइंट को हाथ से, एक बार में एक फ़ील्ड, प्रलेखित करने के लिए पंक्तियाँ, जिनकी स्टाइल उत्पन्न [OpenAPI संदर्भ](/docs/references/openapi) जैसी होती है। `ParamField` एक अनुरोध पैरामीटर है, जिसका नाम उस एट्रिब्यूट से दिया जाता है जो बताता है कि वह कहाँ जाता है: `path`, `query`, `header`, या `body`। `ResponseField` प्रतिक्रिया का एक फ़ील्ड है, जिसका नाम `name` से दिया जाता है। दोनों में एक `type`, `required`, `deprecated` और एक `default` लिया जाता है, और विवरण उनकी सामग्री के रूप में होता है; `ResponseField` में नाम के आसपास `pre` और `post` लेबल भी लिए जाते हैं।
+
+<ParamField path="userId" type="string" required>
+  उपयोगकर्ता की ID।
+</ParamField>
+
+<ParamField query="limit" type="integer" default={20}>
+  कितने परिणाम लौटाने हैं, अधिकतम 100 तक।
+</ParamField>
+
+<ResponseField name="plan" type="string" post={["beta"]}>
+  उपयोगकर्ता का प्लान।
+</ResponseField>
+
+```mdx lineNumbers
+<ParamField path="userId" type="string" required>
+  The user's ID.
+</ParamField>
+
+<ParamField query="limit" type="integer" default={20}>
+  How many results to return, up to 100.
+</ParamField>
+
+<ResponseField name="plan" type="string" post={["beta"]}>
+  The user's plan.
+</ResponseField>
+```
+
+किसी ऑब्जेक्ट के फ़ील्ड को एक [`Expandable`](#expandable) के साथ उसके विवरण के भीतर नेस्ट करें:
+
+```mdx lineNumbers
+<ResponseField name="address" type="object">
+  Where the order ships.
+
+  <Expandable title="properties">
+    <ResponseField name="city" type="string" required>
+      City name.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+```
+
+`api` फ़्रंटमैटर वाले पेज पर, `ParamField` पेज का Try it पैनल और अनुरोध नमूने भी बनाते हैं: [हाथ से लिखे गए API पेज](/docs/references/api-pages) देखें। ये फ़ील्ड Mintlify के समान नाम और प्रॉप्स का उपयोग करते हैं, इसलिए उसके लिए लिखे गए पेज यथावत रेंडर होते हैं। पेज की Markdown प्रति हर फ़ील्ड को उसके टाइप और फ़्लैग के साथ सूचीबद्ध करती है।
+
+### अनुरोध और प्रतिक्रिया उदाहरण [#request-and-response-examples]
+
+`RequestExample` और `ResponseExample` में कोड ब्लॉक होते हैं, हर शीर्षक वाले फ़ेंस के लिए एक टैब (`dropdown` एक भाषा मेन्यू पर स्विच करता है, जैसा [`CodeGroup`](#codegroup) पर होता है)। चौड़ी स्क्रीन पर वे पेज के बगल में एक कॉलम में पिन हो जाते हैं, अनुरोध प्रतिक्रिया के ऊपर, और पाठक के फ़ील्ड स्क्रॉल करते समय दृश्य में बने रहते हैं, ठीक वैसे ही जैसे किसी OpenAPI ऑपरेशन के उदाहरण करते हैं; जगह बनाने के लिए पेज अपनी विषय-सूची हटा देता है। संकरी स्क्रीन पर वे पेज की सामग्री के बाद आते हैं।
+
+````mdx lineNumbers
+<RequestExample>
+
+```bash cURL
+curl --request POST https://api.acme.dev/v1/users \
+  --header "Authorization: Bearer $ACME_TOKEN" \
+  --data '{ "email": "ada@example.com" }'
+```
+
+```ts title="Acme SDK"
+await acme.users.create({ email: "ada@example.com" });
+```
+
+</RequestExample>
+
+<ResponseExample>
+
+```json 201
+{ "id": "usr_8f2k", "status": "invited" }
+```
+
+</ResponseExample>
+````
+
+इन्हें पेज के शीर्ष स्तर पर कहीं भी लिखें; हर एक कॉलम में चला जाता है। किसी अन्य घटक, जैसे किसी `Tab`, के भीतर नेस्ट किया गया उदाहरण वहीं रहता है जहाँ उसे लिखा गया है।
 
 ## GitHub जानकारी [#github-info]
 

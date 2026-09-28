@@ -1,0 +1,33 @@
+---
+title: Contentful
+description: >-
+  contentful() स्रोत के साथ Delivery API के माध्यम से किसी Contentful सामग्री प्रकार को पढ़ें और बिना कुछ इंस्टॉल किए रिच टेक्स्ट बॉडी को Markdown में बदलें।
+---
+
+अंतर्निहित `contentful()` एडेप्टर Content Delivery API के माध्यम से किसी एक सामग्री प्रकार की प्रविष्टियाँ पढ़ता है और प्रत्येक प्रविष्टि की रिच टेक्स्ट बॉडी को Markdown में बदलता है। शीर्षक, मार्क्स, लिंक, सूचियाँ, उद्धरण, तालिकाएँ और एम्बेड की गई एसेट्स अपने Markdown समकक्षों में बदल जाती हैं। Markdown लॉन्ग-टेक्स्ट फ़ील्ड में रखी गई बॉडी जैसी लिखी गई है, वैसी ही आगे जाती है। अपवाद केवल वे लिंक हैं जो वेब, मेल, फ़ोन या सापेक्ष पते नहीं हैं (उदाहरण के लिए, कोई `javascript:` URL)। ऐसे लिंक का केवल लेबल रखा जाता है, ठीक वैसे ही जैसे रिच टेक्स्ट में होता है। आपको कुछ भी इंस्टॉल करने की आवश्यकता नहीं है, क्योंकि एडेप्टर सीधे REST API से संवाद करता है।
+
+```ts blume.config.ts
+import { defineConfig } from "blume";
+import { contentful, filesystem } from "blume/sources";
+
+export default defineConfig({
+  content: {
+    sources: [
+      filesystem({ root: "docs" }),
+      contentful({
+        prefix: "guides",
+        space: "abc123",
+        contentType: "guide",
+        // environment: "master", locale: "en-US"
+        // Field ids default to title / description / slug / body, and the
+        // date to sys.updatedAt
+        fields: { body: "content" },
+        // Extra Delivery API query parameters
+        params: { "fields.section": "sdk" },
+      }),
+    ],
+  },
+});
+```
+
+Delivery API टोकन `CONTENTFUL_ACCESS_TOKEN` एनवायरनमेंट वेरिएबल से मिलता है, जिसे एडेप्टर घोषित करता है। `--preview` के साथ एडेप्टर `CONTENTFUL_PREVIEW_TOKEN` का उपयोग करके Preview API से ड्राफ़्ट पढ़ता है। Preview API डिलीवरी टोकन स्वीकार नहीं करता, इसलिए प्रीव्यू टोकन के बिना `--preview` चलाने पर एक स्पष्ट त्रुटि मिलती है। यह `CONTENTFUL_ACCESS_TOKEN` का उपयोग नहीं करता। एसेट्स डाउनलोड नहीं की जातीं, बल्कि Contentful के CDN से सीधे संदर्भित की जाती हैं, क्योंकि उनके URL स्थिर रहते हैं। यदि आप `contentfulSource` को सीधे बनाकर [`custom()`](/docs/content/sources/custom) को पास करते हैं, तो इंजन के `serializers` विकल्प से एम्बेड की गई प्रविष्टियों को Blume कॉम्पोनेंट में बदला जा सकता है। इस विकल्प में कुंजी के रूप में सामग्री प्रकार की id का उपयोग होता है। `serializers` सेट करने पर स्रोत के पेज MDX के रूप में लिखे जाते हैं, ताकि लौटाए गए कॉम्पोनेंट रेंडर हो सकें। जिस एम्बेड की गई प्रविष्टि का कोई सीरियलाइज़र नहीं है, उसे एक टिप्पणी में दर्ज किया जाता है। किसी अन्य प्रविष्टि का लिंक सादे टेक्स्ट के रूप में रेंडर होता है, क्योंकि उसके लिए इंगित करने योग्य कोई रूट नहीं होता।
