@@ -145,11 +145,11 @@ const select = (document: JsonValue, expression: string): Match[] => {
 const merge = (target: JsonValue, patch: JsonValue, at: string): JsonValue => {
   if (isObject(target) && isObject(patch)) {
     for (const [key, value] of Object.entries(patch)) {
-      const current = target[key];
-      target[key] =
-        current === undefined
-          ? structuredClone(value)
-          : merge(current, value, `${at}.${key}`);
+      // Only recurse into the target's own keys, so a `__proto__` or
+      // `constructor` key can't reach a prototype.
+      target[key] = Object.hasOwn(target, key)
+        ? merge(target[key] ?? null, value, `${at}.${key}`)
+        : structuredClone(value);
     }
     return target;
   }

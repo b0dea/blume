@@ -673,7 +673,7 @@ console.log(\`\${id}: \${response.status}\`);`}
     test secret and start the receiver:
   </p>
   <CodeBlock
-    code={`export ACME_WEBHOOK_SECRET=whsec_sNbQIG2jf1f1H8uCLDSxKXCCbEUDI4TT
+    code={`export ACME_WEBHOOK_SECRET=whsec_bG9jYWwtdGVzdC1zZWNyZXQ=
 node receiver.mjs`}
     lang="bash"
   />
@@ -682,7 +682,7 @@ node receiver.mjs`}
     a retry would:
   </p>
   <CodeBlock
-    code={`export ACME_WEBHOOK_SECRET=whsec_sNbQIG2jf1f1H8uCLDSxKXCCbEUDI4TT
+    code={`export ACME_WEBHOOK_SECRET=whsec_bG9jYWwtdGVzdC1zZWNyZXQ=
 node send-test-event.mjs evt_test_1
 node send-test-event.mjs evt_test_1`}
     lang="bash"

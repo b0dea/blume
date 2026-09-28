@@ -94,12 +94,13 @@ const visit = (options: Visit): string | null => {
           },
     referrer: options.referrer ?? "",
   };
+  // Keyed, so the script's inline literal can't drift from the constant.
   const localStorage = {
-    getItem: () => {
+    getItem: (key: string) => {
       if (options.storageThrows) {
         throw new Error("blocked");
       }
-      return options.stored ?? null;
+      return key === LOCALE_STORAGE_KEY ? (options.stored ?? null) : null;
     },
   };
   const location = {

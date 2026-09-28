@@ -8,6 +8,8 @@ import { catchAllPageTemplate } from "../src/astro/templates.ts";
 import {
   chooseView,
   VIEW_INIT_SCRIPT,
+  VIEW_PARAM,
+  VIEW_STORAGE_KEY,
   viewStyle,
 } from "../src/components/content/view-switcher.ts";
 import { VIEWS_KEY, viewsPlugin } from "../src/markdown/views.ts";
@@ -134,12 +136,13 @@ const runInit = (options: {
       closest: () => (options.closest === false ? null : switcher),
     },
   };
+  // Keyed, so the script's inline literals can't drift from the constants.
   const localStorage = {
-    getItem: () => {
+    getItem: (key: string) => {
       if (options.storageThrows) {
         throw new Error("blocked");
       }
-      return options.stored ?? null;
+      return key === VIEW_STORAGE_KEY ? (options.stored ?? null) : null;
     },
   };
   const location = { search: options.search ?? "" };
@@ -157,7 +160,11 @@ describe("the view init script", () => {
 
   it("applies a linked view over the reader's last pick, before paint", () => {
     expect(
-      runInit({ search: "?view=Python", stored: "JavaScript", views })
+      runInit({
+        search: `?${VIEW_PARAM}=Python`,
+        stored: "JavaScript",
+        views,
+      })
     ).toStrictEqual({ body: "Python", select: "Python" });
     expect(runInit({ stored: "Python", views })).toStrictEqual({
       body: "Python",

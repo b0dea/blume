@@ -191,7 +191,7 @@ const NAMED = new Map(
 const HEX = /^#(?<digits>[\da-f]{3,4}|[\da-f]{6}|[\da-f]{8})$/iu;
 const FUNCTION = /^(?<name>[a-z]+)\((?<args>[^()]*)\)$/iu;
 const COMPONENT =
-  /^(?<value>[+-]?(?:\d+\.?\d*|\.\d+)(?:e[+-]?\d+)?)(?<unit>%|deg|grad|rad|turn)?$/iu;
+  /^(?<value>[+-]?(?:\d+(?:\.\d*)?|\.\d+)(?:e[+-]?\d+)?)(?<unit>%|deg|grad|rad|turn)?$/iu;
 
 /** Turns per angle unit; a bare hue is in degrees. */
 const TURNS_PER_UNIT = new Map([

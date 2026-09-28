@@ -123,6 +123,21 @@ describe(applyOverlay, () => {
     });
   });
 
+  it("merges keys named like prototype properties as plain keys", () => {
+    const result = applied([
+      {
+        target: "$.components.schemas.Foo",
+        update: { constructor: { type: "string" } },
+      },
+      // A parsed overlay can hold a literal `__proto__` key.
+      { target: "$.info", update: JSON.parse('{"__proto__":{"x":true}}') },
+    ]);
+    expect(result).toMatchObject({
+      components: { schemas: { Foo: { constructor: { type: "string" } } } },
+    });
+    expect(Object.hasOwn(Object.prototype, "x")).toBe(false);
+  });
+
   it("removes every target, including by filter and from arrays", () => {
     const result = applied([
       { remove: true, target: "$.paths.*[?@['x-internal'] == true]" },

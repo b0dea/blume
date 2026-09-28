@@ -12,7 +12,10 @@ import type { RouteSet } from "../../core/locale-links.ts";
  * happens before anything paints.
  */
 
-/** Where a language picked with the switcher is remembered. */
+/**
+ * Where a language picked with the switcher is remembered. The inline script
+ * below spells it out.
+ */
 export const LOCALE_STORAGE_KEY = "blume-locale";
 
 /** What the home page's routing needs from the site. */
@@ -56,7 +59,7 @@ export const browserLanguageTargets = (
  * where the visitor goes. A visitor who picked a language, arrived from
  * another page of the site, or whose storage can't be read stays too.
  */
-export const LOCALE_REDIRECT_SCRIPT = `(()=>{const s=document.currentScript;if(!s)return;try{if(localStorage.getItem(${JSON.stringify(LOCALE_STORAGE_KEY)})!==null)return}catch{return}if(document.referrer.startsWith(location.origin+"/"))return;let t;try{t=JSON.parse(s.dataset.targets||"")}catch{return}const d=s.dataset.default||"";const c=[d,...Object.keys(t)];const low=(v)=>v.toLowerCase();const base=(v)=>low(v).split("-")[0];for(const l of navigator.languages||[]){const m=c.find((v)=>low(v)===low(l))||c.find((v)=>low(v)===base(l))||c.find((v)=>base(v)===base(l));if(m===d)return;if(m){location.replace(t[m]+location.search+location.hash);return}}})();`;
+export const LOCALE_REDIRECT_SCRIPT = `(()=>{const s=document.currentScript;if(!s)return;try{if(localStorage.getItem("blume-locale")!==null)return}catch{return}if(document.referrer.startsWith(location.origin+"/"))return;let t;try{t=JSON.parse(s.dataset.targets||"")}catch{return}const d=s.dataset.default||"";const c=[d,...Object.keys(t)];const low=(v)=>v.toLowerCase();const base=(v)=>low(v).split("-")[0];for(const l of navigator.languages||[]){const m=c.find((v)=>low(v)===low(l))||c.find((v)=>low(v)===base(l))||c.find((v)=>base(v)===base(l));if(m===d)return;if(m){location.replace(t[m]+location.search+location.hash);return}}})();`;
 
 /** A click target that can look up its ancestors: an element. */
 interface ClosestTarget {
