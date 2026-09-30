@@ -85,7 +85,7 @@ const handler = createMcpFetchHandler(DATA);
 /** Every argument shape the registered tools accept. */
 interface ToolArguments {
   contentTypes?: string[];
-  filters?: Record<string, string>;
+  filters?: Record<string, boolean | number | string | string[]>;
   limit?: number;
   query?: string;
   route?: string;
@@ -408,6 +408,63 @@ describe("MCP content-type filtering", () => {
       await callTyped("list_pages", { filters: {} })
     );
     expect(all.length).toBe(3);
+  });
+
+  it("matches a number or boolean filter value against its stringified facet", async () => {
+    // `priority: 1` and `public: true` facet as "1" and "true", so an agent
+    // passing the number or boolean back must still filter, not match every
+    // page as if the filter had never been sent.
+    const extra = { priority: "1", public: "true" };
+    const ranked = createMcpFetchHandler({
+      ...TYPED,
+      documents: TYPED.documents.map((doc) =>
+        doc.facets ? { ...doc, facets: { ...doc.facets, ...extra } } : doc
+      ),
+      routes: TYPED.routes.map((route) =>
+        route.facets
+          ? { ...route, facets: { ...route.facets, ...extra } }
+          : route
+      ),
+    });
+    const routes = async (name: string, args: ToolArguments) => {
+      const response = await ranked(
+        new Request("https://docs.example.com/mcp", {
+          body: JSON.stringify({
+            id: 1,
+            jsonrpc: "2.0",
+            method: "tools/call",
+            params: { arguments: args, name },
+          }),
+          headers: {
+            accept: "application/json, text/event-stream",
+            "content-type": "application/json",
+          },
+          method: "POST",
+        })
+      );
+      const body: RpcBody = await response.json();
+      const hits: { route: string }[] = JSON.parse(
+        body.result?.content?.[0]?.text ?? "[]"
+      );
+      return hits.map((hit) => hit.route);
+    };
+
+    expect(await routes("list_pages", { filters: { priority: 1 } })).toEqual([
+      "/rfcs/schemas",
+    ]);
+    expect(await routes("list_pages", { filters: { public: true } })).toEqual([
+      "/rfcs/schemas",
+    ]);
+    expect(await routes("list_pages", { filters: { priority: 2 } })).toEqual(
+      []
+    );
+    expect(
+      await routes("search_docs", { filters: { priority: 1 }, query: "blume" })
+    ).toEqual(["/rfcs/schemas"]);
+    // A value no facet can hold (a list, an object) is still dropped.
+    expect(
+      await routes("list_pages", { filters: { status: ["enforced"] } })
+    ).toHaveLength(3);
   });
 
   it("get_navigation returns the navigation tree", async () => {
