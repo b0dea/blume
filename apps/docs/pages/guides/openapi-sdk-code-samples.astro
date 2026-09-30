@@ -336,8 +336,7 @@ export default defineConfig({
     To show only your own samples, set <code>codeSamples: false</code>. An
     operation with no <code>x-codeSamples</code> then has no request samples
     at all, so add them to every operation before you turn the generated ones
-    off. An empty list doesn't do the same thing: <code>codeSamples: []</code>{" "}
-    brings back the defaults.
+    off. An empty list, <code>codeSamples: []</code>, does the same.
   </p>
   <p>
     The option covers every operation in that reference. You can't drop the
@@ -575,9 +574,9 @@ actions:
   </p>
   <h3>The generated samples are still there</h3>
   <p>
-    <code>codeSamples: []</code> means the defaults. Use{" "}
-    <code>codeSamples: false</code> to turn them off, and check you edited the
-    adapter whose <code>route</code> serves the page.
+    Check you edited the adapter whose <code>route</code> serves the page:{" "}
+    <code>codeSamples: false</code> covers only the operations its own
+    specs render.
   </p>
   <h3>A sample has no syntax colors</h3>
   <p>

@@ -34,7 +34,10 @@ import {
   schemeLabel,
 } from "../src/components/openapi/security.ts";
 import type { SecurityRequirementLike } from "../src/components/openapi/security.ts";
-import { sampleLanguages } from "../src/components/openapi/snippets.ts";
+import {
+  DEFAULT_SAMPLE_LANGUAGES,
+  sampleLanguages,
+} from "../src/components/openapi/snippets.ts";
 import { scanProject } from "../src/core/project-graph.ts";
 import { blumeConfigSchema } from "../src/core/schema.ts";
 import { resolveSources } from "../src/core/sources/resolve.ts";
@@ -55,6 +58,7 @@ import { operationMdx, overviewMdx } from "../src/openapi/render-mdx.ts";
 import { buildReferenceFiles } from "../src/openapi/scalar.ts";
 import { isOpenApiSource, openApiSource } from "../src/openapi/source.ts";
 import { asyncapi, openapi, scalar } from "../src/reference/index.ts";
+import { openapiOptionsSchema } from "../src/reference/openapi.ts";
 
 const ctx = (projectRoot: string) => ({
   cacheDir: join(projectRoot, ".blume/cache/openapi"),
@@ -2291,14 +2295,18 @@ describe("snippets", () => {
       (language) => language.id
     );
     expect(ids).toStrictEqual(["curl", "js", "csharp"]);
-    // `false` generates none.
+    // `false` generates none, and so does an empty list: it names no language.
     expect(sampleLanguages(false)).toStrictEqual([]);
-    // Empty falls back to the default trio.
-    expect(sampleLanguages([]).map((language) => language.id)).toStrictEqual([
-      "curl",
-      "js",
-      "python",
-    ]);
+    expect(sampleLanguages([])).toStrictEqual([]);
+  });
+
+  it("keeps the hand-written pages' languages in step with openapi()'s default", () => {
+    expect(
+      openapiOptionsSchema.parse({ spec: "./openapi.yaml" }).codeSamples
+    ).toStrictEqual(DEFAULT_SAMPLE_LANGUAGES);
+    expect(
+      sampleLanguages(DEFAULT_SAMPLE_LANGUAGES).map((language) => language.id)
+    ).toStrictEqual(["curl", "js", "python"]);
   });
 });
 
