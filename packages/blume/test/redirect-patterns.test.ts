@@ -9,6 +9,7 @@ import { validateLinks } from "../src/core/links.ts";
 import { scanProject } from "../src/core/project-graph.ts";
 import type { BlumeProject } from "../src/core/project-graph.ts";
 import {
+  compileEveryRedirect,
   compileRedirects,
   encodeCapture,
   exactFirst,
@@ -240,6 +241,27 @@ describe("matching", () => {
     expect(encodeCapture("a?b#c")).toBe("a%3Fb%23c");
   });
 
+  it("compiles exact redirects too for the dev server, ahead of patterns", () => {
+    const every = compileEveryRedirect([
+      BETA,
+      { from: "/beta/a.b/", status: 307, to: "/ü" },
+      { from: "/", status: 302, to: "/start" },
+    ]);
+    expect(every.slice(0, 2)).toStrictEqual([
+      [String.raw`^/beta/a\.b/?$`, "/%C3%BC", 307],
+      ["^/$", "/start", 302],
+    ]);
+    expect(every.slice(2)).toStrictEqual(compileRedirects([BETA]));
+    expect(matchCompiledRedirect(every, "/beta/a.b/")).toStrictEqual([
+      "/%C3%BC",
+      307,
+    ]);
+    expect(matchCompiledRedirect(every, "/beta/axb")).toStrictEqual([
+      "/v2/axb",
+      301,
+    ]);
+  });
+
   it("reads a request URL's decoded path, keeping a malformed escape", () => {
     expect(requestPath("/beta/%C3%BC?x=1#y")).toBe("/beta/ü");
     expect(requestPath("/beta/%E0%A4%A")).toBe("/beta/%E0%A4%A");
@@ -454,19 +476,19 @@ describe("the generated Astro config", () => {
       themePath: "/p/.blume/src/generated/app.css",
     });
 
-  it("gives Astro the exact redirects and the dev server the patterns", () => {
+  it("gives Astro the exact redirects and the dev server every one", () => {
     const generated = configFor({
       basePath: "/docs",
-      redirects: [{ from: "/old", to: "/new" }, BETA],
+      redirects: [BETA, { from: "/old", status: 302, to: "/new" }],
     });
     expect(generated).toContain(
-      'redirects: {"/docs/old":{"destination":"/docs/new","status":301}}'
+      'redirects: {"/docs/old":{"destination":"/docs/new","status":302}}'
     );
+    // Astro's dev handler would answer the exact one with a 301.
     expect(generated).toContain(
-      '"redirects":[["^/docs/beta/?$","/docs/v2",301],["^/docs/beta/(.+?)/?$","/docs/v2/$1",301]]'
+      '"redirects":[["^/docs/old/?$","/docs/new",302],["^/docs/beta/?$","/docs/v2",301],["^/docs/beta/(.+?)/?$","/docs/v2/$1",301]]'
     );
-    const exactOnly = configFor({ redirects: [{ from: "/old", to: "/new" }] });
-    expect(exactOnly).not.toContain('"redirects":[');
+    expect(configFor({})).not.toContain('"redirects":[');
   });
 });
 

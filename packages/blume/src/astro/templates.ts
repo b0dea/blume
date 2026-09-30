@@ -10,7 +10,10 @@ import type { CaptchaAdapter } from "../captcha/schema.ts";
 import { CONSENT_CLIENT_MODULES } from "../consent/clients.ts";
 import { normalizeBasePath } from "../core/base-path.ts";
 import { TOC_HIDDEN_KEY } from "../core/heading-markers.ts";
-import { compileRedirects, isPatternPath } from "../core/redirect-patterns.ts";
+import {
+  compileEveryRedirect,
+  isPatternPath,
+} from "../core/redirect-patterns.ts";
 import type { CompiledRedirect } from "../core/redirect-patterns.ts";
 import type { ResolvedConfig } from "../core/schema.ts";
 import { resolveDocsCollection } from "../core/sources/collection.ts";
@@ -855,7 +858,7 @@ export const astroConfigTemplate = (options: {
         contentRoutes,
         ejected,
         pages,
-        redirects: compileRedirects(basedRedirects),
+        redirects: compileEveryRedirect(basedRedirects),
       })
     )})`
   );
