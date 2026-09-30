@@ -631,8 +631,9 @@ echo ".env.local" >> .gitignore`}
     variable is unset. A public dataset's production build doesn't need it, so
     there the warning is safe to ignore. A private dataset does: Sanity answers
     a query without a token with an empty result rather than an error, so the
-    build succeeds with no Sanity pages. Set the token, and redeploy, since a
-    changed variable only applies to new builds.
+    build succeeds with no Sanity pages and a second warning that the query
+    found no documents while the token was unset. Set the token, and redeploy,
+    since a changed variable only applies to new builds.
   </p>
   <h3>The build can't load the source</h3>
   <p>
