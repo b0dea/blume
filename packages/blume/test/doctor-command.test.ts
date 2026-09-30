@@ -124,6 +124,43 @@ export default {
     expect(stderr).not.toContain('"Custom" points');
   });
 
+  it("reports a <Component path> that names no example, at its line", async () => {
+    const root = await makeProject({
+      "docs/index.mdx": [
+        "---",
+        "title: Home",
+        "---",
+        "# Home",
+        "",
+        '<Component path="counter" />',
+        "",
+        '<Component path="forms/missing" />',
+      ].join("\n"),
+      "examples/counter.astro": "<p>Counter</p>\n",
+    });
+    const { exitCode, stderr } = await doctor(root);
+    expect(exitCode).toBe(0);
+    expect(stderr).toContain("BLUME_EXAMPLE_NOT_FOUND");
+    expect(stderr).toContain('<Component path="forms/missing">');
+    expect(stderr).toContain("docs/index.mdx:8:18");
+    expect(stderr).not.toContain('<Component path="counter">');
+  });
+
+  it("leaves <Component> alone when components.ts replaces it", async () => {
+    const root = await makeProject({
+      "components.ts": `import Component from "./components/Component.astro";
+
+export default { mdx: { Component } };
+`,
+      "components/Component.astro": "<slot />\n",
+      "docs/index.mdx":
+        '---\ntitle: Home\n---\n# Home\n\n<Component path="anything" />\n',
+    });
+    const { exitCode, stderr, stdout } = await doctor(root);
+    expect(exitCode).toBe(0);
+    expect(`${stdout}${stderr}`).toContain("No problems found.");
+  });
+
   it("warns about a version-shaped folder when versioning isn't configured", async () => {
     const root = await makeProject({
       ...HOME,

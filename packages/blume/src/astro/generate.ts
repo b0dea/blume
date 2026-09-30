@@ -34,7 +34,10 @@ import {
   navVariants,
 } from "../components/layout/nav-utils.ts";
 import { normalizeBasePath, withBasePath } from "../core/base-path.ts";
-import { validateUsedComponents } from "../core/component-diagnostics.ts";
+import {
+  missingExampleDiagnostics,
+  validateUsedComponents,
+} from "../core/component-diagnostics.ts";
 import {
   analyzeComponentOverrides,
   emptyComponentOverrides,
@@ -2407,6 +2410,12 @@ export const generateRuntime = async (
       project.graph.pages,
       knownComponentTags,
       new Set(registry.map((item) => item.name))
+    ).map(diagnosticWarning),
+    ...missingExampleDiagnostics(
+      project.graph.pages,
+      exampleDiscovery,
+      context.root,
+      knownComponentTags
     ).map(diagnosticWarning),
     ...dependencyWarnings
   );

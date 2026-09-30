@@ -2244,8 +2244,10 @@ describe("generateRuntime", () => {
 export default { mdx: { Counter: { component: Counter, client: "visible" } } };
 `,
         "docs/index.md": "# Home\n",
-        // An unknown `<Fancy>` tag that isn't a built-in, island, or override.
-        "docs/page.mdx": "---\ntitle: Page\n---\n\nUse the <Fancy /> widget.\n",
+        // An unknown `<Fancy>` tag that isn't a built-in, island, or override,
+        // and a `<Component>` example that doesn't exist.
+        "docs/page.mdx":
+          '---\ntitle: Page\n---\n\nUse the <Fancy /> widget.\n\n<Component path="missing" />\n',
       })
     );
     const out = project.context.outDir;
@@ -2260,6 +2262,12 @@ export default { mdx: { Counter: { component: Counter, client: "visible" } } };
     expect(result.warnings.some((w) => w.includes("<Fancy>"))).toBe(true);
     // The override's own tag is known, so it is not.
     expect(result.warnings.some((w) => w.includes("<Counter>"))).toBe(false);
+    // The missing example is flagged, naming the page it's on.
+    expect(
+      result.warnings.some((w) =>
+        w.includes('<Component path="missing"> in /page names no example')
+      )
+    ).toBe(true);
   });
 
   it("fails generation on a components.ts override it cannot plan", async () => {

@@ -76,6 +76,18 @@ export interface PageLink {
   file?: string;
 }
 
+/** A `<Component path="…">` in a page, located like a {@link PageLink}. */
+export interface ExampleUse {
+  /** The example's key as written: its path under `examples/`, sans extension. */
+  path: string;
+  /** 1-based line number in the source file. */
+  line: number;
+  /** 1-based column of the `path` value within the line. */
+  column: number;
+  /** Absolute path of the included partial it was written in, if not the page. */
+  file?: string;
+}
+
 /**
  * Resolved project paths. Computed once per CLI invocation and threaded
  * through the core pipeline.
@@ -198,6 +210,8 @@ export interface PageRecord {
   links: PageLink[];
   /** Capitalized JSX component tags used in the body (`.mdx` only). */
   componentsUsed?: string[];
+  /** The string `path` of each `<Component>` example in the body (`.mdx` only). */
+  examplesUsed?: ExampleUse[];
   /** Resolved "last updated" ISO date, when the feature is enabled. */
   lastModified?: string;
   /** Absolute paths of files this page `<include>`s, transitively. Drives the

@@ -23,7 +23,13 @@ import type {
   ResolvedI18nConfig,
 } from "../schema.ts";
 import { trimChar } from "../trim.ts";
-import type { Diagnostic, Heading, PageLink, PageRecord } from "../types.ts";
+import type {
+  Diagnostic,
+  ExampleUse,
+  Heading,
+  PageLink,
+  PageRecord,
+} from "../types.ts";
 import { detectVersionRef, versionizeRoute } from "../versions.ts";
 import type { NormalizeContext, SourceEntry } from "./types.ts";
 
@@ -1154,6 +1160,36 @@ export const extractLinks = (body: string, lineOffset = 0): PageLink[] => {
   return [...links, ...multilineLinks(lines, lineOffset)];
 };
 
+/**
+ * A `<Component>` example's string `path` (`<Component path="forms/login" />`),
+ * wrapped onto a later line or not, read the way `ELEMENT_HREF` reads an
+ * `href`. An expression-valued `path={…}` isn't a literal, so it isn't matched.
+ */
+const COMPONENT_PATH =
+  /<Component(?=[\s/>])[^<>]*?\spath=(?:"(?<double>[^"]*)"|'(?<single>[^']*)')/gu;
+
+/**
+ * Every `<Component path>` in an `.mdx` body, with the 1-based position of its
+ * value; lines are shifted by `lineOffset`, as {@link extractLinks} does. Code
+ * blocks and inline code are skipped.
+ */
+export const extractExampleUses = (
+  body: string,
+  lineOffset = 0
+): ExampleUse[] => {
+  if (!body.includes("<Component")) {
+    return [];
+  }
+  const lines = body.split("\n");
+  const lineStarts = lineStartsOf(lines);
+  return [...maskCode(lines).matchAll(COMPONENT_PATH)].map((match) => {
+    const path = match.groups?.double ?? match.groups?.single ?? "";
+    // The value ends one character (its closing quote) before the match does.
+    const at = match.index + match[0].length - path.length - 1;
+    return { ...positionIn(lineStarts, at, lineOffset), path };
+  });
+};
+
 // Double-quoted strings hold JSX attribute values and JSON in `{...}` props; a
 // `<Tag>` written inside prose there (e.g. an "Astro <Font> integration" note)
 // isn't a real usage. Single quotes are left alone so prose apostrophes don't
@@ -1217,23 +1253,29 @@ export const strippedLineOffset = (
 const entryLineOffset = (entry: SourceEntry): number =>
   entry.bodyLineOffset ?? strippedLineOffset(entry.raw, entry.body.text);
 
+/** A link (or `<Component>` example) found in a body: its line, and file. */
+interface Located {
+  file?: string;
+  line: number;
+}
+
 /**
  * Map links extracted from include-expanded text back to the file and raw
  * line each expanded line came from, so a broken link inside a partial is
  * reported against the partial. Links whose origin is the page's own source
  * carry no `file` override (origins already hold raw-file lines).
  */
-const remapExpandedLinks = (
-  links: PageLink[],
+const remapExpandedLinks = <T extends Located>(
+  links: T[],
   origins: { file: string; line: number }[],
   sourcePath: string | undefined
-): PageLink[] =>
+): T[] =>
   links.map((link) => {
     const origin = origins[link.line - 1];
     if (!origin) {
       return link;
     }
-    const remapped: PageLink = { ...link, line: origin.line };
+    const remapped: T = { ...link, line: origin.line };
     if (origin.file !== sourcePath) {
       remapped.file = origin.file;
     }
@@ -1247,19 +1289,22 @@ const entryIncludes = (entry: SourceEntry): string[] | undefined =>
     : undefined;
 
 /**
- * Extract an entry's links for validation. When the scan expanded includes,
- * extraction runs over the expanded text (origins already hold raw-file
- * lines); otherwise over the stripped body, shifted by the stripped front
- * matter block's height.
+ * Extract an entry's links (or `<Component>` examples) for validation. When
+ * the scan expanded includes, extraction runs over the expanded text (origins
+ * already hold raw-file lines); otherwise over the stripped body, shifted by
+ * the stripped front matter block's height.
  */
-const entryLinks = (entry: SourceEntry): PageLink[] =>
+const entryLinks = <T extends Located>(
+  entry: SourceEntry,
+  extract: (body: string, lineOffset?: number) => T[]
+): T[] =>
   entry.expanded
     ? remapExpandedLinks(
-        extractLinks(entry.expanded.text),
+        extract(entry.expanded.text),
         entry.expanded.origins,
         entry.sourcePath
       )
-    : extractLinks(entry.body.text, entryLineOffset(entry));
+    : extract(entry.body.text, entryLineOffset(entry));
 
 /**
  * Diagnostics for `{#id}` heading markers (and the spaced `{ #id }` and
@@ -1685,13 +1730,18 @@ export const normalizeEntry = (
     description: meta.description,
     editUrl: entry.editUrl,
     entryId: staged ? `${ctx.source.name}/${entry.ref}` : undefined,
+    examplesUsed:
+      format === "mdx" ? entryLinks(entry, extractExampleUses) : undefined,
     format,
     groups,
     headings,
     id: `${ctx.source.name}:${entry.ref}`,
     includes: entryIncludes(entry),
     lastModified: meta.lastModified ?? entry.lastModified,
-    links: [...entryLinks(entry), ...relatedPageLinks(meta.related)],
+    links: [
+      ...entryLinks(entry, extractLinks),
+      ...relatedPageLinks(meta.related),
+    ],
     meta,
     monolingual: ctx.source.monolingual,
     navPath,
