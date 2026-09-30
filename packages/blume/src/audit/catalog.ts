@@ -359,7 +359,7 @@ export const CHECKS = [
   },
   {
     category: "redirects",
-    fix: "Remove the redirect, or delete the page it shadows — the page wins and the redirect never fires.",
+    fix: "Remove the redirect, or delete the page it shadows — a path can't be both, and which one readers get depends on the host.",
     id: "BLUME_AUDIT_REDIRECT_SOURCE_IS_PAGE",
     severity: "error",
     tier: "static",
