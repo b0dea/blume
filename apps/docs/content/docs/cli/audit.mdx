@@ -55,7 +55,7 @@ These requests go out as a plain HTTP client, not as a crawler: the audit doesn'
 
 The audit requests every exact redirect's old URL (a pattern names no single URL to request). One that 404s is an error. One that answers 200 is a warning: a host that doesn't read the redirect file the build wrote serves the build's meta-refresh page there instead of an HTTP redirect, which readers follow but crawlers may not. See [Redirects](/docs/deployment#redirects) for what each host reads.
 
-Outbound links are graded rather than flatly failed: a 404 is a broken link you can fix, while a 403 or 5xx is usually rate limiting or someone else's outage and is reported as a warning.
+Outbound links are graded rather than flatly failed: a 404 or 410, or a host name that doesn't resolve, is a broken link you can fix, while any other error status (a 401 or 403 from a site that turns bots away, a 429, a 5xx), a refused connection, or a timeout is usually rate limiting or someone else's outage and is reported as a warning.
 
 ## Fixing the findings with an agent
 

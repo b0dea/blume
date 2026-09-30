@@ -339,17 +339,19 @@ jobs:
         <td>The page is gone. Fix or remove the link.</td>
       </tr>
       <tr>
-        <td>No response at all</td>
+        <td>The host name doesn't resolve</td>
         <td>Error</td>
-        <td>
-          The host doesn't resolve or refused the connection. Often a dead
-          domain, but a network problem on the runner looks the same.
-        </td>
+        <td>The domain is gone, or the link has a typo in it.</td>
       </tr>
       <tr>
-        <td>Any other error status, like 403, 429, or a 5xx</td>
+        <td>Any other error status, like 401, 403, 429, or a 5xx</td>
         <td>Warning</td>
         <td>Rate limiting, bot protection, or an outage. Not proof of anything.</td>
+      </tr>
+      <tr>
+        <td>The connection is refused or dropped</td>
+        <td>Warning</td>
+        <td>The site is down, or the runner's network had a problem.</td>
       </tr>
       <tr>
         <td>No answer within 10 seconds</td>
@@ -396,7 +398,7 @@ jobs:
             jq -r '
               .diagnostics[]
               | select(.code == "BLUME_DEAD_LINK")
-              | (if .severity == "error" then "Broken or unreachable" else "Check later" end) as $result
+              | (if .severity == "error" then "Broken" else "Check later" end) as $result
               | "| \\($result) | \\(.message) | \\(.file):\\(.line) |"
             ' links.json
           } >> "$GITHUB_STEP_SUMMARY"
@@ -411,10 +413,10 @@ jobs:
     to ignore it.
   </p>
   <p>
-    When a run fails, open each "Broken or unreachable" URL yourself before
-    you change anything. A 404 in your browser is a real dead link. For a host
-    that didn't answer, rerun the workflow from the Actions tab and fix the
-    links that fail twice. Scheduled runs use the latest commit on your
+    When a run fails, open each "Broken" URL yourself before you change
+    anything. A 404 in your browser is a real dead link, and so is a domain
+    that doesn't load anywhere. If one loads for you, rerun the workflow from
+    the Actions tab and fix the links that fail twice. Scheduled runs use the latest commit on your
     default branch, and in a public repository GitHub disables them after 60
     days without activity.
   </p>
@@ -506,11 +508,12 @@ git push`}
   </p>
   <h3>An example URL fails the external check</h3>
   <p>
-    A link to <code>localhost</code>, an internal host, or a placeholder domain
-    like <code>api.acme.example</code> never answers, so{" "}
-    <code>--external</code> reports it as an error. There's no ignore list.
-    Write those URLs as inline code instead of links, which neither check
-    reads as a link.
+    A placeholder domain like <code>api.acme.example</code>, or an internal
+    host that only resolves on your network, doesn't resolve on the runner, so{" "}
+    <code>--external</code> reports it as an error. A link to{" "}
+    <code>localhost</code> is refused, a warning that still fails the check
+    under <code>--strict</code>. There's no ignore list. Write those URLs as
+    inline code instead of links, which neither check reads as a link.
   </p>
   <h3>The audit step says there's no build</h3>
   <p>

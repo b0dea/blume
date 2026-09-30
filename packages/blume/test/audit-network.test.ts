@@ -121,13 +121,37 @@ describe("gradeExternal", () => {
     // A 404 is the author's bug. A 403 is usually rate limiting or a bot wall,
     // and failing a build on it would get --external switched off for good.
     expect(gradeExternal({ ok: false, status: 404 })?.severity).toBe("error");
+    expect(gradeExternal({ ok: false, status: 410 })?.severity).toBe("error");
+    expect(gradeExternal({ ok: false, status: 401 })?.severity).toBe("warning");
     expect(gradeExternal({ ok: false, status: 403 })?.severity).toBe("warning");
     expect(gradeExternal({ ok: false, status: 503 })?.severity).toBe("warning");
     expect(gradeExternal({ ok: false, timedOut: true })?.severity).toBe(
       "warning"
     );
-    expect(gradeExternal({ error: "boom", ok: false })?.severity).toBe("error");
     expect(gradeExternal({ ok: true, status: 200 })).toBeNull();
+  });
+
+  it("fails a host that doesn't exist, but only warns when one doesn't answer", () => {
+    // A name that doesn't resolve is dead like a 404. A refused or dropped
+    // connection is usually an outage or the runner's network.
+    expect(
+      gradeExternal({
+        code: "ENOTFOUND",
+        error: "getaddrinfo ENOTFOUND gone.dev",
+        ok: false,
+      })
+    ).toStrictEqual({
+      detail: "getaddrinfo ENOTFOUND gone.dev",
+      severity: "error",
+    });
+    expect(
+      gradeExternal({ code: "ECONNREFUSED", error: "refused", ok: false })
+        ?.severity
+    ).toBe("warning");
+    expect(gradeExternal({ error: "boom", ok: false })?.severity).toBe(
+      "warning"
+    );
+    expect(gradeExternal({ ok: false })?.detail).toBe("unreachable");
   });
 });
 
