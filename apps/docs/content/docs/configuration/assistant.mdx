@@ -161,7 +161,7 @@ ai: {
 }
 ```
 
-The route then answers the browser's `OPTIONS` preflight and names a listed origin on every response — the streamed answer and the error statuses alike, so the caller can tell a rejected body from a provider failure. Origins that aren't listed get no header and stay subject to the browser's same-origin rule. Each entry is reduced to its origin, so `https://www.example.com/docs/` and `https://www.example.com` mean the same thing. To let any page call the route, list `"*"` instead of origins.
+The route then answers the browser's `OPTIONS` preflight and names a listed origin on every response — the streamed answer and the error statuses alike, so the caller can tell a rejected body from a provider failure. Those responses expose `Retry-After` too, so after a [rate limit's](/docs/configuration/rate-limiting) `429` the caller can read how many seconds to wait. Origins that aren't listed get no header and stay subject to the browser's same-origin rule. Each entry is reduced to its origin, so `https://www.example.com/docs/` and `https://www.example.com` mean the same thing. To let any page call the route, list `"*"` instead of origins.
 
 The caller sends the same `POST` body the [external endpoint](#external-endpoint) contract describes and reads back the same text stream. Send it as JSON with a `content-type: application/json` header:
 
