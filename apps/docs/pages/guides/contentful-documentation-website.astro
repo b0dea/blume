@@ -18,8 +18,13 @@
 // missing-token claims against cli/prepare.ts and core/sources/cache.ts.
 // Rechecked the engine's own token check, unresolved-embed warnings, EU
 // hosts, fields.order, and init's .gitignore against core/sources/contentful.ts,
-// remote.ts, and cli/commands/init.ts. Not yet run end to end against a real
-// Contentful space.
+// remote.ts, and cli/commands/init.ts. Rechecked entry links (a doc page's
+// route, text for other types, a warning for an unpublished page) against
+// contentful.ts and contentful-rich-text.ts, and the entry-hyperlink
+// linkContentType validation against contentful-migration's schema; reran
+// the migration through its parser (no errors) and the custom() config
+// against mocked published and preview responses. Not yet run end to end
+// against a real Contentful space.
 import Callout from "blume/components/content/Callout.astro";
 import CodeBlock from "blume/components/content/CodeBlock.astro";
 import GuidePage from "../_guides/GuidePage.astro";
@@ -154,6 +159,7 @@ export default defineConfig({
           "blockquote",
           "table",
           "hyperlink",
+          "entry-hyperlink",
           "asset-hyperlink",
           "embedded-asset-block",
           "embedded-entry-block",
@@ -162,6 +168,7 @@ export default defineConfig({
       { enabledMarks: ["bold", "italic", "code", "strikethrough"] },
       {
         nodes: {
+          "entry-hyperlink": [{ linkContentType: ["docPage"] }],
           "embedded-entry-block": [{ linkContentType: ["codeBlock"] }],
         },
       },
@@ -174,9 +181,9 @@ export default defineConfig({
   <p>
     The body's validations are the important part. They leave out Heading 1,
     because the title is already the page's top heading, and they leave out
-    links to entries and inline entries, which don't become working links or
-    content on the site (more on that below). Embedded entries are limited to
-    code blocks.
+    inline entries, which don't become content on the site. Links to entries
+    are limited to doc pages, and embedded entries to code blocks (more on
+    both below).
   </p>
   <p>
     Sign in to the Contentful CLI, which stores a management token in your
@@ -311,16 +318,22 @@ export default defineConfig({
         <td>An HTML comment, so nothing visible, until you add a serializer</td>
       </tr>
       <tr>
-        <td>A link to another entry</td>
+        <td>A link to another doc page entry</td>
+        <td>A link to that page, at the route Blume builds it at</td>
+      </tr>
+      <tr>
+        <td>A link to an entry of any other type</td>
         <td>The link's text only, with no link</td>
       </tr>
     </tbody>
   </table>
   <p>
-    That last row is why the model disables entry links. The source doesn't
-    know which route another entry lives at, so it keeps the words and drops
-    the link. To link between docs pages, writers use an ordinary link to the
-    page's path, like <code>/guides/quickstart</code>, and{" "}
+    Those last two rows are why the model limits entry links to doc pages.
+    Only an entry of the source's own content type becomes a page, so only a
+    link to one has somewhere to go. Blume builds the link from the linked
+    page's slug, so <code>install</code> becomes{" "}
+    <code>/guides/install</code>. To link to a page from the{" "}
+    <code>docs/</code> folder, writers use an ordinary link to its path, and{" "}
     <code>npx blume validate</code> reports any that point at a page that
     doesn't exist.
   </p>
@@ -416,6 +429,11 @@ npx blume dev`}
         <td>Left out of the page</td>
         <td>Shown</td>
       </tr>
+      <tr>
+        <td>A link to a draft page on a published page</td>
+        <td>Its text only</td>
+        <td>A link</td>
+      </tr>
     </tbody>
   </table>
   <p>
@@ -436,8 +454,9 @@ npx blume preview`}
     The Webhooks page is a 404, and the Install page still lacks the new code
     block. Publish the code block and the page in Contentful, build again, and
     both appear. The Delivery API only resolves published entries and assets,
-    so anything a page embeds has to be published too, and the build warns{" "}
-    <code>BLUME_SOURCE_UNRESOLVED_LINK</code> for each one that isn't.
+    so anything a page embeds or links to has to be published too, and the
+    build warns <code>BLUME_SOURCE_UNRESOLVED_LINK</code> for each one that
+    isn't.
   </p>
 
   <h2>Deploy with protected previews</h2>
@@ -546,6 +565,13 @@ npx blume preview`}
     The page is published, but the entry or asset it embeds isn't, and the
     build warns <code>BLUME_SOURCE_UNRESOLVED_LINK</code> naming its ID.
     Publish it, and the next build includes it.
+  </p>
+  <h3>A link to another doc page is plain text</h3>
+  <p>
+    If the build warns <code>BLUME_SOURCE_UNRESOLVED_LINK</code> naming the
+    linked entry's ID, that page isn't published: publish it, and the next
+    build links it. With no warning, the entry isn't one the source builds as
+    a page, such as an entry of another content type.
   </p>
   <h3>A code block is missing even in preview</h3>
   <p>
