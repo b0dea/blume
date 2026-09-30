@@ -544,7 +544,7 @@ A **Prop / Type** grid where each row expands to reveal its description and deta
 
 ### Auto type table
 
-Generate a type table from a TypeScript type so the docs stay in sync with the source. Point `AutoTypeTable` at a file with `path` (resolved from your project root) and a type `name`. Descriptions come from JSDoc comments, defaults from `@default` tags, and optional properties (`?`) are marked accordingly.
+Generate a type table from a TypeScript type so the docs stay in sync with the source. Point `AutoTypeTable` at a file with `path` (resolved from your project root, the folder you run `blume` in) and a type `name`. Descriptions come from JSDoc comments, defaults from `@default` tags, and optional properties (`?`) are marked accordingly.
 
 ```astro
 <AutoTypeTable path="./src/button.ts" name="ButtonProps" />
