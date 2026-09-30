@@ -8,6 +8,7 @@ Any object implementing the `ContentSource` interface can be passed to `custom()
 ```ts blume.config.ts
 import { defineConfig } from "blume";
 import { custom, filesystem } from "blume/sources";
+import { escapeMarkdownText } from "blume/sources/lower.ts";
 import { sanitySource } from "blume/sources/sanity.ts";
 
 export default defineConfig({
@@ -23,7 +24,8 @@ export default defineConfig({
           query: `*[_type == "guide"]`,
           // Map custom Portable Text blocks to Blume components
           serializers: {
-            callout: (block) => `<Callout>${block.text}</Callout>`,
+            callout: (block) =>
+              `<Callout>${escapeMarkdownText(String(block.text ?? ""))}</Callout>`,
           },
         })
       ),
@@ -31,6 +33,8 @@ export default defineConfig({
   },
 });
 ```
+
+A serializer's return value is written into the page as MDX, as is, so text it takes from the CMS must be escaped: a `{` in an editor's text would otherwise run as an expression and fail the build, and a `<b>` would render as HTML. `escapeMarkdownText` escapes it the way Blume's built-in lowering does, so the text renders as written.
 
 A source built with one of Blume's engine factories, like `sanitySource` above, is rebuilt on the running command's context, so it reads drafts under `--preview` and keeps its snapshot in `.blume/cache` the way the built-in adapter does. A source of your own can do the same by implementing `withContext(ctx)` and returning itself rebuilt on that context. Unlike a built-in adapter's, a `custom()` source's snapshot is kept per preview mode only, not per set of options, since Blume sees an instance rather than its options. `blume dev` serves that snapshot after you edit the source's query, fields, or serializers, so run `blume sync` to fetch afresh.
 
