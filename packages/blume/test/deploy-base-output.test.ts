@@ -169,6 +169,9 @@ describe("redirects to public files", () => {
     ).toStrictEqual([
       "/files/whitepaper.pdf",
       "/docs/releases/v1.2",
+      // The page's Markdown copies move with it; a file has none.
+      "/docs/releases/v1.2.md",
+      "/docs/releases/v1.2.mdx",
       "/docs/intro#setup",
     ]);
   });

@@ -459,12 +459,15 @@ describe("the generated Astro config", () => {
     root: "/p",
     themeFile: null,
   };
-  const configFor = (input: BlumeConfigInput): string =>
+  const configFor = (
+    input: BlumeConfigInput,
+    contentRoutes: string[] = []
+  ): string =>
     astroConfigTemplate({
       askPath: "/p/.blume/src/generated/Ask.astro",
       config: blumeConfigSchema.parse(input),
       consentClientPath: "/p/.blume/src/generated/consent-client.ts",
-      contentRoutes: [],
+      contentRoutes,
       context,
       examplesPath: "/p/.blume/src/generated/examples.ts",
       examplesThemePath: "/p/.blume/src/generated/examples.css",
@@ -489,6 +492,23 @@ describe("the generated Astro config", () => {
       '"redirects":[["^/docs/old/?$","/docs/new",302],["^/docs/beta/?$","/docs/v2",301],["^/docs/beta/(.+?)/?$","/docs/v2/$1",301]]'
     );
     expect(configFor({})).not.toContain('"redirects":[');
+  });
+
+  it("moves a moved page's Markdown copies with it", () => {
+    const generated = configFor(
+      {
+        basePath: "/docs",
+        deployment: vercel({ base: "/base" }),
+        redirects: [{ from: "/old", status: 307, to: "/new" }],
+      },
+      ["/docs/new"]
+    );
+    expect(generated).toContain(
+      'redirects: {"/docs/old":{"destination":"/base/docs/new","status":307},"/docs/old.md":{"destination":"/base/docs/new.md","status":307},"/docs/old.mdx":{"destination":"/base/docs/new.mdx","status":307}}'
+    );
+    expect(generated).toContain(
+      '"redirects":[["^/docs/old/?$","/base/docs/new",307],["^/docs/old\\\\.md/?$","/base/docs/new.md",307],["^/docs/old\\\\.mdx/?$","/base/docs/new.mdx",307]]'
+    );
   });
 });
 

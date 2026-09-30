@@ -25,7 +25,10 @@ import { deployPassthrough } from "../deploy/adapters/types.ts";
 import { SVG_ASSET_HEADERS } from "../deploy/headers.ts";
 import { deployPlatform } from "../deploy/platforms/index.ts";
 import { adapterRoot, distDir } from "../deploy/platforms/paths.ts";
-import { applyBaseToAstroRedirects } from "../deploy/redirects.ts";
+import {
+  applyBaseToAstroRedirects,
+  withMirrorRedirects,
+} from "../deploy/redirects.ts";
 import { API_RAIL_KEY } from "../markdown/api-rail.ts";
 import { VIEWS_KEY } from "../markdown/views.ts";
 import type { OgCache } from "../og/cache.ts";
@@ -703,11 +706,17 @@ export const astroConfigTemplate = (options: {
   // Base the redirect paths the same way routes are based, so a redirect lands
   // under `basePath` too. Astro layers its own `base` (deployment.base) onto
   // `from` when matching, but never onto `to` — see applyBaseToAstroRedirects.
-  const basedRedirects = applyBaseToAstroRedirects(
-    config.redirects,
-    config.basePath,
-    deployment.options.base ?? "",
-    new Set(contentRoutes)
+  // A moved page's Markdown copies move with it (see withMirrorRedirects).
+  const redirectPages = new Set(contentRoutes);
+  const basedRedirects = withMirrorRedirects(
+    applyBaseToAstroRedirects(
+      config.redirects,
+      config.basePath,
+      deployment.options.base ?? "",
+      redirectPages
+    ),
+    redirectPages,
+    { from: "", to: normalizeBasePath(deployment.options.base) }
   );
   // Only exact redirects: Astro can't prerender a pattern's redirect pages
   // (it would need every path the pattern covers), so a pattern reaches the
