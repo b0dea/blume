@@ -3,6 +3,7 @@ import { afterAll, describe, expect, it } from "bun:test";
 import {
   badResponse,
   externalChecks,
+  liveRedirectCheck,
   networkChecks,
   servedPageChecks,
 } from "../src/audit/checks/network.ts";
@@ -39,11 +40,28 @@ const ROUTES = new Map<string, RouteFixture>([
   ["/redirects", { status: 302 }],
   ["/robots.txt", { status: 404 }],
   ["/sitemap.xml", { status: 404 }],
+  // The meta-refresh page a static build writes at a redirect's old URL,
+  // served by a host that never read the redirect file.
+  ["/refresh-page", { body: '<meta http-equiv="refresh" content="0;url=/">' }],
+  ["/slashed/", {}],
+]);
+
+/** Old URLs the fixture server redirects, and where to. */
+const MOVED = new Map([
+  ["/docs/moved", "/docs/based"],
+  ["/moved", "/"],
+  ["/moved-elsewhere", "/plain"],
+  ["/moved-offsite", "/plain"],
+  ["/slashed", "/slashed/"],
 ]);
 
 const server = Bun.serve({
   fetch(request) {
     const { pathname } = new URL(request.url);
+    const moved = MOVED.get(pathname);
+    if (moved) {
+      return Response.redirect(new URL(moved, request.url), 301);
+    }
     const route = ROUTES.get(pathname);
     if (!route) {
       return new Response("not found", { status: 404 });
@@ -188,6 +206,111 @@ describe("network checks", () => {
       withOrigin([snapshot({ url: "/" })])
     );
     expect(found).toContain("ROBOTS_NOT_ACCESSIBLE");
+  });
+});
+
+/** A configured 301 redirect. */
+const redirect = (from: string, to: string) => ({ from, status: 301, to });
+
+describe("live redirects", () => {
+  /** The live-redirect findings for `redirects`, as [url, severity, message]. */
+  const liveFindings = async (
+    redirects: { from: string; status: number; to: string }[],
+    base?: string
+  ) => {
+    const ctx = {
+      ...context({
+        base,
+        pages: [
+          snapshot({ url: "/" }),
+          snapshot({ url: "/plain" }),
+          snapshot({ url: "/based" }),
+        ],
+        redirects,
+      }),
+      origin: ORIGIN,
+    };
+    const found = await networkChecks.run(ctx);
+    return found
+      .filter((d) => d.code === "BLUME_AUDIT_REDIRECT_NOT_SERVED")
+      .map((d) => [d.url, d.severity, d.message]);
+  };
+
+  it("requests each old URL and is silent when it redirects as configured", async () => {
+    expect(
+      await liveFindings([
+        redirect("/moved", "/"),
+        // An external destination isn't compared: its site may redirect again.
+        redirect("/moved-offsite", "https://example.com/elsewhere"),
+      ])
+    ).toEqual([]);
+  });
+
+  it("reports an old URL the live site doesn't redirect", async () => {
+    expect(
+      await liveFindings([
+        redirect("/never-deployed", "/"),
+        redirect("/refresh-page", "/"),
+        redirect("/slashed", "/"),
+        redirect("/moved-elsewhere", "/"),
+      ])
+    ).toEqual([
+      [
+        "/never-deployed",
+        "error",
+        "/never-deployed should redirect to /, but the live site answered it with HTTP 404 instead.",
+      ],
+      [
+        "/refresh-page",
+        "warning",
+        "/refresh-page should redirect to /, but the live site answered it with HTTP 200 instead.",
+      ],
+      [
+        "/slashed",
+        "warning",
+        "/slashed should redirect to /, but the live site answered it with HTTP 200 instead.",
+      ],
+      [
+        "/moved-elsewhere",
+        "warning",
+        "/moved-elsewhere redirects to /plain on the live site, not to /.",
+      ],
+    ]);
+  });
+
+  it("requests only the redirects the static checks passed", async () => {
+    // None of these is served by the fixture, so a request would report it.
+    expect(
+      await liveFindings([
+        redirect("/beta/:slug*", "/"),
+        redirect("/loop-a", "/loop-b"),
+        redirect("/loop-b", "/loop-a"),
+        redirect("/plain", "/"),
+        redirect("/nowhere", "/missing"),
+      ])
+    ).toEqual([]);
+  });
+
+  it("requests old URLs under the deployment base", async () => {
+    expect(await liveFindings([redirect("/moved", "/based")], "/docs")).toEqual(
+      []
+    );
+  });
+
+  it("reports an old URL that never answered", () => {
+    const ctx = context({ redirects: [redirect("/old", "/")] });
+    const [resolved] = ctx.redirects;
+    if (!resolved) {
+      throw new Error("expected the redirect");
+    }
+    const message = (result: Parameters<typeof liveRedirectCheck>[2]) =>
+      liveRedirectCheck(ctx, resolved, result, "")?.message;
+    expect(message({ ok: false, timedOut: true })).toBe(
+      "/old should redirect to /, but the live site did not respond in time."
+    );
+    expect(message({ error: "ECONNREFUSED", ok: false })).toBe(
+      "/old should redirect to /, but the live site could not be reached (ECONNREFUSED)."
+    );
   });
 });
 

@@ -373,6 +373,14 @@ export const CHECKS = [
     tier: "network",
     title: "HTTPS to HTTP redirect",
   },
+  {
+    category: "redirects",
+    fix: "Deploy the redirect file your host reads (see Redirects in the deployment docs), or name the host in `deployment`.",
+    id: "BLUME_AUDIT_REDIRECT_NOT_SERVED",
+    severity: "error",
+    tier: "network",
+    title: "Live site doesn't redirect as configured",
+  },
 
   // Social
   {

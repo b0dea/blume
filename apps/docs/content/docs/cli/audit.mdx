@@ -25,7 +25,7 @@ Findings are grouped by check rather than listed per page, so the report reads a
 ## Flags
 
 - `--fail-on error|warning|info` — the CI gate: exit non-zero at this severity or above. Defaults to `error`; `--strict` is an alias for `--fail-on warning`.
-- `--url <origin>` — also probe a live deployment for status codes, response headers, and redirect chains.
+- `--url <origin>` — also probe a live deployment for status codes, response headers, and configured redirects.
 - `--external` — probe outbound links over the network.
 - `--only <check|category>` / `--skip <check|category>` — narrow the report to, or away from, these checks or categories (comma-separated). A term that names no check or category is an error that suggests the closest one, so a typo can't quietly empty the report.
 - `--list-checks` — print every check the audit can report, then exit.
@@ -44,12 +44,14 @@ blume audit --fail-on warning    # also fails on warnings
 
 ## Checking a live deployment
 
-Some things only the real server can tell you: whether a page that exists in `dist/` actually 404s behind a bad rewrite, whether responses are compressed, and whether an `X-Robots-Tag` header is quietly deindexing a page whose HTML looks perfectly fine. Point the audit at a deployment to add those checks:
+Some things only the real server can tell you: whether a page that exists in `dist/` actually 404s behind a bad rewrite, whether responses are compressed, whether an `X-Robots-Tag` header is quietly deindexing a page whose HTML looks perfectly fine, and whether each old URL in [`redirects`](/docs/deployment#redirects) really redirects where you configured it. Point the audit at a deployment to add those checks:
 
 ```bash
 blume audit --url https://docs.example.com
 blume audit --url https://docs.example.com --external   # also probe outbound links
 ```
+
+The audit requests every exact redirect's old URL (a pattern names no single URL to request). One that 404s is an error. One that answers 200 is a warning: a host that doesn't read the redirect file the build wrote serves the build's meta-refresh page there instead of an HTTP redirect, which readers follow but crawlers may not. See [Redirects](/docs/deployment#redirects) for what each host reads.
 
 Outbound links are graded rather than flatly failed: a 404 is a broken link you can fix, while a 403 or 5xx is usually rate limiting or someone else's outage and is reported as a warning.
 
@@ -78,7 +80,7 @@ Limits worth stating plainly:
 Anything the audit did not run is reported as skipped rather than silently passing:
 
 ```
-⊘ network      skipped — pass --url <origin> (11 checks)
+⊘ network      skipped — pass --url <origin> (12 checks)
 ⊘ external     skipped — pass --external (2 checks)
 ```
 
@@ -352,6 +354,14 @@ Fix: Remove the redirect, or delete the page it shadows — the page wins and th
 `BLUME_AUDIT_REDIRECT_TO_HTTP` · error · needs `--url`
 
 Fix: Redirect to the HTTPS URL.
+
+#### Live site doesn't redirect as configured [#redirect-not-served]
+
+`BLUME_AUDIT_REDIRECT_NOT_SERVED` · error · needs `--url`
+
+Fix: Deploy the redirect file your host reads (see Redirects in the deployment docs), or name the host in `deployment`.
+
+A warning instead when the old URL answers 200 (the meta-refresh page) or redirects somewhere other than the configured destination.
 
 ### Social cards
 
