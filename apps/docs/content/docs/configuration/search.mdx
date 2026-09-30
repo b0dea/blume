@@ -5,7 +5,7 @@ description: Client-side search that works out of the box with no API keys, plus
 
 Blume ships local search with no hosted infrastructure and no API keys. It runs in the browser, works in both `blume dev` and `blume build`, and indexes only your real content — navigation chrome and excluded pages are skipped. When you outgrow it, you can switch to a hosted or semantic backend without changing how search looks or behaves — only the adapter you pass to `search` changes.
 
-Every backend is an **adapter** imported from `blume/search`: **Orama** (the default), **FlexSearch**, **Pagefind**, **Algolia**, **Orama Cloud**, **Typesense**, and **Mixedbread**. Each adapter owns its options, its runtime dependency, and the secrets it needs, so only the configured adapter's SDK is installed into your project — picking one backend never pulls in the others.
+Every backend is an **adapter** imported from `blume/search`: **Orama** (the default), **FlexSearch**, **Pagefind**, **Algolia**, **Orama Cloud**, **Typesense**, and **Mixedbread**. Each adapter owns its options, its runtime dependency, and the secrets it needs. Orama and Pagefind ship with Blume; every other adapter's SDK is an optional peer dependency that you install yourself, so picking one backend never pulls in the others. If it's missing, `blume build` stops before Vite runs, naming the package and the command that installs it, and [`blume doctor`](/docs/cli/doctor) reports it too.
 
 ```ts blume.config.ts lineNumbers
 import { defineConfig } from "blume";
@@ -119,7 +119,7 @@ Keywords are searched on every adapter except Mixedbread.
 
 ## Search analytics
 
-With an [analytics adapter](/docs/configuration/analytics) configured, search reports what readers look for. A query is recorded once it settles, after a second without typing or when the reader picks a result or closes the dialog, as a `search` event with the `query`, the number of `results`, and the `path` it was searched from. A query with no results shows up with `results: 0`, so filtering on it lists what your docs don't cover yet. Picking a result sends a `search_select` event with the `query`, the result's 1-based `position`, and its `url`, for click-through.
+With an [analytics adapter](/docs/configuration/analytics) configured, search reports what readers look for. A query is recorded once it settles, after a second without typing or when the reader picks a result or closes the dialog, as a `search` event with the `query`, the number of `results`, and the `path` it was searched from. A query with no results shows up with `results: 0`, so filtering on it lists what your docs don't cover yet. Picking a result sends a `search_select` event with the `query`, the result's 1-based `position`, its `url`, and the `path` it was picked from, for click-through.
 
 Queries are sent as typed, up to 100 characters. Your analytics sees them the way it sees any page's search terms, so treat them as reader input. With [cookie consent](/docs/configuration/consent) on, only readers who allowed analytics are counted.
 
@@ -154,7 +154,7 @@ Japanese and Chinese go one step further. Segmenting alone indexes a compound te
 
 ### FlexSearch
 
-A second keyless, client-side option. It reuses the same `/blume-search.json` index Orama ships and builds a [FlexSearch](https://github.com/nextapps-de/flexsearch) document index in the browser. Works in `blume dev` and `blume build`.
+A second keyless, client-side option (install `flexsearch`). It reuses the same `/blume-search.json` index Orama ships and builds a [FlexSearch](https://github.com/nextapps-de/flexsearch) document index in the browser. Works in `blume dev` and `blume build`.
 
 FlexSearch has no equivalent segmentation hook, so for sites in a non-Latin script prefer Orama (the default) or [Pagefind](#pagefind), whose `pagefind_extended` binary indexes a broad set of languages and segments Chinese, Japanese and Korean natively.
 
@@ -178,7 +178,7 @@ Pagefind only runs during `blume build`, so search isn't available in `blume dev
 
 ### Algolia
 
-The browser queries [Algolia](https://www.algolia.com) directly with your search-only key. Each `blume build` replaces the index using the admin key from `ALGOLIA_ADMIN_API_KEY` (the build warns and skips the upload if it's unset). The whole index is replaced on every sync, so pages you delete or rename don't linger as stale results. The sync also adds `filterOnly(locale)` and `filterOnly(version)` to the index's `attributesForFaceting`, keeping any facets you declared yourself, because the dialog scopes results by language and docs version, and in Algolia a filter on an attribute that isn't declared for faceting matches nothing.
+Install `algoliasearch`. The browser queries [Algolia](https://www.algolia.com) directly with your search-only key. Each `blume build` replaces the index using the admin key from `ALGOLIA_ADMIN_API_KEY` (the build warns and skips the upload if it's unset). The whole index is replaced on every sync, so pages you delete or rename don't linger as stale results. The sync also adds `filterOnly(locale)` and `filterOnly(version)` to the index's `attributesForFaceting`, keeping any facets you declared yourself, because the dialog scopes results by language and docs version, and in Algolia a filter on an attribute that isn't declared for faceting matches nothing.
 
 Algolia caps a record at 10 KB on its Build and Grow plans, so the sync splits a longer page into several records, each carrying the page's title, description, and URL with a stretch of its text. It then sets the index's `attributeForDistinct` to `url`, unless you set your own, so a split page appears once in results, at its best-matching record.
 
@@ -194,7 +194,7 @@ search: algolia({
 
 ### Orama Cloud
 
-Hosted Orama. The browser queries your index endpoint with the public API key; `blume build` pushes records to the index using `ORAMA_PRIVATE_API_KEY`. Set `indexId` to enable the sync.
+Hosted Orama (install `@oramacloud/client`). The browser queries your index endpoint with the public API key; `blume build` pushes records to the index using `ORAMA_PRIVATE_API_KEY`. Set `indexId` to enable the sync.
 
 ```ts blume.config.ts lineNumbers
 import { oramaCloud } from "blume/search";
@@ -208,7 +208,7 @@ search: oramaCloud({
 
 ### Typesense
 
-Self-hosted or cloud [Typesense](https://typesense.org). The browser queries the collection with the search-only key. Each `blume build` imports your pages into a new collection using `TYPESENSE_ADMIN_API_KEY`, then points an [alias](https://typesense.org/docs/latest/api/collection-alias.html) named after `collection` at it and drops the collection it replaced. Searches keep reading the previous collection until the new one is complete, and deleted or renamed pages don't linger as stale results. If the sync fails, the build warns and the alias keeps serving the last complete sync. The admin key needs to manage collections and aliases. On the first sync, a collection that already has the `collection` name (from an earlier Blume version) is replaced by the alias, and search keys scoped to that name keep working. Settings you hand-tune on a collection don't carry over to the next one, so reapply them after a build.
+Self-hosted or cloud [Typesense](https://typesense.org). Install `typesense`. The browser queries the collection with the search-only key. Each `blume build` imports your pages into a new collection using `TYPESENSE_ADMIN_API_KEY`, then points an [alias](https://typesense.org/docs/latest/api/collection-alias.html) named after `collection` at it and drops the collection it replaced. Searches keep reading the previous collection until the new one is complete, and deleted or renamed pages don't linger as stale results. If the sync fails, the build warns and the alias keeps serving the last complete sync. The admin key needs to manage collections and aliases. On the first sync, a collection that already has the `collection` name (from an earlier Blume version) is replaced by the alias, and search keys scoped to that name keep working. Settings you hand-tune on a collection don't carry over to the next one, so reapply them after a build.
 
 ```ts blume.config.ts lineNumbers
 import { typesense } from "blume/search";
@@ -225,7 +225,7 @@ Typesense's default tokenizer splits text on spaces, so in Chinese, Japanese, or
 
 ### Mixedbread
 
-Semantic search via [Mixedbread](https://www.mixedbread.com). Queries are proxied through a generated `/api/search` endpoint that holds your key, so this adapter **requires server output**: a host adapter such as `deployment: vercel()` from `blume/deploy` (see [Server rendering](/docs/deployment#server-rendering)). The endpoint reads `MIXEDBREAD_API_KEY`. Blume doesn't upload to the store: sync your content folder with the [Mixedbread CLI](https://www.npmjs.com/package/@mixedbread/cli) as part of your build, e.g. `mxbai store sync <STORE_ID> ./docs --yes` (the CLI reads its key from `MXBAI_API_KEY`).
+Semantic search via [Mixedbread](https://www.mixedbread.com) (install `@mixedbread/sdk`). Queries are proxied through a generated `/api/search` endpoint that holds your key, so this adapter **requires server output**: a host adapter such as `deployment: vercel()` from `blume/deploy` (see [Server rendering](/docs/deployment#server-rendering)). The endpoint reads `MIXEDBREAD_API_KEY`. Blume doesn't upload to the store: sync your content folder with the [Mixedbread CLI](https://www.npmjs.com/package/@mixedbread/cli) as part of your build, e.g. `mxbai store sync <STORE_ID> ./docs --yes` (the CLI reads its key from `MXBAI_API_KEY`).
 
 Each result links to the page its file renders, found by the path the CLI records for the file, so run the sync from your project root or a folder above it, such as a monorepo root. A page appears once, at its best-matching passage, and passages from files that aren't pages, or from pages excluded from search, are left out.
 
