@@ -85,6 +85,45 @@ export default {
     ).toContain("BLUME_COMPONENTS_INVALID");
   });
 
+  it("reports navigation entries that point at missing pages, as dev and build do", async () => {
+    const root = await makeProject({
+      ...HOME,
+      "blume.config.ts": `export default {
+  navigation: {
+    featured: [{ label: "Missing", href: "/missing" }],
+    selectors: [
+      {
+        items: [{ label: "SDK", path: "/sdk" }],
+        kind: "product",
+        label: "Product",
+      },
+    ],
+    tabs: [
+      { label: "Guides", path: "/guides" },
+      { label: "Custom", path: "/custom" },
+      { label: "Gone", path: "/gone" },
+    ],
+  },
+};
+`,
+      "docs/guides/setup.mdx": "---\ntitle: Setup\n---\n# Setup\n",
+      "pages/custom.astro": "<h1>Custom</h1>\n",
+    });
+    const { exitCode, stderr } = await doctor(root);
+    expect(exitCode).toBe(0);
+    for (const [label, path] of [
+      ["Gone", "/gone"],
+      ["SDK", "/sdk"],
+      ["Missing", "/missing"],
+    ]) {
+      expect(stderr).toContain(
+        `Navigation entry "${label}" points to ${path}, but no page matches it.`
+      );
+    }
+    expect(stderr).not.toContain('"Guides" points');
+    expect(stderr).not.toContain('"Custom" points');
+  });
+
   it("warns about a version-shaped folder when versioning isn't configured", async () => {
     const root = await makeProject({
       ...HOME,

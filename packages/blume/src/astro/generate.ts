@@ -93,7 +93,6 @@ import {
   builtinProxyReferences,
   hasScalarReferences,
   needsPlaygroundProxy,
-  referenceRoutes,
 } from "../openapi/references.ts";
 import { buildReferenceFiles } from "../openapi/scalar.ts";
 import { isOpenApiSource } from "../openapi/source.ts";
@@ -125,6 +124,7 @@ import {
   customOgRoutes,
   discoverPages,
   hasGeneratedChangelog,
+  navTargetRoutes,
   routeIsTaken,
 } from "./pages.ts";
 import { candidateHolding } from "./render-deps.ts";
@@ -2380,24 +2380,18 @@ export const generateRuntime = async (
     ...overrideWarnings,
   ];
 
-  // Missing-navigation-target check, now that every servable route is known:
-  // content routes, custom `.astro` pages, the generated changelog, and any
-  // OpenAPI reference routes (so a tab an author points at one still validates).
-  const navTargetRoutes = new Set<string>([
-    ...project.graph.routes.keys(),
-    ...pages.map((page) => page.pattern),
-    ...referenceRoutes(config),
-  ]);
-  if (changelogIndex) {
-    navTargetRoutes.add("/changelog");
-  }
+  // Missing-navigation-target check, now that every servable route is known
+  // (see `navTargetRoutes`).
   // Curated `search.popular` icons live outside the navigation model, so they
   // miss `validateNavIcons` in the graph build — they're checked here too,
   // where the search config is known. A typo otherwise just renders the
   // default glyph.
   warnings.push(
     ...[
-      ...validateNavTargets(project.graph.navigation, navTargetRoutes),
+      ...validateNavTargets(
+        project.graph.navigation,
+        navTargetRoutes(project, pages)
+      ),
       ...validateSearchPopularIcons(config.search.popular),
     ].map(diagnosticWarning)
   );

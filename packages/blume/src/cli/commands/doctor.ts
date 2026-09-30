@@ -6,12 +6,14 @@ import { join } from "pathe";
 import { satisfies } from "semver";
 
 import { discoverIslands } from "../../astro/islands.ts";
+import { discoverPages, navTargetRoutes } from "../../astro/pages.ts";
 import { missingDependencyDiagnostic } from "../../astro/runtime-deps.ts";
 import {
   analyzeComponentOverrides,
   ComponentOverridesError,
 } from "../../core/component-overrides.ts";
 import { BlumeError } from "../../core/diagnostics.ts";
+import { validateNavTargets } from "../../core/nav-diagnostics.ts";
 import { packageRoot } from "../../core/package-root.ts";
 import { scanProject } from "../../core/project-graph.ts";
 import type { ResolvedConfig } from "../../core/schema.ts";
@@ -118,9 +120,19 @@ export const doctorCommand = defineCommand({
 
     try {
       const project = await scanProject(root, { mode: "build" });
+      // Tabs, selector items, and featured links can point at custom pages
+      // and generated routes too, so they're checked against every route
+      // the site serves, as `blume dev`/`build` check them.
+      const userPages = project.context.pagesRoot
+        ? await discoverPages(project.context.pagesRoot)
+        : [];
       diagnostics.push(
         ...project.diagnostics,
-        ...unregisteredSnapshotDiagnostics(project)
+        ...unregisteredSnapshotDiagnostics(project),
+        ...validateNavTargets(
+          project.graph.navigation,
+          navTargetRoutes(project, userPages)
+        )
       );
 
       const { config } = project;

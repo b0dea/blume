@@ -686,7 +686,8 @@ export default defineMeta({ display: "page" });`}
   <p>
     Readers arrive on the home page, on a product overview, on a quickstart
     from a search engine, and deep in an endpoint from someone's link. Check
-    each one. First, scan the project for duplicate routes and unknown icons:
+    each one. First, scan the project for duplicate routes, unknown icons, and
+    tabs or selector items that point at missing pages:
   </p>
   <CodeBlock code="npx blume doctor" lang="bash" />
   <p>Then run <code>npx blume dev</code> and open each entry point:</p>
@@ -771,10 +772,8 @@ npx blume audit --only duplicates`}
   <h3>The dev server warns BLUME_NAV_MISSING_PAGE</h3>
   <p>
     A tab, selector item, or featured link points at a route with no page,
-    often a typo like <code>/verfy</code>. <code>blume dev</code> and{" "}
-    <code>blume build</code> print it as a warning, but{" "}
-    <code>blume doctor</code> doesn't check navigation targets, so a clean
-    doctor run can still hide it. Fix the path in{" "}
-    <code>blume.config.ts</code>.
+    often a typo like <code>/verfy</code>. <code>blume dev</code>,{" "}
+    <code>blume build</code>, and <code>blume doctor</code> print it as a
+    warning. Fix the path in <code>blume.config.ts</code>.
   </p>
 </GuidePage>
