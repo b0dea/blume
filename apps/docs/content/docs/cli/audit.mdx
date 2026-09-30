@@ -277,6 +277,8 @@ Fix: Remove the X-Robots-Tag header, or align it with the page's robots meta.
 
 Fix: Fix the link target, or create the page it points at.
 
+Under [`deployment.base`](/docs/deployment#subpath-deploys), a root-relative link without the base is reported here, since the host serves nothing of this build there. A full URL on the same host outside the base isn't: that's how a page links to another app the host serves beside the docs.
+
 #### Page has links to a redirect [#link-to-redirect]
 
 `BLUME_AUDIT_LINK_TO_REDIRECT` · warning · from the built HTML

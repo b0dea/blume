@@ -101,6 +101,12 @@ export const linkChecks: CheckModule = {
         return;
       }
       if (resolved.kind === "outside-base") {
+        // A full URL on this host outside the base names another app there
+        // (the navigation docs say to link one that way), not a page of this
+        // build that lost its base.
+        if (resolved.absolute) {
+          return;
+        }
         if (link.content) {
           found.push(
             finding(
