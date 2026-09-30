@@ -12,8 +12,8 @@
 // through Blume's MDX parser with the directive plugin; the sitemap-to-list
 // pipeline against the built sitemap. Reviewer: checked `blume migrate`
 // (cli/commands/migrate.ts, migrate/migrate.ts), the `wrap` fence keyword
-// (markdown/fence-meta.ts), and that unknown layout slot names are ignored
-// (components/layout/RootLayout.astro, core/component-overrides.ts). Not yet
+// (markdown/fence-meta.ts), and that unknown layout slot names render nowhere
+// and warn (core/component-overrides.ts, astro/generate.ts). Not yet
 // run end to end: no agent migration, `blume build`, or `blume dev` on the
 // example.
 import CodeBlock from "blume/components/content/CodeBlock.astro";
@@ -831,15 +831,19 @@ npx blume validate --strict`}
   </p>
   <h3>An override has no effect</h3>
   <p>
-    Blume ignores a <code>layout</code> key that isn't one of its slots, without
-    a warning. A Starlight name like <code>SiteTitle</code> or{" "}
-    <code>SocialIcons</code> kept in <code>components.ts</code> does nothing;
-    use <code>Logo</code>, or <code>PageHeader</code> and{" "}
-    <code>PageFooter</code>.
+    A <code>layout</code> key that isn't one of Blume's slots renders nowhere,
+    so <code>blume dev</code> and <code>blume build</code> warn that it isn't a
+    layout slot and list the slots there are. A Starlight name like{" "}
+    <code>SiteTitle</code> or <code>SocialIcons</code> kept in{" "}
+    <code>components.ts</code> gets that warning; use <code>Logo</code>, or{" "}
+    <code>PageHeader</code> and <code>PageFooter</code>.
   </p>
   <h3>A redirect fails the build</h3>
   <p>
     <code>BLUME_REDIRECT_MATCHES_PAGE</code> means a redirect pattern also
-    covers a page you kept. Narrow it to the URLs that moved.
+    covers a page you kept. Narrow it to the URLs that moved. As a warning,
+    which fails <code>blume validate --strict</code>, it means an exact
+    redirect starts at a page you kept: the redirect takes the URL over, so the
+    page never publishes. Delete the page if it moved, or remove the redirect.
   </p>
 </GuidePage>
