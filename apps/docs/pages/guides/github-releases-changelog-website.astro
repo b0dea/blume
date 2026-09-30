@@ -17,7 +17,8 @@
 // core/i18n-ui.ts, and the Netlify build hook path against Netlify's docs.
 // Rechecked baseUrl, the Draft tag, and the feed item's description against
 // sources/github-releases.ts, core/sources/github-releases.ts, and
-// deploy/rss.ts. Not yet run end to end against a real repository.
+// deploy/rss.ts, and the changelog config's title and description against
+// core/changelog-index.ts. Not yet run end to end against a real repository.
 import Callout from "blume/components/content/Callout.astro";
 import CodeBlock from "blume/components/content/CodeBlock.astro";
 import GuidePage from "../_guides/GuidePage.astro";
@@ -247,8 +248,12 @@ export default defineConfig({
     50 items.
     Tune it under <a href="/docs/discoverability/rss">seo.rss</a>: raise{" "}
     <code>limit</code>, or remove <code>"changelog"</code> from{" "}
-    <code>types</code> to keep the timeline without a feed. To redesign the
-    timeline itself, add a{" "}
+    <code>types</code> to keep the timeline without a feed. The timeline is
+    headed <strong>Changelog</strong>. To rename it or change the line below
+    the heading, set <code>changelog.title</code> and{" "}
+    <code>changelog.description</code> in <code>blume.config.ts</code> (see{" "}
+    <a href="/docs/advanced/changelog#the-index-page">The index page</a>). To
+    redesign the timeline itself, add a{" "}
     <a href="/docs/advanced/custom-pages">custom page</a> at{" "}
     <code>pages/changelog.astro</code>, and Blume stops generating its own.
   </p>
