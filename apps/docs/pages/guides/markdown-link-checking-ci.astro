@@ -533,7 +533,10 @@ git push`}
   <p>
     <code>validate</code> also reports problems it finds while reading your
     content, like a page that fails to parse, and <code>--strict</code> fails
-    on those warnings too. Fix them where the finding points: a page that
-    doesn't parse is a page whose links weren't checked.
+    on those warnings too. Frontmatter that isn't valid YAML, such as an
+    unquoted value holding <code>: </code>, is an error on its own:{" "}
+    <code>BLUME_FRONTMATTER_INVALID</code> at the file and line. Fix them
+    where the finding points: a page that doesn't parse is a page whose links
+    weren't checked.
   </p>
 </GuidePage>
