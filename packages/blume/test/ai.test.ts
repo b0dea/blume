@@ -1514,6 +1514,34 @@ describe("createAskContext", () => {
     expect(system).not.toContain("Install EN");
   });
 
+  it("keeps a question from outside the docs to one locale", async () => {
+    const documents = ["en", "fr", "de"].map((locale) => ({
+      content: `single sign-on setup (${locale})`,
+      description: "",
+      locale,
+      route: `/${locale}/sso`,
+      title: `SSO ${locale.toUpperCase()}`,
+    }));
+    const ground = createAskContext({
+      defaultLocale: "en",
+      documents,
+      site: null,
+    });
+    // The homepage isn't a docs page: every translation used to compete.
+    const home = await ground([{ content: "single sign-on", role: "user" }], {
+      path: "/",
+    });
+    expect(home).toContain("SSO EN");
+    expect(home).not.toContain("SSO FR");
+    expect(home).not.toContain("SSO DE");
+    // A localized landing page keeps to its own locale.
+    const french = await ground([{ content: "single sign-on", role: "user" }], {
+      path: "/fr",
+    });
+    expect(french).toContain("SSO FR");
+    expect(french).not.toContain("SSO EN");
+  });
+
   it("grounds a CJK question when the snapshot carries a default locale", async () => {
     const documents = [
       {
