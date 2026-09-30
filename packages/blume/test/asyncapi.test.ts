@@ -959,8 +959,8 @@ describe("source.openApiSource with AsyncAPI references", () => {
       "events/index.mdx",
     ]);
     expect(folderMeta).toStrictEqual({
-      "events/ping": { title: "ping" },
-      "events/users": { title: "Users" },
+      "events/ping": { order: 1, title: "ping" },
+      "events/users": { order: 0, title: "Users" },
     });
     const data = source.openApiData();
     expect(data.events?.kind).toBe("asyncapi");

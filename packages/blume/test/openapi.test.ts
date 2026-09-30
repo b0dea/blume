@@ -233,6 +233,10 @@ const queued = (responses: Response[]) => {
   };
 };
 
+/** The groups among a sidebar level's nodes, in order. */
+const groups = (nodes: NavNode[]): NavNode[] =>
+  nodes.filter((node) => node.kind === "group");
+
 describe("references", () => {
   it("resolves a Blume-rendered OpenAPI reference by default", () => {
     const config = blumeConfigSchema.parse({
@@ -1664,10 +1668,12 @@ describe("source.openApiSource", () => {
     expect(refs).toContain("api/pet/add-pet.mdx");
     expect(refs.at(-1)).toBe("api/index.mdx");
     // Each tag directory is labeled with the spec's own tag name, so the
-    // sidebar group renders the authored casing instead of a re-humanized slug.
+    // sidebar group renders the authored casing instead of a re-humanized slug,
+    // and ranked in the overview's order. The source names no `label`, so its
+    // own group keeps the name its route gives it.
     expect(folderMeta).toStrictEqual({
-      "api/operations": { title: "Operations" },
-      "api/pet": { title: "pet" },
+      "api/operations": { order: 1, title: "Operations" },
+      "api/pet": { order: 0, title: "pet" },
     });
 
     const data = source.openApiData();
@@ -1949,6 +1955,82 @@ describe("source.openApiSource", () => {
     } finally {
       await rm(root, { force: true, recursive: true });
     }
+  });
+
+  it("names each source's group by its label and orders tags as the spec does", async () => {
+    const root = await mkdtemp(join(tmpdir(), "blume-openapi-nav-"));
+    try {
+      await mkdir(join(root, "docs"), { recursive: true });
+      await writeFile(
+        join(root, "blume.config.ts"),
+        'export default {\n  reference: [{ kind: "openapi", options: { sources: [{ label: "GitHub OAuth (v2)", spec: "./a.json" }, { route: "/reference/partner-apis", spec: "./b.json" }] }, requiredSecrets: [], runtimeDeps: [] }],\n};\n'
+      );
+      await writeFile(join(root, "docs/index.md"), "# Home\n");
+      const spec = JSON.stringify({
+        info: { title: "API", version: "1" },
+        openapi: "3.1.0",
+        paths: {
+          "/a": { get: { operationId: "a", summary: "A", tags: ["Zebras"] } },
+          "/b": { get: { operationId: "b", summary: "B", tags: ["Apples"] } },
+          "/c": { get: { operationId: "c", summary: "C", tags: ["Mangos"] } },
+        },
+        tags: [{ name: "Zebras" }, { name: "Mangos" }, { name: "Apples" }],
+      });
+      await writeFile(join(root, "a.json"), spec);
+      await writeFile(join(root, "b.json"), spec);
+      const project = await scanProject(root);
+      const reference = groups(project.graph.navigation.sidebar).find(
+        (node) => node.label === "Reference"
+      );
+      const sources =
+        reference?.kind === "group" ? groups(reference.children) : [];
+      // A labeled source's group carries its label as written; an unlabeled
+      // one keeps the name its route gives it.
+      expect(sources.map((node) => node.label)).toStrictEqual([
+        "GitHub OAuth (v2)",
+        "Partner APIs",
+      ]);
+      // Both list their tags in the spec's declared order, as the overview
+      // does, not alphabetically.
+      for (const source of sources) {
+        expect(
+          source.kind === "group"
+            ? groups(source.children).map((node) => node.label)
+            : []
+        ).toStrictEqual(["Zebras", "Mangos", "Apples"]);
+      }
+    } finally {
+      await rm(root, { force: true, recursive: true });
+    }
+  });
+
+  it("leaves a root-mounted source's label off the root group", async () => {
+    const dir = await tempSpec(SPEC_3_1);
+    const { folderMeta } = await openApiSource(
+      [
+        {
+          ...indexedReference,
+          basePath: "",
+          display: {
+            codeSamples: [],
+            expandSchemas: false,
+            playground: { enabled: true, proxy: false },
+          },
+          groupLabel: "Petstore",
+          kind: "openapi",
+          label: "Petstore",
+          route: "/",
+          slug: "reference",
+          spec: "spec.json",
+        },
+      ],
+      ctx(dir)
+    ).load();
+    expect(Object.keys(folderMeta ?? {}).toSorted()).toStrictEqual([
+      "operations",
+      "pet",
+    ]);
+    await rm(dir, { force: true, recursive: true });
   });
 });
 

@@ -563,12 +563,13 @@ describe("source.openApiSource (graphql)", () => {
     expect(refs).toContain("graphql/queries/pets.mdx");
     expect(refs).toContain("graphql/objects/pet-object.mdx");
     expect(refs.at(-1)).toBe("graphql/index.mdx");
+    // Groups rank in the overview's order: operations first, then types.
     expect(folderMeta?.["graphql/queries"]).toStrictEqual({
+      order: 0,
       title: "Queries",
     });
-    expect(folderMeta?.["graphql/input-objects"]).toStrictEqual({
-      title: "Input Objects",
-    });
+    expect(folderMeta?.["graphql/input-objects"]?.title).toBe("Input Objects");
+    expect(folderMeta?.["graphql/input-objects"]?.order).toBeGreaterThan(0);
 
     const spec = source.openApiData().graphql;
     expect(spec?.kind).toBe("graphql");

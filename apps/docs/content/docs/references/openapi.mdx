@@ -28,6 +28,8 @@ navigation: {
 }
 ```
 
+The sidebar's tag groups and the overview page's sections follow the same order: the order of the spec's top-level `tags` list, then any tag it doesn't declare, in the order operations first use it.
+
 :::note
 Operations are indexed for search by their **summary, description, tag, and endpoint** (`GET /pets/{id}`). The rendered schema tables and generated code samples aren't full-text indexed; search matches an operation's title, prose, section, and path, then links to its own page. [Your own samples](#your-own-samples) are indexed like any code block, only with [`search.indexing.includeCodeBlocks`](/docs/configuration/search).
 :::
@@ -174,7 +176,7 @@ The built-in proxy only forwards requests to the origins your specs declare in `
 
 ## Multiple specs
 
-Use `sources` to publish more than one spec from one adapter. Each source gets its own overview route and operation pages, and shares the adapter's display options. Give each a `label` (used for the sidebar and to derive its route), or set an explicit `route`:
+Use `sources` to publish more than one spec from one adapter. Each source gets its own overview route and operation pages, and shares the adapter's display options. Give each a `label`, which names its group in the sidebar as written and derives its route, or set an explicit `route`:
 
 ```ts blume.config.ts lineNumbers
 reference: [

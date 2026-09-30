@@ -54,6 +54,12 @@ export interface ReferenceSource {
    */
   basePath: string;
   label: string;
+  /**
+   * The source's own `label`, when it sets one: it names the sidebar group
+   * of the source's route. An unlabeled source's group keeps the name its
+   * route gives it.
+   */
+  groupLabel?: string;
   /** Whether generated pages are included in llms.txt/llms-full.txt. */
   includeInLlms: boolean;
   /** Whether generated pages are included in site search. */
@@ -257,6 +263,9 @@ const referencesFor = (
     };
     if (adapter.kind === "scalar") {
       reference.scalar = scalarOptionsOf(adapter.options);
+    }
+    if (source.label !== undefined) {
+      reference.groupLabel = source.label;
     }
     if (source.endpoint !== undefined) {
       reference.endpoint = source.endpoint;

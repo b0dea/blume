@@ -175,24 +175,34 @@ const specEntries = (
 };
 
 /**
- * Label each tag's sidebar group with the spec's own tag name. The group label
- * is otherwise re-humanized from the tag's route slug (split on hyphens,
+ * Label each tag's sidebar group with the spec's own tag name, and order the
+ * groups as the overview does: the spec's declared tag order, then first use
+ * (see `operationCollector`), not alphabetically. The group label is
+ * otherwise re-humanized from the tag's route slug (split on hyphens,
  * title-cased), which mangles authored casing and symbols — `OAuth2` →
- * "Oauth2", `Größe` → "Größe" only by luck of the slug. Keys are the tag
- * directories under the reference route, the same group paths `meta.ts` files
- * use, so user-authored meta still overrides these.
+ * "Oauth2", `Größe` → "Größe" only by luck of the slug. A source that names
+ * its own `label` gets it on its route's group the same way (`GitHub (v2)`,
+ * not "Github V2"). Keys are the directories under the reference route, the
+ * same group paths `meta.ts` files use, so user-authored meta still
+ * overrides these.
  */
 const tagFolderMeta = (
   spec: ApiSpecData,
-  tags: { slug: string; name: string }[]
+  tags: { slug: string; name: string }[],
+  groupLabel: string | undefined
 ): Record<string, FolderMeta> => {
   const base = routeToRef(spec.route);
-  return Object.fromEntries(
-    tags.map((tag) => [
+  const meta: Record<string, FolderMeta> = Object.fromEntries(
+    tags.map((tag, order) => [
       base ? `${base}/${tag.slug}` : tag.slug,
-      { title: tag.name },
+      { order, title: tag.name },
     ])
   );
+  // A root-mounted reference has no group of its own to name.
+  if (groupLabel !== undefined && base) {
+    meta[base] = { title: groupLabel };
+  }
+  return meta;
 };
 
 interface LoadedSpec {
@@ -361,7 +371,7 @@ export const openApiSource = (
             : []),
         ],
         entries: specEntries(spec, operations, reference),
-        folderMeta: tagFolderMeta(spec, tags),
+        folderMeta: tagFolderMeta(spec, tags, reference.groupLabel),
         slug: reference.slug,
         spec,
       };
