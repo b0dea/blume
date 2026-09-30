@@ -68,6 +68,21 @@ export default defineConfig({
 
 The binding's namespace comes from the Worker's name, so two sites on one account don't share a count. Set `namespaceId` to choose it yourself.
 
+## Behind a reverse proxy
+
+Vercel, Netlify, and Cloudflare tell Blume each reader's address. A `node()` server behind a reverse proxy, like nginx or Caddy, sees every request come from the proxy, so every reader shares one count and a busy site hits the limit for everyone. List the host the proxy answers for in `allowedDomains`:
+
+```ts blume.config.ts lineNumbers
+import { node } from "blume/deploy";
+
+deployment: node({
+  site: "https://docs.example.com",
+  allowedDomains: [{ hostname: "docs.example.com" }],
+}),
+```
+
+This is Astro's [`security.allowedDomains`](https://docs.astro.build/en/reference/configuration-reference/#securityalloweddomains): for a request whose `Host` or `X-Forwarded-Host` header matches an entry, Astro takes the reader's address from the first entry of `X-Forwarded-For`. Have the proxy pass the site's host through and replace any `X-Forwarded-For` the reader sent with the address it sees, like nginx's `proxy_set_header X-Forwarded-For $remote_addr;`. A proxy that appends to the header instead lets a reader pick their own address and get a fresh count with every request. Leave `allowedDomains` unset when readers reach the server directly.
+
 ## Turning it off
 
 Set `rateLimit: false` to let every request through, when your host's firewall already limits these routes, say. A request whose address the host can't tell is always let through, and so is one a shared store fails to count: the failure is logged, and readers never get locked out by a store outage.

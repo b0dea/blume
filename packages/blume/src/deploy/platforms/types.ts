@@ -2,7 +2,10 @@ import type { JsonValue } from "../../core/adapter.ts";
 import type { BlumeProject } from "../../core/project-graph.ts";
 import type { ResolvedConfig } from "../../core/schema.ts";
 import type { ProjectContext } from "../../core/types.ts";
-import type { DeployAdapterKind } from "../adapters/registry.ts";
+import type {
+  DeployAdapterKind,
+  ResolvedDeployOptions,
+} from "../adapters/registry.ts";
 import type { DeployOutput } from "../adapters/types.ts";
 
 /**
@@ -15,8 +18,16 @@ import type { DeployOutput } from "../adapters/types.ts";
 
 /** How the generated `astro.config.mjs` constructs the `@astrojs/*` adapter. */
 export interface AstroAdapterSpec {
-  /** Top-level `defineConfig` entries the adapter needs beside itself. */
-  config: Record<string, JsonValue>;
+  /**
+   * Top-level `defineConfig` entries the adapter needs beside itself, some
+   * of them set from the deployment's own options.
+   */
+  config: (options: ResolvedDeployOptions) => Record<string, JsonValue>;
+  /**
+   * The deployment options `config` reads, which therefore stay out of the
+   * passthrough to the `@astrojs/*` constructor.
+   */
+  configOptions: string[];
   /** Blume's own constructor options; the user's passthrough is spread over them. */
   options: (context: ProjectContext) => Record<string, JsonValue>;
   /** The package the config imports the adapter from. */

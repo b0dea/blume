@@ -318,7 +318,8 @@ export const bindCloudflareRateLimit = async (
  */
 export const cloudflarePlatform: DeployPlatform = {
   astro: {
-    config: { session: false },
+    config: () => ({ session: false }),
+    configOptions: [],
     options: adapterOptions,
     package: CLOUDFLARE_ADAPTER_PACKAGE,
   },

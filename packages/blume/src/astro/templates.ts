@@ -129,7 +129,7 @@ const renderAstroAdapter = (
   const { astro } = platform;
   const args = {
     ...astro.options(context),
-    ...deployPassthrough(deployment.options),
+    ...deployPassthrough(deployment.options, astro.configOptions),
   };
   const argsLiteral = Object.keys(args).length > 0 ? JSON.stringify(args) : "";
   const construct = `adapter(${argsLiteral})`;
@@ -140,7 +140,7 @@ const renderAstroAdapter = (
       ? `withAdapterRoot(${construct}, ${JSON.stringify(adapterRoot(context))})`
       : construct;
   return {
-    configEntries: Object.entries(astro.config)
+    configEntries: Object.entries(astro.config(deployment.options))
       .map(([key, value]) => `\n  ${key}: ${JSON.stringify(value)},`)
       .join(""),
     importLine: `import adapter from "${astro.package}";\n`,

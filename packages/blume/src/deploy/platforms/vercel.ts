@@ -187,7 +187,8 @@ export const emitVercelPatternRedirects = async (
  */
 export const vercelPlatform: DeployPlatform = {
   astro: {
-    config: {},
+    config: () => ({}),
+    configOptions: [],
     options: () => ({}),
     package: VERCEL_ADAPTER_PACKAGE,
   },

@@ -1251,6 +1251,55 @@ describe("astroConfigTemplate", () => {
     );
     expect(out).toContain("vue()");
     expect(out).toContain("svelte()");
+    // Without `allowedDomains`, Astro trusts no forwarded header.
+    expect(out).not.toContain("security:");
+  });
+
+  it("sets node()'s allowedDomains as Astro's, not as an adapter option", () => {
+    const out = astroConfigTemplate({
+      askPath: ASK_PATH,
+      config: blumeConfigSchema.parse({
+        deployment: node({
+          allowedDomains: [{ hostname: "docs.example.com", protocol: "https" }],
+          site: "https://docs.example.com",
+          staticHeaders: true,
+        }),
+      }),
+      consentClientPath: CONSENT_CLIENT_PATH,
+      contentRoutes: [],
+      context: context(),
+      examplesPath: EXAMPLES_PATH,
+      examplesThemePath: EXAMPLES_THEME_PATH,
+      featuresPath: FEATURES_PATH,
+      needsReact: false,
+      pages: [],
+      searchClientPath: SEARCH_CLIENT_PATH,
+      themePath: THEME_PATH,
+    });
+    // Behind a proxy, Astro reads the reader's address from X-Forwarded-For
+    // only for a host `security.allowedDomains` lists.
+    expect(out).toContain(
+      'security: {"allowedDomains":[{"hostname":"docs.example.com","protocol":"https"}]},'
+    );
+    expect(out).toContain(
+      'adapter: adapter({"mode":"standalone","staticHeaders":true})'
+    );
+  });
+
+  it("rejects an allowedDomains entry Astro wouldn't take", () => {
+    // A misspelled field, as a JavaScript config could pass it.
+    const result = blumeConfigSchema.safeParse({
+      deployment: {
+        ...node(),
+        options: { allowedDomains: [{ host: "docs.example.com" }] },
+      },
+    });
+    expect(result.error?.issues[0]?.path).toStrictEqual([
+      "deployment",
+      "options",
+      "allowedDomains",
+      0,
+    ]);
   });
 
   it("writes deployment.base into a redirect destination, not into `from`", () => {
