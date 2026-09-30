@@ -25,6 +25,8 @@ import { SpecDependencyError } from "./spec-dependency-error.ts";
  * Spec loading and normalization. Blume reuses Scalar's parser
  * (`@scalar/openapi-parser`) to read a spec (YAML or JSON), then upgrade Swagger
  * 2.0 / OpenAPI 3.0 documents to 3.1 so the renderer only handles one shape.
+ * OpenAPI 3.2 is backward compatible with 3.1, so a 3.2 document is read as
+ * written.
  * Internal `$ref`s are deliberately left in place (see `model.ts`).
  *
  * Remote (`http(s)`) specs are fetched defensively — bounded per attempt, retried

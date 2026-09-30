@@ -18,7 +18,7 @@ export default defineConfig({
 });
 ```
 
-That mounts the reference at `/reference` (an overview page) with each operation at `/reference/<tag>/<operation>`. The `spec` is either an `http(s)` URL or a path to a local file in your project. Blume parses it with [Scalar's OpenAPI parser](https://github.com/scalar/scalar) — Swagger 2.0 and OpenAPI 3.0 specs are upgraded to 3.1 automatically. An adapter is a plain description of the reference — not a parsed spec — so Blume can validate it up front and inline it into the generated site; leaving `reference` out (or empty) renders no reference at all. Documenting an event-driven or GraphQL API instead? See [AsyncAPI](/docs/references/asyncapi) and [GraphQL](/docs/references/graphql).
+That mounts the reference at `/reference` (an overview page) with each operation at `/reference/<tag>/<operation>`. The `spec` is either an `http(s)` URL or a path to a local file in your project. Blume parses it with [Scalar's OpenAPI parser](https://github.com/scalar/scalar) — Swagger 2.0 and OpenAPI 3.0 specs are upgraded to 3.1 automatically, and 3.1 and [3.2](#openapi-32) specs are read as written. An adapter is a plain description of the reference — not a parsed spec — so Blume can validate it up front and inline it into the generated site; leaving `reference` out (or empty) renders no reference at all. Documenting an event-driven or GraphQL API instead? See [AsyncAPI](/docs/references/asyncapi) and [GraphQL](/docs/references/graphql).
 
 The reference doesn't add a header tab on its own. To surface it, point a [navigation tab](/docs/content/navigation#tabs) at its route — this also scopes the operations sidebar for the native renderer:
 
@@ -39,6 +39,16 @@ A relative path is resolved from your project root and read at build time. Both 
 ```ts blume.config.ts lineNumbers
 reference: [openapi({ spec: "./openapi.yaml" })],
 ```
+
+## OpenAPI 3.2
+
+OpenAPI 3.2 specs render as written. A `query` operation, for the HTTP `QUERY` method (a safe request that carries a body), gets a page, Try it, and code samples like any other method. Fields 3.2 adds that Blume doesn't show, such as a tag's or a response's `summary`, are ignored rather than rejected. Some 3.2 additions don't render yet:
+
+- `additionalOperations`, for methods a path item doesn't name directly (like `COPY`): those operations are left out, with a `BLUME_OPENAPI_UNSUPPORTED` [warning](#spec-warnings).
+- `in: querystring` parameters: they get no row in the parameter table, no Try it input, and no place in the code samples, with the same warning.
+- `itemSchema`, the schema of each item in a streamed body (`text/event-stream`, `application/jsonl`): the page shows no schema for that body unless `schema` is set beside it.
+- Examples written with `dataValue` or `serializedValue` in place of `value`: the page doesn't show them.
+- Nested tags (`parent`) and tag `kind`: tags stay one flat list in the sidebar and the overview.
 
 ## Route
 
@@ -278,6 +288,7 @@ Blume doesn't validate a spec against the OpenAPI schema: run a linter such as [
 | `BLUME_OPENAPI_PATH_PARAMETER_MISSING` | A `{name}` in an operation's path has no `in: path` parameter of that name, so the page has no input for it, and Try it and the code samples send the placeholder as literal text. |
 | `BLUME_OPENAPI_PATH_PARAMETER_UNUSED` | An `in: path` parameter has no `{name}` in the path, so the value Try it asks for never reaches the URL. |
 | `BLUME_OPENAPI_UNKNOWN_SECURITY_SCHEME` | A `security` requirement names a scheme that `components.securitySchemes` doesn't define, so the [Authorization](#authorization) section can't describe it and requests send no credential for it. |
+| `BLUME_OPENAPI_UNSUPPORTED` | The spec uses an [OpenAPI 3.2](#openapi-32) feature Blume doesn't render yet: `additionalOperations`, which leaves those operations out, or an `in: querystring` parameter, which leaves the query string out of the page, Try it, and the code samples. |
 | `BLUME_OPENAPI_REF_PATH_ITEM` | A path or webhook is a `$ref` to a shared path item, such as one under `components.pathItems`. Blume doesn't resolve these, so its operations are missing from the reference. Inline the path item under `paths` or `webhooks`; its schemas, parameters, and responses can stay `$ref`s. |
 
 ## Embedding Scalar instead

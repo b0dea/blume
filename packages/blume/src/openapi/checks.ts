@@ -1,4 +1,4 @@
-import type { OperationObject } from "@scalar/openapi-types/3.1";
+import type { OperationObject } from "@scalar/openapi-types/3.2";
 
 import type { ApiDocument } from "./model.ts";
 import { HTTP_METHODS } from "./model.ts";
@@ -49,35 +49,31 @@ const isName = <Value>(value: Value): value is Value & string =>
 const listOf = <Item>(value: Item[] | undefined): NonNullable<Item>[] =>
   Array.isArray(value) ? value.filter(isObject) : [];
 
+/** A resolved parameter: one that isn't a `$ref`. */
+type Parameter = Extract<ParameterEntry, { in: string }>;
+
 /**
- * The names of the path parameters an operation declares, its own and its
- * path item's, `$ref`s resolved through `components.parameters`.
+ * The parameters an operation declares, its path item's and its own, `$ref`s
+ * resolved through `components.parameters`. One that doesn't resolve is left
+ * out, as the page leaves it out.
  */
-const pathParameterNames = (
+const parametersOf = (
   document: ApiDocument,
   item: PathItem,
   operation: OperationObject
-): Set<string> => {
+): Parameter[] => {
   const components = document.components?.parameters ?? {};
-  const names = new Set<string>();
-  for (const entry of [
+  return [
     ...listOf<ParameterEntry>(item.parameters),
     ...listOf<ParameterEntry>(operation.parameters),
-  ]) {
+  ].flatMap((entry) => {
     const refName =
       "$ref" in entry
         ? PARAMETER_REF.exec(entry.$ref)?.groups?.name
         : undefined;
     const parameter = (refName ? components[refName] : undefined) ?? entry;
-    if (
-      "in" in parameter &&
-      parameter.in === "path" &&
-      isName(parameter.name)
-    ) {
-      names.add(parameter.name);
-    }
-  }
-  return names;
+    return "in" in parameter ? [parameter] : [];
+  });
 };
 
 /**
@@ -155,8 +151,36 @@ const securitySchemeIssues = (
 };
 
 /**
- * Check a parsed document for the mistakes above. `$ref` path items are
- * skipped: the extractor already reports them as missing from the reference.
+ * An operation's `in: querystring` parameter (OpenAPI 3.2: the whole query
+ * string as one value), which the parameter table, Try it, and the code
+ * samples don't handle yet, so it would drop out of all three without a sign.
+ */
+const querystringIssue = (signature: string): SpecIssue => ({
+  code: "BLUME_OPENAPI_UNSUPPORTED",
+  message: `${signature} declares an \`in: querystring\` parameter, which OpenAPI 3.2 added and Blume doesn't render yet, so the page has no row or Try it input for it and the code samples leave the query string out.`,
+  suggestion:
+    "Describe the query string in the operation's `description` until Blume renders `querystring` parameters.",
+});
+
+/**
+ * A path item's `additionalOperations` (OpenAPI 3.2: methods beyond the ones
+ * a path item names directly, like `COPY`), which the extractor doesn't
+ * collect yet, so those operations would be missing without a sign.
+ */
+const additionalOperationsIssue = (
+  label: string,
+  methods: string[]
+): SpecIssue => ({
+  code: "BLUME_OPENAPI_UNSUPPORTED",
+  message: `${label} declares \`additionalOperations\` (${methods.join(", ")}), which OpenAPI 3.2 added and Blume doesn't render yet, so those operations are missing from the reference.`,
+  suggestion:
+    "Document those operations on a page of their own until Blume renders `additionalOperations`.",
+});
+
+/**
+ * Check a parsed document for the mistakes above, and for the OpenAPI 3.2
+ * features Blume doesn't render yet. `$ref` path items are skipped: the
+ * extractor already reports them as missing from the reference.
  */
 export const specIssues = (document: ApiDocument): SpecIssue[] => {
   const issues: SpecIssue[] = [];
@@ -165,6 +189,17 @@ export const specIssues = (document: ApiDocument): SpecIssue[] => {
   const visit = (name: string, item: PathItem, webhook: boolean): void => {
     if (!isObject(item) || "$ref" in item) {
       return;
+    }
+    const additional = isObject(item.additionalOperations)
+      ? Object.keys(item.additionalOperations)
+      : [];
+    if (additional.length > 0) {
+      issues.push(
+        additionalOperationsIssue(
+          webhook ? `Webhook "${name}"` : `Path "${name}"`,
+          additional
+        )
+      );
     }
     for (const method of HTTP_METHODS) {
       const operation = item[method];
@@ -177,15 +212,24 @@ export const specIssues = (document: ApiDocument): SpecIssue[] => {
       for (const scheme of requiredSchemes(operation.security)) {
         requirers.set(scheme, [...(requirers.get(scheme) ?? []), signature]);
       }
+      const parameters = parametersOf(document, item, operation);
       // A webhook is keyed by its name, not a path: it has no template.
       if (!webhook) {
         issues.push(
           ...pathParameterIssues(
             signature,
             name,
-            pathParameterNames(document, item, operation)
+            new Set(
+              parameters
+                .filter((parameter) => parameter.in === "path")
+                .map((parameter) => parameter.name)
+                .filter(isName)
+            )
           )
         );
+      }
+      if (parameters.some((parameter) => parameter.in === "querystring")) {
+        issues.push(querystringIssue(signature));
       }
     }
   };
