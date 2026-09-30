@@ -237,6 +237,8 @@ search: mixedbread({
 }),
 ```
 
+The search dialog waits for the reader to pause typing before it sends a query, and drops a query the reader has typed past. Each query sent counts toward the endpoint's [rate limit](/docs/configuration/rate-limiting).
+
 ### Disabling search
 
 ```ts blume.config.ts lineNumbers

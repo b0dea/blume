@@ -5,7 +5,7 @@ description: Limit how often one reader can call the assistant, the API playgrou
 
 The server routes a reader can call cost you something each time: the [assistant](/docs/configuration/assistant) spends model tokens, the [API playground](/docs/references/openapi#cors-and-the-proxy) proxy relays requests to your API, and [Mixedbread search](/docs/configuration/search#mixedbread) runs a paid query. Blume limits how often one reader, identified by IP address, can call each of them. A reader over the limit gets `429 Too Many Requests` with a `Retry-After` header, and the assistant tells them to try again in a few minutes.
 
-Rate limiting is on by default, at 30 requests per reader per route every 10 minutes: enough that a person never meets it, low enough to stop a script. It only matters for a server build; a static site has no server routes to limit.
+Rate limiting is on by default, at 30 requests per reader per route every 10 minutes: well above what a person sends to the assistant or the playground, and low enough to stop a script. Search counts differently. The search dialog sends a query each time the reader pauses while typing, so one search can take several requests, and a reader who searches steadily for a few minutes can reach the limit. If your site uses Mixedbread search, raise `requests`, which applies to every route. Rate limiting only matters for a server build; a static site has no server routes to limit.
 
 ```ts blume.config.ts lineNumbers
 import { defineConfig } from "blume";

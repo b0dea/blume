@@ -1663,10 +1663,12 @@ export const searchClientTemplate = (config: ResolvedConfig): string => {
       return hostedSearchClient(provider);
     }
     case "server": {
-      return `${SEARCH_CLIENT_HEADER}${searchClientImport("endpoint")}${SEARCH_BASE_IMPORT}
+      // The dialog passes `typing`, which paces its queries (see endpoint.ts).
+      return `${SEARCH_CLIENT_HEADER}${searchClientImport("endpoint")}${SEARCH_BASE_IMPORT}import type { SearchClientOptions } from "blume/components/layout/search/types.ts";
 const api = joinBase(import.meta.env.BASE_URL, "api/search");
 
-export const createSearch = () => create({ api });
+export const createSearch = (options: SearchClientOptions = {}) =>
+  create({ ...options, api });
 `;
     }
     case "pagefind": {

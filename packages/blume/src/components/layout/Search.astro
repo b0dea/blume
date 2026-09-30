@@ -313,7 +313,8 @@ const kbd = "rounded border border-border bg-muted px-1 py-0.5 font-mono";
       searchClient ??= (async () => {
         try {
           const { createSearch } = await import("blume:search-client");
-          return await createSearch();
+          // The reader types each query, so each supersedes the last.
+          return await createSearch({ typing: true });
         } catch (error) {
           searchClient = undefined;
           throw error;
