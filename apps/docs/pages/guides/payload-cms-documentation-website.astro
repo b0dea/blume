@@ -20,7 +20,9 @@
 // rebuild steps with the other CMS guides (Vercel deploy hooks, VERCEL_ENV,
 // and Deployment Protection checked against Vercel's docs), and corrected the
 // missing-key troubleshooting against cli/prepare.ts and
-// core/sources/cache.ts.
+// core/sources/cache.ts. Rechecked the unsupported-node warning, fields.order,
+// and init's .gitignore against core/sources/payload.ts, lexical.ts,
+// remote.ts, and cli/commands/init.ts.
 import Callout from "blume/components/content/Callout.astro";
 import CodeBlock from "blume/components/content/CodeBlock.astro";
 import GuidePage from "../_guides/GuidePage.astro";
@@ -365,20 +367,20 @@ export default defineConfig({
   />
   <p>
     The source reads the key from <code>PAYLOAD_API_KEY</code>. Blume loads{" "}
-    <code>.env.local</code> for you, so put both values there and keep the file
-    out of Git:
+    <code>.env.local</code> for you, and <code>blume init</code> already
+    listed it in <code>.gitignore</code>, so put both values there:
   </p>
   <CodeBlock
     code={`echo "PAYLOAD_URL=http://localhost:3000" >> .env.local
-echo "PAYLOAD_API_KEY=paste-your-key-here" >> .env.local
-echo ".env.local" >> .gitignore`}
+echo "PAYLOAD_API_KEY=paste-your-key-here" >> .env.local`}
     lang="bash"
   />
   <p>
     With Payload still running, run <code>npx blume dev</code>. The two
     published pages appear under{" "}
-    <code>/guides/</code> in a Guides sidebar group, sorted by title, since the
-    source maps no order field. Each document's <code>slug</code> is its path
+    <code>/guides/</code> in a Guides sidebar group, sorted by title. To order
+    them, add a number field to Docs and name it in the source's{" "}
+    <code>fields.order</code>. Each document's <code>slug</code> is its path
     under the prefix, and its <code>updatedAt</code> is the date a{" "}
     <a href="/docs/configuration#last-modified">Last updated</a> line shows,
     once you turn that on. The draft stays out.
@@ -667,9 +669,9 @@ export const Docs: CollectionConfig = {
     Check the image's address. If it starts with <code>localhost</code>, the
     build ran without <code>PAYLOAD_URL</code>. If Payload answers it with an
     error, the Media collection isn't publicly readable. If there's no image
-    at all, the snapshot has an <code>unsupported Lexical upload</code>{" "}
-    comment, which means <code>depth</code> is set to <code>0</code>: leave it
-    at its default of <code>1</code> so uploads carry their URLs.
+    at all, and the fetch warned <code>BLUME_SOURCE_UNSUPPORTED_NODE</code>{" "}
+    for a Lexical upload, <code>depth</code> is set to <code>0</code>: leave
+    it at its default of <code>1</code> so uploads carry their URLs.
   </p>
   <h3>A link to another page renders as plain text</h3>
   <p>

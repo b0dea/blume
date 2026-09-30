@@ -15,8 +15,11 @@
 // for `index` and nested slugs. Review: aligned the preview, deploy, and
 // rebuild steps with the other CMS guides (Vercel deploy hooks, VERCEL_ENV,
 // and Deployment Protection checked against Vercel's docs), and corrected the
-// missing-token claims against cli/prepare.ts and core/sources/cache.ts. Not
-// yet run end to end against a real Contentful space.
+// missing-token claims against cli/prepare.ts and core/sources/cache.ts.
+// Rechecked the engine's own token check, unresolved-embed warnings, EU
+// hosts, fields.order, and init's .gitignore against core/sources/contentful.ts,
+// remote.ts, and cli/commands/init.ts. Not yet run end to end against a real
+// Contentful space.
 import Callout from "blume/components/content/Callout.astro";
 import CodeBlock from "blume/components/content/CodeBlock.astro";
 import GuidePage from "../_guides/GuidePage.astro";
@@ -213,21 +216,22 @@ npx contentful-cli@4.0.10 space migration --space-id your-space-id migrations/01
     the environment you read (<code>master</code> by default). Copy three
     values from it: the Space ID, the Content Delivery API access token, and
     the Content Preview API access token. Put both tokens in{" "}
-    <code>.env.local</code>, which Blume loads for you, and keep the file out
-    of Git:
+    <code>.env.local</code>, which Blume loads for you. The{" "}
+    <code>blume init</code> step below adds that file to{" "}
+    <code>.gitignore</code>, so it stays out of Git:
   </p>
   <CodeBlock
     code={`cat >> .env.local <<'EOF'
 CONTENTFUL_ACCESS_TOKEN=paste-the-delivery-token
 CONTENTFUL_PREVIEW_TOKEN=paste-the-preview-token
-EOF
-echo ".env.local" >> .gitignore`}
+EOF`}
     lang="bash"
   />
 
   <h2>Connect Contentful to Blume</h2>
   <p>
-    In an empty folder, run <code>npx blume init</code>. When it asks where
+    In the folder that holds <code>migrations/</code> and{" "}
+    <code>.env.local</code>, run <code>npx blume init</code>. When it asks where
     your content lives, pick both <code>filesystem</code> and{" "}
     <code>contentful</code>: the local <code>docs/</code> folder holds pages
     you'd rather keep in Git, like the home page. The Contentful source calls
@@ -260,9 +264,9 @@ export default defineConfig({
     prefix, so <code>install</code> becomes <code>/guides/install</code>. A
     slug with slashes nests, and the slug <code>index</code> becomes the
     landing page at <code>/guides</code>. The pages sit in a sidebar group of
-    their own, sorted by title; to order them, add a number field to Doc and
-    name it in <code>fields.order</code>. To read a locale other than your
-    space's default, set <code>locale</code>.
+    their own, sorted by title; to order them, add a number field to Doc
+    page and name its ID in <code>fields.order</code>. To read a locale other
+    than your space's default, set <code>locale</code>.
   </p>
 
   <h2>How rich text maps to docs pages</h2>
@@ -339,9 +343,11 @@ export default defineConfig({
     Each code block now renders as a highlighted fence in its language. With a
     serializer set, the source writes its pages as MDX, and it still reads
     drafts under <code>--preview</code> and caches like the built-in adapter.
-    One difference: <code>custom()</code> declares no secrets, so Blume never
-    warns about a missing <code>CONTENTFUL_ACCESS_TOKEN</code>. Without it,
-    the fetch fails with a 401.
+    One difference: <code>custom()</code> declares no secrets, so{" "}
+    <code>blume dev</code> and <code>blume build</code> don't warn about an
+    unset <code>CONTENTFUL_ACCESS_TOKEN</code> up front. The engine still
+    checks: without the token, it stops before its first request with{" "}
+    <code>BLUME_MISSING_SECRET</code>.
   </p>
 
   <h2>Preview drafts</h2>
@@ -430,7 +436,8 @@ npx blume preview`}
     The Webhooks page is a 404, and the Install page still lacks the new code
     block. Publish the code block and the page in Contentful, build again, and
     both appear. The Delivery API only resolves published entries and assets,
-    so anything a page embeds has to be published too.
+    so anything a page embeds has to be published too, and the build warns{" "}
+    <code>BLUME_SOURCE_UNRESOLVED_LINK</code> for each one that isn't.
   </p>
 
   <h2>Deploy with protected previews</h2>

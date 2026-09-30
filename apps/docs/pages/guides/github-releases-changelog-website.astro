@@ -15,7 +15,9 @@
 // (BLUME_SOURCE_UNAVAILABLE, build continues), feed, and edit-link label
 // against core/sources/github-releases.ts, deploy/rss.ts, and
 // core/i18n-ui.ts, and the Netlify build hook path against Netlify's docs.
-// Not yet run end to end against a real repository.
+// Rechecked baseUrl, the Draft tag, and the feed item's description against
+// sources/github-releases.ts, core/sources/github-releases.ts, and
+// deploy/rss.ts. Not yet run end to end against a real repository.
 import Callout from "blume/components/content/Callout.astro";
 import CodeBlock from "blume/components/content/CodeBlock.astro";
 import GuidePage from "../_guides/GuidePage.astro";
@@ -137,6 +139,15 @@ export default defineConfig({
         <td>none</td>
         <td>Seconds between re-fetches while <code>blume dev</code> runs</td>
       </tr>
+      <tr>
+        <td><code>baseUrl</code></td>
+        <td><code>https://api.github.com</code></td>
+        <td>
+          The REST API to read, like{" "}
+          <code>https://github.acme.example/api/v3</code> for a GitHub
+          Enterprise Server
+        </td>
+      </tr>
     </tbody>
   </table>
 
@@ -152,7 +163,9 @@ export default defineConfig({
     A private repository needs a token: without one, GitHub answers 404 and the
     changelog comes out empty. Create a fine-grained personal access token for
     that one repository, with <strong>Contents</strong> set to{" "}
-    <strong>Read-only</strong>. For local work, put it in{" "}
+    <strong>Read-only</strong>. With <code>baseUrl</code> set, Blume sends the
+    token to that server, so create it on your GitHub Enterprise Server. For
+    local work, put it in{" "}
     <code>.env.local</code>, which Blume loads from the project folder up to the
     repository root. Keep that file out of Git.
   </p>
@@ -464,6 +477,7 @@ SMS templates and a faster retry policy.
   <title>v1.3.0</title>
   <link>https://docs.acme.example/changelog/v1-3-0</link>
   <guid isPermaLink="true">https://docs.acme.example/changelog/v1-3-0</guid>
+  <description>SMS templates and a faster retry policy. Send SMS from a saved template with templates.render(). See Templates. Retries no longer resend a message the API…</description>
   <pubDate>Tue, 15 Sep 2026 14:02:11 GMT</pubDate>
 </item>`}
     lang="xml"

@@ -6,9 +6,9 @@
 // against Notion's help and developer docs, and deploy hooks against
 // Vercel's docs (September 2026). Not yet run end to end on a sample
 // database. Review (September 2026): the missing-token and missing-SDK
-// troubleshooting now follows cli/prepare.ts and core/sources/cache.ts (a
-// fresh build's fetch error comes before the secret and dependency checks),
-// checked by calling the Notion API without a token.
+// troubleshooting follows cli/prepare.ts, core/sources/notion.ts, and
+// core/sources/cache.ts (the secrets warning prints before any source loads,
+// and the source stops before calling Notion without a token or its SDK).
 import Callout from "blume/components/content/Callout.astro";
 import CodeBlock from "blume/components/content/CodeBlock.astro";
 import GuidePage from "../_guides/GuidePage.astro";
@@ -175,12 +175,11 @@ export default defineConfig({
   </p>
   <p>
     The source reads its token from <code>NOTION_TOKEN</code>. Blume loads{" "}
-    <code>.env.local</code> for you, so put the token there and keep the file
-    out of Git:
+    <code>.env.local</code> for you, and <code>blume init</code> already
+    listed it in <code>.gitignore</code>, so put the token there:
   </p>
   <CodeBlock
-    code={`echo "NOTION_TOKEN=paste-your-token-here" >> .env.local
-echo ".env.local" >> .gitignore`}
+    code={`echo "NOTION_TOKEN=paste-your-token-here" >> .env.local`}
     lang="bash"
   />
 
