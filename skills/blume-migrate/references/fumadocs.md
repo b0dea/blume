@@ -20,7 +20,7 @@ Everything else is `defineConfig({ title })`.
 
 **Also read `source.config.ts` `mdxOptions`** — remark/rehype plugins live there:
 
-- `remark-math`/`rehype-katex` → nothing to configure: block math `$$…$$` renders in `.mdx` out of the box (there is **no** `markdown.math` field). Inline `$…$` is **not** supported — convert inline math to `$$…$$` or drop it (report).
+- `remark-math`/`rehype-katex` → nothing to configure: `$$…$$` renders in `.mdx` out of the box (there is **no** `markdown.math` field), as a block or inline within a sentence. A single `$` stays literal, so convert each inline `$…$` to `$$…$$` inside its sentence.
 - A Twoslash transformer → Blume supports the `twoslash` fence meta natively; drop the plugin.
 - Custom Shiki transformers/themes or other plugins → report.
 

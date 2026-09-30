@@ -34,7 +34,7 @@ Read `themeConfig`, `presets`, and `plugins`:
 | `@docusaurus/theme-mermaid` | delete the dep — ` ```mermaid ` renders natively (in `.mdx`) |
 | OpenAPI doc plugins (`docusaurus-plugin-openapi-docs`, `redocusaurus`) | delete the plugin **and its generated pages** — add `openapi({ spec })` (from `blume/reference`) to the top-level `reference` list; `redocusaurus` `specs[].route` → the adapter's `route`, one `openapi()` entry (or source) per spec (see SKILL.md "OpenAPI") |
 | GraphQL doc generators (`@graphql-markdown/docusaurus`, `@edno/docusaurus2-graphql-doc-generator`) | delete the plugin **and its generated pages** — add `graphql({ spec, endpoint })` (from `blume/reference`) to the top-level `reference` list instead (see SKILL.md "GraphQL") |
-| `remark-math` + `rehype-katex` | delete — block `$$…$$` renders in `.mdx` with no config (no `markdown.math` field exists); **inline `$…$` is not supported** — convert or drop (report) |
+| `remark-math` + `rehype-katex` | delete — `$$…$$` renders in `.mdx` with no config (no `markdown.math` field exists), as a block or inline within a sentence; a single `$` stays literal, so convert each inline `$…$` to `$$…$$` inside its sentence |
 | Multi-instance docs plugins (`plugin-content-docs` with `id`) | one folder (and usually one `navigation.tabs` entry) per instance |
 
 ## Static assets — required move

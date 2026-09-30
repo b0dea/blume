@@ -60,7 +60,7 @@ Nextra's fence meta differs from Blume's — rewrite it: `filename="app.js"` →
 
 ## Math
 
-Nextra enables math via `nextra({ latex: true })` (KaTeX or MathJax). In Blume, block math `$$…$$` renders in `.mdx` with **no config** (there is no `markdown.math` field). Convert Nextra's ` ```math ` fences → `$$…$$` blocks (they render as plain code blocks otherwise). Inline `$…$` is **not** supported — convert to display math or drop (report). MathJax-specific macros → report.
+Nextra enables math via `nextra({ latex: true })` (KaTeX or MathJax). In Blume, block math `$$…$$` renders in `.mdx` with **no config** (there is no `markdown.math` field). Convert Nextra's ` ```math ` fences → `$$…$$` blocks (they render as plain code blocks otherwise). Inline math is `$$…$$` too: a single `$` stays literal, so convert each inline `$…$` to `$$…$$` inside its sentence. MathJax-specific macros → report.
 
 ## i18n
 
