@@ -124,6 +124,8 @@ The three aren't interchangeable. `contextBudget` caps the whole injection, `exc
 
 The defaults suit a hosted model. Lower them when you're serving from your own hardware and time-to-first-token matters more than recall; answers stay grounded either way, and the assistant is told to say when something isn't covered rather than fill the gap.
 
+On your own hardware, also size the model's context window for the whole prompt, not only the excerpts: the conversation so far adds as many as 24,000 characters, and with `tools` on, one `read_page` result as many as 20,000, about 5,000 tokens on its own. Ollama, for one, defaults to a 4k-token window on smaller GPUs, and a prompt that outgrows it doesn't fail: Ollama drops the start of the prompt, where the instructions and excerpts are, and the model answers without your docs.
+
 ## External endpoint
 
 Already have an API backend for AI? Point the panel at it and keep the docs build static:
