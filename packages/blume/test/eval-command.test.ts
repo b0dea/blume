@@ -158,6 +158,22 @@ describe("blume eval", () => {
     expect(stderr).toContain("docs/guides/install.md");
   });
 
+  it("reports a warning-severity miss as a warning and passes the gate", async () => {
+    const root = await fixture({
+      ...PROJECT_FILES,
+      "evals.yaml": `${EVALS}    severity: warning\n`,
+    });
+    const bin = await fakeClaude(root);
+    const { exitCode, stderr } = await runClaude(root, bin, {
+      FAKE_VERDICT: FAIL_VERDICT,
+    });
+    expect(exitCode).toBe(0);
+    expect(stderr).toContain("⚠ docs/guides/install.md");
+    expect(stderr).toContain("0 passed · 1 warned");
+    expect(stderr).not.toContain("fix:");
+    expect(stderr).not.toContain("failed");
+  });
+
   it("respects --threshold", async () => {
     const root = await fixture();
     const bin = await fakeClaude(root);
