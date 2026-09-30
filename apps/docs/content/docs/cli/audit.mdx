@@ -51,6 +51,8 @@ blume audit --url https://docs.example.com
 blume audit --url https://docs.example.com --external   # also probe outbound links
 ```
 
+These requests go out as a plain HTTP client, not as a crawler: the audit doesn't send Googlebot's or an AI crawler's user agent, since a host's bot protection can block a client pretending to be one. A firewall or CDN rule that treats crawlers differently isn't exercised, so check it with the crawler's own tools, such as Google Search Console's URL Inspection.
+
 The audit requests every exact redirect's old URL (a pattern names no single URL to request). One that 404s is an error. One that answers 200 is a warning: a host that doesn't read the redirect file the build wrote serves the build's meta-refresh page there instead of an HTTP redirect, which readers follow but crawlers may not. See [Redirects](/docs/deployment#redirects) for what each host reads.
 
 Outbound links are graded rather than flatly failed: a 404 is a broken link you can fix, while a 403 or 5xx is usually rate limiting or someone else's outage and is reported as a warning.
@@ -588,6 +590,14 @@ Fix: Every robots.txt line must be a `Field: value` directive or a comment.
 `BLUME_AUDIT_ROBOTS_DISALLOWS_INDEXABLE` · error · from the built HTML
 
 Fix: A page can't be both disallowed in robots.txt and advertised in the sitemap.
+
+#### robots.txt blocks one crawler from pages in the sitemap [#robots-blocks-crawler]
+
+`BLUME_AUDIT_ROBOTS_BLOCKS_CRAWLER` · warning · from the built HTML
+
+Fix: Narrow or remove the rule in that crawler's `User-agent` group if it should read these pages. Blocking an AI crawler on purpose is fine; skip this check.
+
+A crawler named in its own `User-agent` group follows only that group, so a rule there (`User-agent: GPTBot` then `Disallow: /`) shuts it out while every other crawler reads the page. The audit reports each crawler once, at the rule that blocks its first page.
 
 #### robots.txt does not reference the sitemap [#robots-sitemap-missing]
 

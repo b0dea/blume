@@ -676,6 +676,14 @@ export const CHECKS = [
   },
   {
     category: "robots",
+    fix: "Narrow or remove the rule in that crawler's `User-agent` group if it should read these pages. Blocking an AI crawler on purpose is fine; skip this check.",
+    id: "BLUME_AUDIT_ROBOTS_BLOCKS_CRAWLER",
+    severity: "warning",
+    tier: "static",
+    title: "robots.txt blocks one crawler from pages in the sitemap",
+  },
+  {
+    category: "robots",
     fix: "Set `deployment.site` so robots.txt can reference the sitemap.",
     id: "BLUME_AUDIT_ROBOTS_SITEMAP_MISSING",
     severity: "info",
