@@ -523,14 +523,27 @@ describe("client loaders", () => {
     const fixture = join(dir, "pagefind.mjs");
     await writeFile(
       fixture,
-      'export const search = () => Promise.resolve({ results: [{ data: () => Promise.resolve({ excerpt: "pf", meta: { title: "PF" }, url: "/p" }) }] });\n'
+      [
+        "export const calls = [];",
+        "export const options = (options) => { calls.push(options); return Promise.resolve(); };",
+        "const result = (url, title) => ({ data: () => Promise.resolve({ excerpt: 'pf', meta: title ? { title } : undefined, url }) });",
+        "export const search = () => Promise.resolve({ results: [result('/p/', 'PF'), result('/'), result('/q/#part', 'Q')] });",
+      ].join("\n")
     );
     const { createSearch } =
       await import("../src/components/layout/search/pagefind.ts");
-    const search = await createSearch({ url: pathToFileURL(fixture).href });
+    const url = pathToFileURL(fixture).href;
+    const search = await createSearch({ url });
     const { hits } = await search("q");
-    expect(hits[0]?.url).toBe("/p");
+    // Base-less routes, as every provider returns them: the dialog mounts
+    // the deployment base itself.
+    const { calls } = await import(url);
+    expect(calls).toStrictEqual([{ baseUrl: "/" }]);
+    // Slashless, as Blume serves pages; the home route and a fragment keep
+    // their shape.
+    expect(hits.map((hit) => hit.url)).toStrictEqual(["/p", "/", "/q#part"]);
     expect(hits[0]?.title).toBe("PF");
+    expect(hits[1]?.title).toBe("/");
   });
 });
 
