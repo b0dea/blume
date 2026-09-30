@@ -1273,6 +1273,25 @@ describe("rss feeds", () => {
     );
   });
 
+  it("describes an item with its meta description when it has no description", () => {
+    const release = {
+      ...postPage("v2", "/changelog/v2", "changelog", {
+        date: "2026-01-02",
+        seo: { description: "Faster builds." },
+      }),
+      description: undefined,
+    };
+    const both = postPage("v1", "/changelog/v1", "changelog", {
+      date: "2026-01-01",
+      seo: { description: "Meta summary" },
+    });
+    const [feed] = buildRssFeeds(makeProject([release, both]));
+    expect(feed?.items.map((item) => item.description)).toStrictEqual([
+      "Faster builds.",
+      "About v1",
+    ]);
+  });
+
   it("URI-encodes item links like the sitemap does", () => {
     const pages = [
       postPage("Tips", "/tips & tricks/café", "blog", { date: "2026-01-01" }),

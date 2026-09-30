@@ -42,9 +42,10 @@ import { guideById } from "../_guides/guides.ts";
     If you'd rather keep release notes as files in your docs repository, you
     don't need this source. Any page with <code>type: changelog</code> in its
     frontmatter joins the same timeline and feed (see{" "}
-    <a href="/docs/advanced/changelog">Changelogs</a>). The source reads from{" "}
-    <code>api.github.com</code> only, so releases on GitLab or GitHub
-    Enterprise Server need another route. The examples use a fictional{" "}
+    <a href="/docs/advanced/changelog">Changelogs</a>). The source reads
+    GitHub's REST API, from <code>api.github.com</code> unless you point its{" "}
+    <code>baseUrl</code> at a GitHub Enterprise Server, so releases on GitLab
+    need another route. The examples use a fictional{" "}
     <code>acme/sdk</code> repository and a docs site at{" "}
     <code>docs.acme.example</code>.
   </p>
@@ -124,7 +125,7 @@ export default defineConfig({
       <tr>
         <td><code>drafts</code></td>
         <td><code>false</code></td>
-        <td>Includes draft releases</td>
+        <td>Includes draft releases, tagged <code>Draft</code></td>
       </tr>
       <tr>
         <td><code>limit</code></td>
@@ -229,7 +230,8 @@ export default defineConfig({
   </p>
   <p>
     The feed is at <code>/changelog/rss.xml</code>. Each item carries the
-    release's title, page URL, and publish date, newest first, up to 50 items.
+    release's title, page URL, summary, and publish date, newest first, up to
+    50 items.
     Tune it under <a href="/docs/discoverability/rss">seo.rss</a>: raise{" "}
     <code>limit</code>, or remove <code>"changelog"</code> from{" "}
     <code>types</code> to keep the timeline without a feed. To redesign the
@@ -277,7 +279,7 @@ export default defineConfig({
     Leave <code>drafts</code> off on a public site. GitHub lists draft releases
     only to users with push access to the repository, so drafts need such a
     token, and Blume publishes every draft it receives like any other
-    release. <code>blume build --preview</code>{" "}
+    release, tagged <code>Draft</code>. <code>blume build --preview</code>{" "}
     doesn't change what this source fetches.
   </Callout>
 
