@@ -12,7 +12,10 @@
 // against a 404, a 429, an unresolvable host, and a live URL, and
 // `blume audit --only` with the ids below (accepted, then "No build found").
 // validate has since learned reference-style links, autolinks, raw `<a>`
-// tags, and link labels that wrap onto a second line. The workflows,
+// tags, and link labels that wrap onto a second line. validate and audit
+// have since taken a repeatable `--ignore <glob>` (cli/args.ts), run with the
+// local CLI build against a local server: matched URLs were never requested
+// and weren't reported. The workflows,
 // `blume build`, and a full `blume audit` were not run. Review: rechecked the
 // grading (core/probe.ts), the link scanner (MD_LINK and COMPONENT_HREF in
 // core/sources/normalize.ts), and the audit ids and --fail-on gate; built
@@ -513,8 +516,21 @@ git push`}
     host that only resolves on your network, doesn't resolve on the runner, so{" "}
     <code>--external</code> reports it as an error. A link to{" "}
     <code>localhost</code> is refused, a warning that still fails the check
-    under <code>--strict</code>. There's no ignore list. Write those URLs as
-    inline code instead of links, which neither check reads as a link.
+    under <code>--strict</code>. Skip them with <code>--ignore</code>, which
+    takes a glob matched against the link's full URL. Repeat it once per
+    pattern, and quote each one so the shell doesn't expand it. In the
+    scheduled workflow, the probe line becomes:
+  </p>
+  <CodeBlock
+    code={`npx blume validate --external --json --ignore "https://api.acme.example/**" --ignore "http://localhost:*/**" > links.json || status=$?`}
+    lang="bash"
+  />
+  <p>
+    <code>*</code> matches within one part of the path and <code>**</code>{" "}
+    across parts, so the first pattern covers every link to that host.
+    Blume never requests a URL that matches, and it doesn't appear in the
+    report. <code>blume audit --external</code> takes the same flag. It only
+    applies to external links: internal links are always checked.
   </p>
   <h3>The audit step says there's no build</h3>
   <p>
