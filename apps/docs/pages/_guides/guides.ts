@@ -1751,7 +1751,7 @@ export const guides: Guide[] = [
       title: "How to run a documentation chatbot on a local LLM with Ollama",
     },
     nextStep: {
-      body: "Every question runs on your own machine. Add a bot check, and limit the route at your proxy, so scripts can't queue up work for your model.",
+      body: "Every question runs on your own machine. Add a bot check, and let the rate limit count each reader behind your proxy, so scripts can't queue up work for your model.",
       link: {
         href: "/guides/rate-limit-documentation-ai-assistant",
         label: "Read the rate limiting guide",
