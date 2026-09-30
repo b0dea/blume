@@ -11,6 +11,8 @@ import type {
 import type { Diagnostic } from "../core/types.ts";
 import { extractAsyncApiOperations } from "./asyncapi.ts";
 import type { AsyncApiDocument } from "./asyncapi.ts";
+import { specIssues } from "./checks.ts";
+import type { SpecIssue } from "./checks.ts";
 import { extractGraphqlOperations } from "./graphql.ts";
 import type { GraphqlDocument } from "./graphql.ts";
 import { extractOperations } from "./model.ts";
@@ -210,6 +212,8 @@ interface ParsedReference {
   operations: ApiOperationRef[];
   tags: ApiTagRef[];
   extractWarnings: string[];
+  /** Spec mistakes that would render silently wrong (OpenAPI only). */
+  issues?: SpecIssue[];
 }
 
 const parseReference = async (
@@ -256,6 +260,7 @@ const parseReference = async (
   return {
     document,
     extractWarnings: extracted.warnings,
+    issues: specIssues(document),
     operations: extracted.operations,
     tags: extracted.tags,
     warnings,
@@ -276,7 +281,7 @@ export const openApiSource = (
     const kindLabel = KIND_LABELS[reference.kind];
     const codePrefix = CODE_PREFIXES[reference.kind];
     try {
-      const { document, warnings, operations, tags, extractWarnings } =
+      const { document, warnings, operations, tags, extractWarnings, issues } =
         await parseReference(reference, ctx);
       const info = document.info ?? { title: reference.label, version: "" };
       // The playground proxy resolves here, not client-side: `true` selects
@@ -334,6 +339,12 @@ export const openApiSource = (
             code: SKIPPED_CODES[reference.kind],
             message: `In ${kindLabel} spec "${reference.spec}": ${message}`,
             severity: "warning" as const,
+          })),
+          ...(issues ?? []).map((issue) => ({
+            code: issue.code,
+            message: `In ${kindLabel} spec "${reference.spec}": ${issue.message}`,
+            severity: "warning" as const,
+            suggestion: issue.suggestion,
           })),
           // A document with no operations (say, a config file that happens to
           // parse as YAML) would otherwise build a nav tab onto an empty

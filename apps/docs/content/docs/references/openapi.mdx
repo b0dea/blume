@@ -269,6 +269,16 @@ An operation's [`callbacks`](https://spec.openapis.org/oas/v3.1.0#callback-objec
 
 Webhook pages are real pages: they're in search, `llms.txt`, and the MCP server, and their Markdown tells agents it's a request the API sends, so an agent won't try to call it.
 
+## Spec warnings
+
+Blume doesn't validate a spec against the OpenAPI schema: run a linter such as [Spectral](https://github.com/stoplightio/spectral) or [oasdiff](https://github.com/oasdiff/oasdiff) in CI for that. It does warn, in `blume dev`, `blume build`, and `blume check`, about mistakes that would otherwise render wrong without any sign. Each warning names the spec, and the page still builds:
+
+| Code | What's wrong |
+| --- | --- |
+| `BLUME_OPENAPI_PATH_PARAMETER_MISSING` | A `{name}` in an operation's path has no `in: path` parameter of that name, so the page has no input for it, and Try it and the code samples send the placeholder as literal text. |
+| `BLUME_OPENAPI_PATH_PARAMETER_UNUSED` | An `in: path` parameter has no `{name}` in the path, so the value Try it asks for never reaches the URL. |
+| `BLUME_OPENAPI_UNKNOWN_SECURITY_SCHEME` | A `security` requirement names a scheme that `components.securitySchemes` doesn't define, so the [Authorization](#authorization) section can't describe it and requests send no credential for it. |
+
 ## Embedding Scalar instead
 
 `openapi()` always renders Blume's own pages. To embed [Scalar](https://scalar.com)'s self-contained API reference UI on a single route instead — its own sidebar, search, theme, and request client — list a `scalar()` adapter from `blume/reference` in place of (or beside) this one. The [Scalar](/docs/references/scalar) page covers what the embed does and doesn't do, and how to pass Scalar's own options through.
