@@ -7,7 +7,7 @@ import type { SearchRecord } from "../documents.ts";
 /** The adapter options the sync reads (the public `apiKey` is never used). */
 export type TypesenseSyncConfig = Pick<
   TypesenseOptions,
-  "collection" | "host" | "port" | "protocol"
+  "collection" | "host" | "locale" | "port" | "protocol"
 >;
 
 type TypesenseClient = InstanceType<typeof TypesenseSdk.Client>;
@@ -71,13 +71,15 @@ export const syncTypesense = async (
   const alias = config.collection;
   const previous = await aliasTarget(client, alias, Errors);
   const name = `${alias}_${Date.now()}`;
+  // The searched text fields, tokenized for `locale` when the site sets one.
+  const text = config.locale ? { locale: config.locale } : {};
   await client.collections().create({
     fields: [
-      { name: "title", type: "string" },
-      { name: "description", optional: true, type: "string" },
-      { name: "content", type: "string" },
+      { name: "title", type: "string", ...text },
+      { name: "description", optional: true, type: "string", ...text },
+      { name: "content", type: "string", ...text },
       { name: "url", type: "string" },
-      { name: "keywords", optional: true, type: "string[]" },
+      { name: "keywords", optional: true, type: "string[]", ...text },
       // The dialog sorts close matches by it (search.boost, 1 by default).
       { name: "boost", type: "float" },
       { facet: true, name: "tag", optional: true, type: "string" },

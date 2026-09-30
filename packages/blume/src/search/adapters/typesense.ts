@@ -14,6 +14,14 @@ export interface TypesenseNamedOptions {
   /** The alias the sync points at each new collection, and searches read. */
   collection: string;
   host: string;
+  /**
+   * The language Typesense tokenizes the text fields for, as a two-letter
+   * code (`ja`, `zh`, `ko`, `th`, …). Typesense's default tokenizer splits on
+   * spaces, so text in a script written without them — Chinese, Japanese,
+   * Thai — only matches from the start of a run. Omitted, the fields keep
+   * that default.
+   */
+  locale?: string;
   /** Defaults to 443. */
   port?: number;
   /** Defaults to `https`. */
@@ -39,6 +47,7 @@ export const typesenseOptionsSchema = z
     apiKey: z.string(),
     collection: z.string(),
     host: z.string(),
+    locale: z.string().optional(),
     port: z.number().int().positive().optional(),
     protocol: z.enum(["http", "https"]).optional(),
   })

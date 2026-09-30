@@ -218,6 +218,8 @@ search: typesense({
 }),
 ```
 
+Typesense's default tokenizer splits text on spaces, so in Chinese, Japanese, or Thai a query only matches from the start of a run of text. Set `locale` to your pages' language as a two-letter code (`locale: "ja"`, `"zh"`, `"th"`) and the sync tokenizes the searched fields for it; Latin-script words in those fields still match. One collection holds every language, so the setting applies to all of them.
+
 ### Mixedbread
 
 Semantic search via [Mixedbread](https://www.mixedbread.com). Queries are proxied through a generated `/api/search` endpoint that holds your key, so this adapter **requires server output**: a host adapter such as `deployment: vercel()` from `blume/deploy` (see [Server rendering](/docs/deployment#server-rendering)). The endpoint reads `MIXEDBREAD_API_KEY`. Sync your content to the store with the Mixedbread CLI in your build, e.g. `mxbai vs sync <STORE_ID> ./content --ci`.

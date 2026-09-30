@@ -57,7 +57,13 @@ interface TypesenseSearchParams {
   sort_by?: string;
 }
 interface TypesenseCollectionSchema {
-  fields: { facet?: boolean; name: string; optional?: boolean; type: string }[];
+  fields: {
+    facet?: boolean;
+    locale?: string;
+    name: string;
+    optional?: boolean;
+    type: string;
+  }[];
   name: string;
 }
 interface OramaCloudSearchParams {
@@ -534,6 +540,8 @@ describe("client loaders", () => {
       collection: "docs",
       connectionTimeoutSeconds: 5,
       host: "h",
+      // The sync's option, never the browser client's.
+      locale: "ja",
       // The named connection options decide the node list.
       nodes: [{ host: "other", port: 80, protocol: "http" }],
       port: 8108,
@@ -712,6 +720,30 @@ describe("hosted sync uploads", () => {
     };
     await syncTypesense([bare], { collection: "docs", host: "h" });
     expect(typesenseServer.docs?.[0]?.keywords).toStrictEqual([]);
+    // No locale: every field keeps Typesense's default tokenizer.
+    expect(typesenseServer.schema?.fields.some((field) => field.locale)).toBe(
+      false
+    );
+  });
+
+  it("typesense tokenizes the searched text fields for the adapter's locale", async () => {
+    process.env.TYPESENSE_ADMIN_API_KEY = "admin";
+    typesenseServer = { calls: [] };
+    const { syncTypesense } = await import("../src/search/sync/typesense.ts");
+    await syncTypesense(records, {
+      collection: "docs",
+      host: "h",
+      locale: "ja",
+    });
+    const localized = typesenseServer.schema?.fields
+      .filter((field) => field.locale === "ja")
+      .map((field) => field.name);
+    expect(localized).toStrictEqual([
+      "title",
+      "description",
+      "content",
+      "keywords",
+    ]);
   });
 
   it("typesense swaps the alias, then drops the collection it replaced", async () => {

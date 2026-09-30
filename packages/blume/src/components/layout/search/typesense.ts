@@ -17,10 +17,19 @@ interface TypesenseRecord extends Record<string, unknown> {
  * key. Documents are imported at build time by the sync step. Every adapter
  * option Blume doesn't read (`connectionTimeoutSeconds`, `numRetries`, …) is
  * the site's own client option and goes to the `Client` untouched; the named
- * connection options still decide `apiKey` and `nodes`.
+ * connection options still decide `apiKey` and `nodes`. `locale` is the
+ * sync's: Typesense tokenizes a query for the fields it searches.
  */
 export const createSearch = (opts: TypesenseOptions): SearchFn => {
-  const { apiKey, collection, host, port, protocol, ...clientOptions } = opts;
+  const {
+    apiKey,
+    collection,
+    host,
+    locale: _locale,
+    port,
+    protocol,
+    ...clientOptions
+  } = opts;
   const client = new Client({
     ...clientOptions,
     apiKey,
