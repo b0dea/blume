@@ -9,9 +9,13 @@ interface PagefindResult {
   }>;
 }
 
-interface PagefindModule {
-  options: (options: { baseUrl: string }) => Promise<void>;
+/** One Pagefind instance, searching the index of one page language. */
+interface PagefindInstance {
   search: (query: string) => Promise<{ results: PagefindResult[] }>;
+}
+
+interface PagefindModule {
+  createInstance: (options: { baseUrl: string }) => PagefindInstance;
 }
 
 // Pagefind names each page after its built file (`quickstart/index.html`), so
@@ -30,22 +34,38 @@ export const createSearch = async (opts: {
   // The pagefind bundle lives in the built site (not node_modules) and is
   // resolved at runtime by URL — it can't be a static, code-splittable path.
   // SAFETY: the URL points at the `pagefind.js` module our own build emitted,
-  // whose export contract (`options()`, `search()`) is fixed by pagefind.
+  // whose export contract (`createInstance()`) is fixed by pagefind.
   // oxlint-disable-next-line react-doctor/no-dynamic-import-path
   const pagefind = (await import(
     /* @vite-ignore */
     opts.url
   )) as PagefindModule;
-  // `baseUrl` "/" keeps result URLs base-less routes, like every other
-  // provider's: by default Pagefind prefixes the folder the bundle is served
-  // under, and the dialog adds the deployment base itself.
-  await pagefind.options({ baseUrl: "/" });
+  // Pagefind keeps an index per language and searches the one for the page's
+  // `<html lang>`, which it reads once, when an instance is created. A
+  // client-side language switch changes the page's language without a
+  // reload, so each language gets its own instance, created on its first
+  // search: after the switch, search moves to the new page's index.
+  const instances = new Map<string, PagefindInstance>();
+  const instanceFor = (language: string): PagefindInstance => {
+    const existing = instances.get(language);
+    if (existing) {
+      return existing;
+    }
+    // `baseUrl` "/" keeps result URLs base-less routes, like every other
+    // provider's: by default Pagefind prefixes the folder the bundle is served
+    // under, and the dialog adds the deployment base itself.
+    const instance = pagefind.createInstance({ baseUrl: "/" });
+    instances.set(language, instance);
+    return instance;
+  };
   // Pagefind builds its own marked-up excerpt; we keep its `<mark>` highlights
   // (dropping any other markup — the excerpt is rendered via innerHTML) and
   // only highlight the title ourselves. It carries no section/breadcrumb data,
   // so pills stay hidden and the preview pane falls back to the excerpt.
   return async (query) => {
-    const response = await pagefind.search(query);
+    const response = await instanceFor(document.documentElement.lang).search(
+      query
+    );
     const docs = await Promise.all(
       response.results.slice(0, SEARCH_LIMIT).map((result) => result.data())
     );

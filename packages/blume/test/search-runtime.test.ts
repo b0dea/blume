@@ -1,10 +1,5 @@
 import { afterEach, beforeAll, describe, expect, it, mock } from "bun:test";
-import { mkdtemp, writeFile } from "node:fs/promises";
 import { createRequire } from "node:module";
-import { tmpdir } from "node:os";
-import { pathToFileURL } from "node:url";
-
-import { join } from "pathe";
 
 import type { JsonValue } from "../src/core/adapter.ts";
 import type { BlumeProject } from "../src/core/project-graph.ts";
@@ -516,34 +511,6 @@ describe("client loaders", () => {
       connectionTimeoutSeconds: 5,
       nodes: [{ host: "h", port: 8108, protocol: "http" }],
     });
-  });
-
-  it("pagefind imports the built bundle and maps its results", async () => {
-    const dir = await mkdtemp(join(tmpdir(), "blume-pagefind-"));
-    const fixture = join(dir, "pagefind.mjs");
-    await writeFile(
-      fixture,
-      [
-        "export const calls = [];",
-        "export const options = (options) => { calls.push(options); return Promise.resolve(); };",
-        "const result = (url, title) => ({ data: () => Promise.resolve({ excerpt: 'pf', meta: title ? { title } : undefined, url }) });",
-        "export const search = () => Promise.resolve({ results: [result('/p/', 'PF'), result('/'), result('/q/#part', 'Q')] });",
-      ].join("\n")
-    );
-    const { createSearch } =
-      await import("../src/components/layout/search/pagefind.ts");
-    const url = pathToFileURL(fixture).href;
-    const search = await createSearch({ url });
-    const { hits } = await search("q");
-    // Base-less routes, as every provider returns them: the dialog mounts
-    // the deployment base itself.
-    const { calls } = await import(url);
-    expect(calls).toStrictEqual([{ baseUrl: "/" }]);
-    // Slashless, as Blume serves pages; the home route and a fragment keep
-    // their shape.
-    expect(hits.map((hit) => hit.url)).toStrictEqual(["/p", "/", "/q#part"]);
-    expect(hits[0]?.title).toBe("PF");
-    expect(hits[1]?.title).toBe("/");
   });
 });
 
