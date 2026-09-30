@@ -2358,7 +2358,7 @@ export const guides: Guide[] = [
     image: { src: "/guides/cjk-documentation-search.webp" },
     meta: {
       description:
-        "Why Chinese, Japanese and Korean words don't match in your docs search, and how to get CJK full-text search working with Orama or Pagefind in Blume.",
+        "How Blume's docs search handles Chinese, Japanese and Korean words, and how to test CJK full-text search with Orama, Pagefind, or Typesense.",
       title: "How to fix Chinese, Japanese and Korean documentation search",
     },
     nextStep: {
