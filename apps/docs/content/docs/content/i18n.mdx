@@ -193,7 +193,7 @@ Set [`deployment.site`](/docs/deployment) so these can be emitted as absolute UR
 
 ## Search
 
-Search is scoped to the active language: on a `/fr/…` page the dialog returns French results, with an **All languages** toggle to search across every locale at once. The default (Orama) and FlexSearch indexes filter in the browser; hosted providers carry a `locale` facet on each record.
+Search is scoped to the active language: on a `/fr/…` page the dialog returns French results, with an **All languages** toggle to search across every locale at once. The default (Orama) and FlexSearch indexes filter in the browser, Pagefind keeps an index per language, and Algolia, Orama Cloud, and Typesense carry a `locale` field on each record. Mixedbread can't scope by language, so with it every search spans every locale and the dialog has no toggle. See [Search](/docs/configuration/search) for how each adapter handles it.
 
 ## Right-to-left
 

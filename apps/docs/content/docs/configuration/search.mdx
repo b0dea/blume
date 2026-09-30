@@ -81,6 +81,8 @@ Each fence's body and title (`blume.config.ts` above) become searchable; the lan
 
 On a [versioned](/docs/content/versioning) site, results default to the version being viewed, with an "All versions" toggle in the dialog footer (remembered per reader). Cross-version hits name their version on the row. Orama, FlexSearch, Algolia, and Typesense honor the scoping — hosted records carry a `version` facet, with the current docs uploaded as `"current"`. Pagefind, Orama Cloud, and Mixedbread don't scope by version: their results span every version, and the dialog leaves out the toggle.
 
+On a site with [`i18n`](/docs/content/i18n), results default to the language of the page being viewed, with an "All languages" toggle beside it (also remembered per reader). Orama and FlexSearch filter their index in the browser, and Algolia, Orama Cloud, and Typesense filter on the `locale` each record carries. Pagefind keeps an index per language: it searches the page's own, and with "All languages" it merges in the others, which it then searches with the page language's word stemming. Mixedbread doesn't scope by language: its results span every language, and the dialog leaves out the toggle.
+
 ## Tags
 
 Add `search.tags` to a page's frontmatter to group it under a filter in the search dialog — readers can narrow results to a tag with a click. Tags also become a facet on the hosted adapters.
