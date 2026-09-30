@@ -707,9 +707,8 @@ jobs:
   <h3>The site still shows the old endpoints</h3>
   <p>
     The site reads the exported file, not the running API, so run{" "}
-    <code>bun run openapi</code> again. The docs dev server doesn't watch the
-    spec file, so restart <code>bun run dev</code> in{" "}
-    <code>docs-site/</code> too.
+    <code>bun run openapi</code> again. The docs dev server watches the spec
+    file and updates the reference when the export rewrites it.
   </p>
   <h3>bun build doesn't build the site</h3>
   <p>

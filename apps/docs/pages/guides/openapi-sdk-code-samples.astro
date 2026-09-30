@@ -16,7 +16,10 @@
 // `$ref` source or a non-list `x-codeSamples`. Third-party claims checked
 // against Redocly's, Speakeasy's, and Stainless's docs. Not yet run end to
 // end: the rendered tabs were read from the source, not from a blume dev or
-// build.
+// build. Later: $ref sources are now read relative to the spec (parse.ts
+// inlineSampleRefs, BLUME_OPENAPI_CODE_SAMPLE_REF when unreadable), and dev
+// watches local specs (openapi/references.ts referenceSpecFiles); checked in
+// source, not re-run.
 import Callout from "blume/components/content/Callout.astro";
 import CodeBlock from "blume/components/content/CodeBlock.astro";
 import GuidePage from "../_guides/GuidePage.astro";
@@ -230,7 +233,8 @@ if (problems.length > 0) {
     <li>
       <strong><code>source</code></strong> is the code, as a string. The{" "}
       <code>|</code> block keeps its line breaks, and Blume trims the final
-      newline.
+      newline. It can also be a <code>$ref</code> to a file that holds only
+      the code, which Blume reads relative to the spec.
     </li>
   </ul>
   <p>
@@ -246,9 +250,9 @@ if (problems.length > 0) {
 
   <h2>See the tabs</h2>
   <p>
-    The dev server doesn't watch a spec file beside your content folder, so
-    restart it after editing the spec, then open{" "}
-    <code>/api/messages/send-message</code>:
+    Start the dev server, then open <code>/api/messages/send-message</code>.
+    It watches the spec file, so later edits to the samples show up without
+    a restart:
   </p>
   <CodeBlock code="npm run dev" lang="bash" />
   <p>
@@ -564,12 +568,15 @@ actions:
   <p>
     Blume skips an entry without a warning when its <code>lang</code> or{" "}
     <code>source</code> isn't a string, or when <code>x-codeSamples</code>{" "}
-    isn't a list. A common cause is a <code>source</code> written as a{" "}
-    <code>$ref</code> to a file, which Redocly supports and Blume doesn't:
-    paste the code inline. Also check the list sits on the operation, not on
-    the path. Run <code>node extract.mjs ../openapi.yaml</code> in{" "}
-    <code>samples-check</code> to name each entry that's wrong. If the spec
-    is right, restart the dev server.
+    isn't a list. A <code>source</code> that's a <code>$ref</code> is read
+    relative to the spec. When Blume can't read that file, or the{" "}
+    <code>$ref</code> points at a spot inside a document rather than a file
+    of code, it leaves the sample out with a{" "}
+    <code>BLUME_OPENAPI_CODE_SAMPLE_REF</code> warning that names the
+    operation. Also check the list sits on the operation, not on the path.
+    Run <code>node extract.mjs ../openapi.yaml</code> in{" "}
+    <code>samples-check</code> to name each entry that isn't written out
+    inline.
   </p>
   <h3>Two tabs are both called Python</h3>
   <p>

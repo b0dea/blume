@@ -551,8 +551,8 @@ A missing or invalid key returns \`401\`. A body that fails validation returns
   <p>
     The reference changes only when <code>openapi.json</code> does. After you
     change a route or a model, run the export again and commit the new file
-    with the code change. The dev server doesn't watch the spec file, so
-    restart <code>npm run dev</code> to see the change.
+    with the code change. The dev server watches the spec file, so a running{" "}
+    <code>npm run dev</code> picks up each export.
   </p>
   <p>To catch a forgotten export, run the script in CI and fail when the file changes:</p>
   <CodeBlock

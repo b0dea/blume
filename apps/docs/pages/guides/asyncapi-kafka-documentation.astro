@@ -399,9 +399,8 @@ export default defineConfig({
     The reference mounts at <code>/events</code> unless you pass{" "}
     <code>route</code>. It never adds a tab on its own, so the Events tab is
     what makes it reachable, and it also scopes the sidebar to the event pages.
-    Start the dev server with <code>npm run dev</code>. It doesn't watch a
-    spec at the project root, so restart it after each edit to{" "}
-    <code>asyncapi.yaml</code>.
+    Start the dev server with <code>npm run dev</code>. It watches{" "}
+    <code>asyncapi.yaml</code>, so the pages update when you save the spec.
   </p>
   <p>Each operation gets its own URL:</p>
   <table>
@@ -503,9 +502,10 @@ echo 'ord_7Hq2|{"orderId":"ord_7Hq2","reason":"customer_request","requestedBy":"
     Open Try it to change them. Pick the local server and the broker becomes{" "}
     <code>localhost:9092</code>, without the SASL settings. Edit the payload
     and the <code>echo</code> line follows, while the editor checks your JSON
-    against the payload schema as you type. What Try it doesn't do on a Kafka page is connect: the panel
-    says live sending isn't possible from a browser and leaves the command to
-    you. Only WebSocket operations get a live connection.
+    against the payload schema as you type. What Try it doesn't do on a Kafka
+    page is connect: the panel says live sending isn't possible from a browser
+    and leaves the command to you. Only WebSocket operations get a live
+    connection.
   </p>
 
   <h2>Add a producer and consumer page</h2>
@@ -760,9 +760,10 @@ npx blume preview`}
   <h3>The sample uses the wrong broker or topic</h3>
   <p>
     The sample uses the first server the channel is available on, and the
-    channel's <code>address</code> as the topic. List the server readers should
-    see by default first, or give the channel its own <code>servers</code>{" "}
-    list. If the address differs from <code>bindings.kafka.topic</code>, make
-    them match: the samples never read the binding.
+    channel's <code>bindings.kafka.topic</code> as the topic, or its{" "}
+    <code>address</code> when the binding sets none. List the server readers
+    should see by default first, or give the channel its own{" "}
+    <code>servers</code> list. If the topic is still wrong, check whether an
+    old <code>topic</code> in the binding overrides the address.
   </p>
 </GuidePage>
