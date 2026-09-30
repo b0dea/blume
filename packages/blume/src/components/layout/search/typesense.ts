@@ -44,10 +44,13 @@ export const createSearch = (opts: TypesenseOptions): SearchFn => {
           per_page: SEARCH_LIMIT,
           q: query,
           query_by: "title,keywords,description,content",
-          // Relevance first, in ten bands, then each page's `search.boost`
-          // within a band: a boost lifts a page past similar matches without
-          // floating it over clearly better ones.
-          sort_by: "_text_match(buckets: 10):desc,boost:desc",
+          // Relevance first, then each page's `search.boost` among pages that
+          // match equally well: a boost settles a tie without floating a page
+          // over a better match. Bucketing the relevance instead
+          // (`_text_match(buckets: 10)`) ranks by boost alone inside each
+          // bucket, so at equal boosts a bucket falls back to indexing order
+          // and the best match can land behind weaker ones.
+          sort_by: "_text_match:desc,boost:desc",
           // The sync marks `locale` and `version` as facets so hosted results
           // scope to the active language and the viewed docs version (the
           // current docs upload as "current").

@@ -488,9 +488,8 @@ describe("client loaders", () => {
     const result = await search("q");
     expect(captured.value?.q).toBe("q");
     expect(captured.value?.query_by).toBe("title,keywords,description,content");
-    expect(captured.value?.sort_by).toBe(
-      "_text_match(buckets: 10):desc,boost:desc"
-    );
+    // Relevance first; boost only orders equally good matches.
+    expect(captured.value?.sort_by).toBe("_text_match:desc,boost:desc");
     // No locale option means no filter — every language matches.
     expect(captured.value?.filter_by).toBeUndefined();
     expect(result.hits[0]?.url).toBe("/t");
