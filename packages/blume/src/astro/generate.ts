@@ -2209,7 +2209,7 @@ export const generateRuntime = async (
           languageIcons,
           sources: [
             `${BLUME_SRC}/**/*.{astro,ts,tsx}`,
-            `${context.root}/**/*.{astro,mdx,ts,tsx}`,
+            `${context.root}/**/*.{astro,jsx,mdx,ts,tsx}`,
           ],
           twoslashCss: twoslashCss(),
           userTheme,

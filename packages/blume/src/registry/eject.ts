@@ -755,7 +755,7 @@ export const eject = async (
         // the package is hoisted out of the project's own node_modules.
         sources: [
           blumeSourceGlob(root, genDir),
-          "../../**/*.{astro,mdx,ts,tsx}",
+          "../../**/*.{astro,jsx,mdx,ts,tsx}",
         ],
         twoslashCss: twoslashCss(),
         userTheme,

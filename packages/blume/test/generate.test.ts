@@ -2012,6 +2012,22 @@ describe("generateRuntime", () => {
     expect(css).not.toContain('data-icon="python"');
   });
 
+  it("scans the project's .jsx files for the site stylesheet's classes", async () => {
+    // Tailwind's `@source` is a file glob, not an import graph: a class used
+    // only in a `.jsx` island is generated only if the glob names `.jsx`.
+    const project = await scanProject(
+      await writeProject({ "docs/index.md": "# Home\n" })
+    );
+    await generateRuntime(project);
+    const css = await readFile(
+      join(project.context.outDir, "src/generated/app.css"),
+      "utf-8"
+    );
+    expect(css).toContain(
+      `@source "${project.context.root}/**/*.{astro,jsx,mdx,ts,tsx}";`
+    );
+  });
+
   it("ships the Mermaid element only when a page has a mermaid fence", async () => {
     // Mermaid is over 3 MB of client chunks (ELK, Cytoscape, KaTeX, every
     // diagram type); a site with no diagram must not bundle, or pre-bundle in
