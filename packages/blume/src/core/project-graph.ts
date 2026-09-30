@@ -1,6 +1,6 @@
 import { isAbsolute, relative } from "pathe";
 
-import { withBasePath } from "./base-path.ts";
+import { normalizePath, withBasePath } from "./base-path.ts";
 import { CHANGELOG_INDEX_ROUTE, hasChangelogIndex } from "./changelog-index.ts";
 import { loadConfig } from "./config.ts";
 import { customStaticRoutes, discoverPages } from "./custom-pages.ts";
@@ -19,7 +19,7 @@ import { buildManifest } from "./manifest.ts";
 import { discoverFolderMeta } from "./meta.ts";
 import type { FolderMetaSource } from "./meta.ts";
 import { resolveProjectContext } from "./project.ts";
-import { pathsUnderPattern } from "./redirect-patterns.ts";
+import { isPatternPath, pathsUnderPattern } from "./redirect-patterns.ts";
 import type { ResolvedConfig } from "./schema.ts";
 import { normalizeEntry, strippedLineOffset } from "./sources/normalize.ts";
 import { resolveDocsCollection, resolveSources } from "./sources/resolve.ts";
@@ -309,17 +309,36 @@ const substituteLoadedVariables = (
  * and the Node server serve the page), so the pattern is rejected rather than
  * let the answer depend on the host. `pages` are the served page paths, which
  * carry `basePath`, as the based `from` does.
+ *
+ * An exact redirect from a page's own URL answers the same way everywhere:
+ * Astro ranks its route above the page's catch-all, in dev and build alike,
+ * and writes the redirect page where the page would go, so the page never
+ * publishes. That's a warning rather than an error, since the outcome doesn't
+ * depend on the host.
  */
 const redirectPageDiagnostics = (
   config: ResolvedConfig,
   pages: readonly string[],
   configFile: string | null
 ): Diagnostic[] =>
-  config.redirects.flatMap((redirect) => {
-    const matched = pathsUnderPattern(
-      withBasePath(config.basePath, redirect.from),
-      pages
-    );
+  config.redirects.flatMap((redirect): Diagnostic[] => {
+    const from = withBasePath(config.basePath, redirect.from);
+    if (!isPatternPath(redirect.from)) {
+      const page = normalizePath(from);
+      return pages.includes(page)
+        ? [
+            {
+              code: "BLUME_REDIRECT_MATCHES_PAGE",
+              file: configFile ?? undefined,
+              message: `The redirect from ${redirect.from} is also the page ${page}, which never publishes: its URL redirects to ${redirect.to} instead.`,
+              severity: "warning",
+              suggestion:
+                "If the page moved, delete it or give it a new slug; otherwise remove the redirect.",
+            } satisfies Diagnostic,
+          ]
+        : [];
+    }
+    const matched = pathsUnderPattern(from, pages);
     const [first] = matched;
     if (first === undefined) {
       return [];

@@ -495,6 +495,33 @@ describe("the scan", () => {
     ]);
     expect(conflicts[0]?.file).toBe(join(root, "blume.config.ts"));
 
+    // An exact redirect shadows its page on every host: a warning.
+    const shadowed = await scanProject(
+      await scratch({
+        "blume.config.ts": `export default ${JSON.stringify({
+          redirects: [
+            { from: "/intro/", to: "/" },
+            { from: "/gone", to: "/" },
+          ],
+        })};\n`,
+        "docs/index.md": "---\ntitle: Home\n---\n\nHome.\n",
+        "docs/intro.md": "---\ntitle: Intro\n---\n\nIntro.\n",
+      }),
+      { mode: "build" }
+    );
+    expect(
+      shadowed.diagnostics
+        .filter(
+          (diagnostic) => diagnostic.code === "BLUME_REDIRECT_MATCHES_PAGE"
+        )
+        .map((diagnostic) => [diagnostic.severity, diagnostic.message])
+    ).toEqual([
+      [
+        "warning",
+        "The redirect from /intro/ is also the page /intro, which never publishes: its URL redirects to / instead.",
+      ],
+    ]);
+
     // A link into a pattern is a valid target, like one to an exact `from`.
     const links = await validateLinks(scanned.graph, {
       publicDir: null,

@@ -206,7 +206,7 @@ redirects: [
 
 Each host gets the patterns in its own syntax: splats in `_redirects`, `path-to-regexp` sources in `vercel.json`, and the routing config of a `vercel()` or `netlify()` server build. The `node()` and `cloudflare()` servers match them themselves, and so does `blume dev`. A static build writes no redirect page for a pattern, since it would need one for every path the pattern covers, so a host that reads none of these files (GitHub Pages, say) applies only the exact redirects; `blume-redirects.json` lists patterns as you wrote them.
 
-A pattern can't also match a page: hosts disagree on which of the two answers, so the build stops with `BLUME_REDIRECT_MATCHES_PAGE`, naming the page. Narrow the pattern to the paths that moved.
+A pattern can't also match a page: hosts disagree on which of the two answers, so the build stops with `BLUME_REDIRECT_MATCHES_PAGE`, naming the page. Narrow the pattern to the paths that moved. An exact redirect from a page's own URL answers the same way on every host, taking the URL over so the page never publishes, so the same code is a warning there: delete the page if it moved, or drop the redirect.
 
 ## Content types
 
