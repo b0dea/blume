@@ -82,9 +82,9 @@ blume eval --threshold 0.8    # at least 80% must pass
 blume eval --json             # machine-readable report on stdout
 ```
 
-The JSON report carries the same `diagnostics` + `summary` shape as `blume validate --json` and `blume audit --json`, with the per-question results (answer, score, missing facts, cost) alongside.
+The JSON report carries the same `diagnostics` + `summary` shape as `blume validate --json` and `blume audit --json`, with the per-question results (answer, score, missing facts, and with Claude Code, cost) alongside.
 
-Because each question is two model sessions, an eval run costs real money and minutes — the per-question spend is printed as it runs. A sensible CI setup runs `blume eval` on docs changes rather than every push.
+Because each question is two model sessions, an eval run costs real money and minutes. With Claude Code, the per-question spend is printed as it runs and totaled in the summary; Codex doesn't report its spend, so a Codex run shows none. A sensible CI setup runs `blume eval` on docs changes rather than every push.
 
 ## Fixing the findings
 
