@@ -917,6 +917,59 @@ describe("mdxRemoteSource (github mode)", () => {
     const { diagnostics } = await source.load();
     expect(diagnostics.map((d) => d.code)).toContain("BLUME_SOURCE_TRUNCATED");
   });
+
+  it("warns when path isn't a folder at the ref", async () => {
+    const tree = { tree: [{ path: "documentation/a.md", type: "blob" }] };
+    const fetchImpl = asFetch(() => Promise.resolve(okJson(tree)));
+    const source = mdxRemoteSource(
+      {
+        fetchImpl,
+        github: { owner: "acme", path: "docs", ref: "v1", repo: "sdk" },
+        include: ["**/*.{md,mdx}"],
+        name: "sdk",
+      },
+      ctxFor(join(await makeProject({}), ".cache"))
+    );
+    const { diagnostics, entries } = await source.load();
+    expect(entries).toStrictEqual([]);
+    expect(diagnostics.map((d) => [d.code, d.message])).toStrictEqual([
+      [
+        "BLUME_SOURCE_PATH_MISSING",
+        'Source "sdk" read no files: there is no folder "docs" in acme/sdk at v1.',
+      ],
+    ]);
+  });
+
+  it("excludes what a negated include glob matches, as the filesystem source does", async () => {
+    const tree = {
+      tree: [
+        { path: "docs/a.md", type: "blob" },
+        { path: "docs/drafts/b.md", type: "blob" },
+        { path: "docs/notes.txt", type: "blob" },
+      ],
+    };
+    const fetchImpl = asFetch((input) =>
+      isTreeApi(input.toString())
+        ? Promise.resolve(okJson(tree))
+        : Promise.resolve(ok("---\ntitle: A\n---\nbody\n"))
+    );
+    const load = async (include: string[]) => {
+      const source = mdxRemoteSource(
+        {
+          fetchImpl,
+          github: { owner: "acme", path: "docs", ref: "main", repo: "sdk" },
+          include,
+          name: "sdk",
+        },
+        ctxFor(join(await makeProject({}), ".cache"))
+      );
+      const { entries } = await source.load();
+      return entries.map((entry) => entry.ref);
+    };
+    expect(await load(["**/*.md", "!drafts/**"])).toStrictEqual(["a.md"]);
+    // Negations alone include nothing, as in tinyglobby.
+    expect(await load(["!drafts/**"])).toStrictEqual([]);
+  });
 });
 
 describe("scanProject composition", () => {

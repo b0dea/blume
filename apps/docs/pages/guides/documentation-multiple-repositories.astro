@@ -366,10 +366,9 @@ export default defineMeta({
     </li>
     <li>
       <strong>Ordering prefixes:</strong> Blume drops a numeric prefix like{" "}
-      <code>02-</code> from a remote file's route, but{" "}
-      <code>blume validate</code> resolves a link to <code>./02-errors.mdx</code>{" "}
-      as <code>/sdk/02-errors</code> and reports it broken. Leave prefixes off
-      remote file names and order the section with <code>meta.ts</code>.
+      <code>02-</code> from a remote file's route, and a link to{" "}
+      <code>./02-errors.mdx</code> lands on <code>/sdk/errors</code>, in the
+      page and in <code>blume validate</code> alike.
     </li>
   </ul>
   <p>
@@ -528,13 +527,14 @@ git push origin v1.5.0`}
     <code>GITHUB_TOKEN</code> is set where the build runs and that the token has
     the repository selected. A 403 or 429 can also mean a rate limit.
   </p>
-  <h3>A section is empty, and nothing warns</h3>
+  <h3>A section is empty</h3>
   <p>
-    If <code>path</code> doesn't exist at the pinned ref, or <code>include</code>{" "}
-    matches none of its files, the source loads zero pages without a
-    diagnostic, for example when a repository moved its docs folder before or
-    after the tag you pinned. Browse the repository at that ref on GitHub, then
-    fix <code>path</code> or move the pin.
+    If <code>path</code> doesn't exist at the pinned ref, the source loads zero
+    pages and warns <code>BLUME_SOURCE_PATH_MISSING</code>, for example when a
+    repository moved its docs folder before or after the tag you pinned. If{" "}
+    <code>include</code> matches none of the files under it, the section is
+    empty without a diagnostic. Browse the repository at that ref on GitHub,
+    then fix <code>path</code>, <code>include</code>, or the pin.
   </p>
   <h3>The site shows older content than the repository</h3>
   <p>

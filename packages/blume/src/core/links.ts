@@ -439,6 +439,12 @@ export interface FileRouteIndex {
    * into the reader's locale onto the fallback copy.
    */
   byDefaultNavPath: Map<string, string>;
+  /**
+   * A staged page's entry id (`<source>/<ref>`) → its route. A remote
+   * source's files have no path on disk, so a file link between two of them
+   * (`./02-errors.mdx`) resolves by entry id, as the rendered link does.
+   */
+  byEntryId: Map<string, string>;
 }
 
 /** The linking side of a file link: where the page's source lives. */
@@ -453,12 +459,19 @@ export const buildFileRouteIndex = (
 ): FileRouteIndex => {
   const bySource = new Map<string, string>();
   const byDefaultNavPath = new Map<string, string>();
+  const byEntryId = new Map<string, string>();
   for (const page of pages) {
-    const { sourcePath } = page;
-    if (!sourcePath || page.fallback) {
+    const { entryId, sourcePath } = page;
+    if (page.fallback) {
       continue;
     }
     const isDefault = page.locale === i18n?.defaultLocale;
+    if (entryId && (!byEntryId.has(entryId) || isDefault)) {
+      byEntryId.set(entryId, page.route);
+    }
+    if (!sourcePath) {
+      continue;
+    }
     if (!bySource.has(sourcePath) || isDefault) {
       bySource.set(sourcePath, page.route);
     }
@@ -466,7 +479,7 @@ export const buildFileRouteIndex = (
       byDefaultNavPath.set(normalize(page.navPath), page.route);
     }
   }
-  return { byDefaultNavPath, bySource };
+  return { byDefaultNavPath, byEntryId, bySource };
 };
 
 /**
@@ -495,11 +508,15 @@ const relativeTarget = (
   ctx: LinkContext
 ): string => {
   const base = { isIndex: isIndexPage(page), route: page.route };
-  const { navPath, sourcePath } = page;
-  const resolveFile = sourcePath
-    ? (path: string) =>
-        routeOfLinkedFile(ctx.fileRoutes, { navPath, sourcePath }, path)
-    : undefined;
+  const { entryId, navPath, sourcePath } = page;
+  let resolveFile: ((path: string) => string | undefined) | undefined;
+  if (sourcePath) {
+    resolveFile = (path) =>
+      routeOfLinkedFile(ctx.fileRoutes, { navPath, sourcePath }, path);
+  } else if (entryId) {
+    resolveFile = (path) =>
+      ctx.fileRoutes.byEntryId.get(normalize(join(dirname(entryId), path)));
+  }
   return (
     resolveRelativeHref(rawPath, base, resolveFile, (route) =>
       ctx.routes.has(route)
