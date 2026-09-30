@@ -156,6 +156,19 @@ export interface FooterConfig {
 }
 
 /**
+ * The generated `/changelog` index's heading and description. Each is a
+ * string, or a map of locale code to text; the index renders in the default
+ * locale. Unset, they're the `changelog` UI strings (`Changelog` in English),
+ * which `i18n.ui` translates.
+ */
+export interface ChangelogConfig {
+  /** The index's description, below its heading and in its meta description. */
+  description?: LocalizableLabel;
+  /** The index's heading, page title, and OG card title. */
+  title?: LocalizableLabel;
+}
+
+/**
  * Where content lives and how it's discovered. `root`/`include`/`exclude` are
  * zero-config shorthand for a single `filesystem()` source; set `sources` to
  * compose adapters instead, and move those fields into its `filesystem()`
@@ -1495,6 +1508,11 @@ export interface BlumeConfig {
    * compose: with both set, a page lands at `{deployment.base}/{basePath}/page`.
    */
   basePath?: string;
+  /**
+   * The generated `/changelog` index's title and description, each a string
+   * or a per-locale map. Unset, they're the `changelog` UI strings.
+   */
+  changelog?: ChangelogConfig;
   /**
    * Ask readers before analytics runs, with an adapter from `blume/consent`:
    * `native()` for Blume's own banner, or a hosted consent manager

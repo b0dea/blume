@@ -34,6 +34,7 @@ import {
   navVariants,
 } from "../components/layout/nav-utils.ts";
 import { normalizeBasePath, withBasePath } from "../core/base-path.ts";
+import { withChangelogIndexText } from "../core/changelog-index.ts";
 import {
   missingExampleDiagnostics,
   validateUsedComponents,
@@ -1146,23 +1147,32 @@ export const buildRuntimeData = (project: BlumeProject): string => {
 
   // Resolved UI dictionaries: one per locale under i18n, English baseline
   // otherwise. Threaded into chrome so the catch-all can pick the active locale.
+  // The `changelog` config's title and description replace the dictionaries'.
   const uiByLocale = i18n
     ? Object.fromEntries(
         i18n.locales.map(({ code }) => [
           code,
-          resolveUIStrings(code, {
-            defaultLocale: i18n.defaultLocale,
-            overrides: i18n.ui,
-          }),
+          withChangelogIndexText(
+            config,
+            resolveUIStrings(code, {
+              defaultLocale: i18n.defaultLocale,
+              overrides: i18n.ui,
+            }),
+            code
+          ),
         ])
       )
     : {};
-  const defaultUi = i18n
-    ? resolveUIStrings(i18n.defaultLocale, {
-        defaultLocale: i18n.defaultLocale,
-        overrides: i18n.ui,
-      })
-    : EN_UI;
+  const defaultUi = withChangelogIndexText(
+    config,
+    i18n
+      ? resolveUIStrings(i18n.defaultLocale, {
+          defaultLocale: i18n.defaultLocale,
+          overrides: i18n.ui,
+        })
+      : EN_UI,
+    i18n?.defaultLocale
+  );
 
   const navigationByLocale = i18n
     ? Object.fromEntries(

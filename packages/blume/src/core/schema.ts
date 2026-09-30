@@ -485,6 +485,16 @@ const footerConfigSchema = z.strictObject({
   socials: z.partialRecord(z.enum(FOOTER_SOCIALS), z.string()).default({}),
 });
 
+/**
+ * The generated `/changelog` index. Its title and description may be
+ * per-locale maps; unset, they're the `changelog` UI strings `i18n.ui`
+ * translates.
+ */
+const changelogConfigSchema = z.strictObject({
+  description: localizableLabelSchema.optional(),
+  title: localizableLabelSchema.optional(),
+});
+
 /** A validated `content.sources` entry: an adapter descriptor from `blume/sources`. */
 export type { ContentSourceAdapter } from "../sources/registry.ts";
 
@@ -2102,6 +2112,7 @@ export const blumeConfigSchema = z
         })
         .optional()
         .transform((value) => normalizeBasePath(value)),
+      changelog: changelogConfigSchema.optional(),
       // An adapter from `blume/consent`; analytics waits for the reader.
       consent: consentConfigSchema,
       content: contentConfigSchema.prefault({}),

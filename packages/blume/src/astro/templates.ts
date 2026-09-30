@@ -3011,8 +3011,9 @@ const ogPath = data.config.og.enabled ? withMountedBase("/og/changelog.png") : n
 const ogImage = ogPath && base ? base + ogPath : ogPath;
 
 // The page chrome (h1, title, description) comes from the translatable
-// \`changelog\` group; optional chaining tolerates a not-yet-regenerated data
-// snapshot from before these keys existed.
+// \`changelog\` group, which carries the \`changelog\` config's title and
+// description when it sets them; optional chaining tolerates a
+// not-yet-regenerated data snapshot from before these keys existed.
 const changelogTitle = data.ui.changelog?.title ?? "Changelog";
 const changelogDescription =
   data.ui.changelog?.description ??

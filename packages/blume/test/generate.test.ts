@@ -814,6 +814,47 @@ describe("buildRuntimeData", () => {
     expect(Object.keys(data.navigationByLocale)).toEqual(["en", "fr"]);
   });
 
+  it("puts the changelog config's title and description in the ui strings", async () => {
+    const plain = await scanProject(
+      await writeProject({
+        "blume.config.ts":
+          'export default { changelog: { description: "Every Acme release.", title: "Release notes" } };\n',
+        "docs/index.md": "# Home\n",
+      })
+    );
+    expect(JSON.parse(buildRuntimeData(plain)).ui.changelog).toStrictEqual({
+      description: "Every Acme release.",
+      title: "Release notes",
+    });
+
+    const translated = await scanProject(
+      await writeProject({
+        "blume.config.ts": `export default {
+  changelog: { title: { en: "Release notes", fr: "Notes de version" } },
+  i18n: {
+    defaultLocale: "en",
+    locales: [
+      { code: "en", label: "English" },
+      { code: "fr", label: "Français" },
+    ],
+  },
+};
+`,
+        "docs/index.md": "# Home\n",
+      })
+    );
+    const data = JSON.parse(buildRuntimeData(translated));
+    expect(data.ui.changelog.title).toBe("Release notes");
+    expect(data.uiByLocale.fr.changelog.title).toBe("Notes de version");
+    // Unset, the description stays each locale's UI string.
+    expect(data.ui.changelog.description).toBe(
+      "Product updates, new features, and fixes from every release."
+    );
+    expect(data.uiByLocale.fr.changelog.description).not.toBe(
+      data.ui.changelog.description
+    );
+  });
+
   it("inlines a single-file SVG logo", async () => {
     const project = await scanProject(
       await writeProject({
