@@ -340,7 +340,7 @@ describe("contentfulSource", () => {
     expect(calls[0]?.headers.get("authorization")).toBe("Bearer preview");
   });
 
-  it("falls back to the env tokens, then to no auth header", async () => {
+  it("falls back to the env tokens, and fails before a request without one", async () => {
     const { calls, fetchImpl } = recordingFetch(() => ({
       items: [],
       total: 0,
@@ -365,22 +365,38 @@ describe("contentfulSource", () => {
         ).load()
       ).rejects.toThrow("needs a Preview API token");
     });
+    // The Delivery API answers nothing without a token, so its absence is
+    // reported as the variable to set, not as the API's 401.
     await withEnv("CONTENTFUL_ACCESS_TOKEN", undefined, async () => {
-      await contentfulSource(
-        options,
-        ctxFor(await tempDir("contentful-env"))
-      ).load();
+      await expect(
+        contentfulSource(
+          options,
+          ctxFor(await tempDir("contentful-env"))
+        ).load()
+      ).rejects.toMatchObject({
+        diagnostic: {
+          code: "BLUME_MISSING_SECRET",
+          message:
+            'Source "g" needs CONTENTFUL_ACCESS_TOKEN, which is not set.',
+        },
+      });
     });
     expect(
       calls.map((call) => call.headers.get("authorization"))
-    ).toStrictEqual(["Bearer env-preview", "Bearer env-delivery", null]);
+    ).toStrictEqual(["Bearer env-preview", "Bearer env-delivery"]);
   });
 
   it("fails the load when the API answers with a non-object or an error", async () => {
     const bad = recordingFetch(() => [1]);
     await expect(
       contentfulSource(
-        { contentType: "doc", fetchImpl: bad.fetchImpl, name: "g", space: "s" },
+        {
+          contentType: "doc",
+          fetchImpl: bad.fetchImpl,
+          name: "g",
+          space: "s",
+          token: "delivery",
+        },
         ctxFor(await tempDir("contentful-bad"))
       ).load()
     ).rejects.toThrow("Contentful returned a non-object response");
@@ -395,6 +411,7 @@ describe("contentfulSource", () => {
           fetchImpl: denied.fetchImpl,
           name: "g",
           space: "s",
+          token: "delivery",
         },
         ctxFor(await tempDir("contentful-denied"))
       ).load()
@@ -414,6 +431,7 @@ describe("contentfulSource", () => {
         name: "g",
         pollInterval: 0.01,
         space: "s",
+        token: "delivery",
       },
       ctxFor(await tempDir("contentful-poll"), { refresh: false })
     );

@@ -23,6 +23,7 @@ import { isPatternPath, pathsUnderPattern } from "./redirect-patterns.ts";
 import type { ResolvedConfig } from "./schema.ts";
 import { normalizeEntry, strippedLineOffset } from "./sources/normalize.ts";
 import { resolveDocsCollection, resolveSources } from "./sources/resolve.ts";
+import type { SourceRuntime } from "./sources/resolve.ts";
 import type {
   ContentSource,
   SourceEntry,
@@ -364,6 +365,26 @@ const bannerLinkHref = (
     ? undefined
     : banner.link?.href;
 
+/**
+ * The project's sources, before any of them loads: `beforeSources` sees the
+ * config first, then each source validates itself (e.g. the filesystem
+ * source checks its root exists), replacing the single hard `contentRoot`
+ * check.
+ */
+const validatedSources = (
+  config: ResolvedConfig,
+  context: ProjectContext,
+  runtime: SourceRuntime,
+  beforeSources?: (config: ResolvedConfig) => void
+): ContentSource[] => {
+  beforeSources?.(config);
+  const sources = resolveSources(config, context, runtime);
+  for (const source of sources) {
+    source.validate?.();
+  }
+  return sources;
+};
+
 export const scanProject = async (
   root: string,
   options: {
@@ -375,6 +396,12 @@ export const scanProject = async (
     overrides?: ConfigOverrides;
     /** Relocate the generated runtime (e.g. `.blume-verify` for isolation). */
     runtimeDir?: string;
+    /**
+     * Called with the resolved config before any source loads, so a command
+     * can report an unset secret ahead of a fetch that fails without it: a
+     * source that can't load fails the scan, and nothing after it runs.
+     */
+    beforeSources?: (config: ResolvedConfig) => void;
   } = {}
 ): Promise<BlumeProject> => {
   const mode = options.mode ?? "dev";
@@ -386,17 +413,12 @@ export const scanProject = async (
   const context = resolveProjectContext(root, config, {
     runtimeDir: options.runtimeDir,
   });
-
-  // Each source validates itself (e.g. the filesystem source checks its root
-  // exists), replacing the single hard `contentRoot` check.
-  const sources = resolveSources(config, context, {
-    mode,
-    preview,
-    refresh: options.refresh,
-  });
-  for (const source of sources) {
-    source.validate?.();
-  }
+  const sources = validatedSources(
+    config,
+    context,
+    { mode, preview, refresh: options.refresh },
+    options.beforeSources
+  );
 
   // Folder meta is discovered per filesystem source, under each source's own
   // root and keyed by its route prefix, so a prefixed/root-differing source's

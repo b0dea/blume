@@ -473,9 +473,9 @@ export default defineMeta({
   <p>
     <code>BLUME_SOURCE_FETCH_FAILED</code> quotes Strapi's status. The token
     isn't set where the build runs, has expired, or is a Custom token without
-    find on Doc. Blume fetches before it checks for missing variables, so on a
-    fresh build this error comes without a <code>BLUME_MISSING_SECRET</code>{" "}
-    warning. A changed variable only applies to new builds, so redeploy.
+    find on Doc. An unset token also gets a{" "}
+    <code>BLUME_MISSING_SECRET</code> warning, printed before the fetch. A
+    changed variable only applies to new builds, so redeploy.
   </p>
   <h3>The build fails with 404 Not Found</h3>
   <p>

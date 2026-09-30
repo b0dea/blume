@@ -523,12 +523,12 @@ npx blume preview`}
   <h3>The build fails with 401 or 404</h3>
   <p>
     <code>BLUME_SOURCE_FETCH_FAILED</code> includes Contentful's status. A 401
-    means the token is missing or wrong where the build runs, or a delivery
-    token went into <code>CONTENTFUL_PREVIEW_TOKEN</code>. A 404 means the
-    space ID is wrong or the API key can't access the environment: give the
-    key access to it in its settings. Blume fetches before it checks for
-    missing variables, so on a fresh build this error comes without a{" "}
-    <code>BLUME_MISSING_SECRET</code> warning.
+    means the token is wrong where the build runs, or a delivery token went
+    into <code>CONTENTFUL_PREVIEW_TOKEN</code>. A 404 means the space ID is
+    wrong or the API key can't access the environment: give the key access to
+    it in its settings. A missing <code>CONTENTFUL_ACCESS_TOKEN</code> never
+    gets as far as a request: the source stops first with{" "}
+    <code>BLUME_MISSING_SECRET</code>.
   </p>
   <h3>A code block or image shows in preview but not on the live site</h3>
   <p>

@@ -17,6 +17,7 @@ import type { RemoteFieldMap, RestClient } from "./remote.ts";
 import {
   documentEntry,
   fetchJson,
+  missingSecretError,
   queryString,
   remoteSource,
 } from "./remote.ts";
@@ -135,9 +136,14 @@ export const contentfulSource = (
     const token = preview
       ? previewToken()
       : (options.token ?? process.env.CONTENTFUL_ACCESS_TOKEN);
+    // The Delivery API answers nothing without a token (`assertConfigured`
+    // already required the preview one).
+    if (!token) {
+      throw missingSecretError(options.name, "CONTENTFUL_ACCESS_TOKEN");
+    }
     const client: RestClient = {
       fetchImpl: options.fetchImpl,
-      headers: token ? { authorization: `Bearer ${token}` } : {},
+      headers: { authorization: `Bearer ${token}` },
     };
     const host = preview ? PREVIEW_HOST : DELIVERY_HOST;
     const base = `${host}/spaces/${options.space}/environments/${options.environment ?? "master"}/entries`;

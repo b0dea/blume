@@ -122,7 +122,15 @@ export const doctorCommand = defineCommand({
     loadEnvFiles(root);
 
     try {
-      const project = await scanProject(root, { mode: "build" });
+      const project = await scanProject(root, {
+        // A missing secret fails at the first request. Checked before the
+        // sources fetch, so it's still reported when one of them fails the
+        // scan for want of it.
+        beforeSources: (config) => {
+          diagnostics.push(...checkRequiredSecrets(config));
+        },
+        mode: "build",
+      });
       // Tabs, selector items, and featured links can point at custom pages
       // and generated routes too, so they're checked against every route
       // the site serves, as `blume dev`/`build` check them.
@@ -139,8 +147,8 @@ export const doctorCommand = defineCommand({
       );
 
       const { config } = project;
-      // The packages and secrets a build would need: an adapter's missing SDK
-      // fails the build, and a missing secret fails at the first request.
+      // The packages a build would need: an adapter's missing SDK fails the
+      // build.
       const { islands } = await discoverIslands(root);
       const dependencies = await missingDependencyDiagnostic(
         config,
@@ -156,7 +164,6 @@ export const doctorCommand = defineCommand({
       );
       diagnostics.push(
         ...overrides.issues,
-        ...checkRequiredSecrets(config),
         // A `<Component path>` naming no example renders a "No example
         // found" box, which dev and build warn about too.
         ...missingExampleDiagnostics(

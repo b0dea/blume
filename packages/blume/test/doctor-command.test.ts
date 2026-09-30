@@ -4,6 +4,9 @@ import { tmpdir } from "node:os";
 
 import { dirname, join } from "pathe";
 
+import { filesystem } from "../src/sources/filesystem.ts";
+import { notion } from "../src/sources/notion.ts";
+
 const CLI = join(import.meta.dir, "..", "src", "cli", "index.ts");
 
 const dirs: string[] = [];
@@ -170,5 +173,44 @@ export default { mdx: { Component } };
     expect(exitCode).toBe(0);
     expect(stderr).toContain("BLUME_VERSIONS_UNCONFIGURED_VERSION");
     expect(stderr).toContain('Folder "v1.0/" looks like a version snapshot');
+  });
+
+  it("names a source's unset token before the source fetches", async () => {
+    const root = await makeProject({
+      ...HOME,
+      "blume.config.ts": `export default {
+  content: {
+    sources: [
+      ${JSON.stringify(filesystem({ root: "docs" }))},
+      ${JSON.stringify(notion({ database: "db", prefix: "notes" }))},
+    ],
+  },
+};
+`,
+    });
+    const { NOTION_TOKEN: _unset, ...env } = process.env;
+    const proc = Bun.spawn([process.execPath, CLI, "doctor", "--json"], {
+      cwd: root,
+      env,
+      stderr: "pipe",
+      stdout: "pipe",
+    });
+    const [exitCode, stdout] = await Promise.all([
+      proc.exited,
+      new Response(proc.stdout).text(),
+    ]);
+    expect(exitCode).toBe(1);
+    const report = JSON.parse(stdout);
+    // The warning is collected before the scan, and the source stops before
+    // its first request instead of failing on Notion's 401.
+    expect(
+      report.diagnostics.map(
+        (diagnostic: { message: string; severity: string }) =>
+          `${diagnostic.severity}: ${diagnostic.message}`
+      )
+    ).toStrictEqual([
+      "warning: Content source (notion) is enabled but NOTION_TOKEN is not set.",
+      'error: Source "notes" needs NOTION_TOKEN, which is not set.',
+    ]);
   });
 });

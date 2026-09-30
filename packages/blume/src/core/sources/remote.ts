@@ -1,5 +1,6 @@
 import { join } from "pathe";
 
+import { BlumeError } from "../diagnostics.ts";
 import matter from "../frontmatter.ts";
 import { neutralizeUnsafeLinks } from "../safe-links.ts";
 import {
@@ -123,6 +124,20 @@ export const stagedEntry = (
     ref: `${slug}.${format}`,
   };
 };
+
+/**
+ * The error a source throws before its first request when the token its API
+ * always requires is unset (Notion, Contentful's Delivery API). Sent without
+ * one, the request could only fail, and the build would report the API's
+ * wording as a fetch failure instead of the variable to set.
+ */
+export const missingSecretError = (name: string, env: string): BlumeError =>
+  new BlumeError({
+    code: "BLUME_MISSING_SECRET",
+    message: `Source "${name}" needs ${env}, which is not set.`,
+    severity: "error",
+    suggestion: `Set ${env} in .env.local for local dev, or in your host's environment for production.`,
+  });
 
 /** How a source calls its CMS: the API's auth headers and an injectable fetch. */
 export interface RestClient {

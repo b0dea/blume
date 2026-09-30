@@ -644,10 +644,10 @@ export const Docs: CollectionConfig = {
     rule turned it away. Check that <code>authCollection</code> is the
     collection that owns the key, that <code>PAYLOAD_API_KEY</code> is set
     where the build runs, and that Payload's secret hasn't changed since you
-    made the key. Blume fetches before it checks for missing variables, so on
-    a fresh build this error is all you see; the{" "}
-    <code>BLUME_MISSING_SECRET</code> warning only prints when a snapshot
-    stands in for the fetch, and never for a <code>custom()</code> source.
+    made the key. A <code>payload()</code> source warns{" "}
+    <code>BLUME_MISSING_SECRET</code> before it fetches when the key is unset,
+    but a <code>custom()</code> source declares no variables, so there the 403
+    is all you see.
   </p>
   <h3>A block renders as nothing</h3>
   <p>

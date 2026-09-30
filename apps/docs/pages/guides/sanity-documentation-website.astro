@@ -636,14 +636,13 @@ echo ".env.local" >> .gitignore`}
   </p>
   <h3>The build can't load the source</h3>
   <p>
-    <code>BLUME_SOURCE_FETCH_FAILED</code> carries the reason: Sanity's own
-    error for a wrong project ID or dataset, or a message that the source needs{" "}
-    <code>@sanity/client</code> when it isn't installed. Blume fetches before it
-    checks your dependencies, so on a fresh build the fetch error is what you
-    see. When a snapshot exists, Blume serves it with a{" "}
-    <code>BLUME_SOURCE_OFFLINE</code> warning instead, but a fresh build
-    machine has none, so there the build stops and your last deployment stays
-    live.
+    <code>BLUME_SOURCE_FETCH_FAILED</code> carries Sanity's own error for a
+    wrong project ID or dataset. When <code>@sanity/client</code> isn't
+    installed, the source stops before any request with{" "}
+    <code>BLUME_SOURCE_SDK_MISSING</code> instead. When a snapshot exists,
+    Blume serves it with a <code>BLUME_SOURCE_OFFLINE</code> warning instead,
+    but a fresh build machine has none, so there the build stops and your last
+    deployment stays live.
   </p>
   <h3>Two pages claim the same URL</h3>
   <p>

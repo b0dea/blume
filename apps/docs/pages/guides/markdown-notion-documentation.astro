@@ -442,11 +442,12 @@ jobs:
   </p>
   <h3>A Setup pull request fails on the Notion source</h3>
   <p>
-    A fresh CI runner has no snapshot of Notion to fall back on, so a failed
-    fetch stops the run with <code>BLUME_SOURCE_FETCH_FAILED</code> and
-    Notion's own error. Check that <code>NOTION_TOKEN</code> is set as a
-    repository secret. GitHub doesn't pass secrets to workflows run from a
-    fork, so pull requests from forks can't run these checks.
+    A fresh CI runner has no snapshot of Notion to fall back on, so a missing
+    token stops the run with <code>BLUME_MISSING_SECRET</code>, and a failed
+    fetch with <code>BLUME_SOURCE_FETCH_FAILED</code> and Notion's own error.
+    Check that <code>NOTION_TOKEN</code> is set as a repository secret. GitHub
+    doesn't pass secrets to workflows run from a fork, so pull requests from
+    forks can't run these checks.
   </p>
   <h3>A link between the sections is broken</h3>
   <p>
