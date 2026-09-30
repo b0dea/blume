@@ -38,11 +38,13 @@ PDF export goes through the browser's native print dialog, so the exact "Save as
 
 **Export to EPUB** generates a self-contained `.epub` of the current page in the browser and downloads it — ready for Apple Books, Calibre, or any e-reader. The generator is loaded only when a reader clicks Export, so it never weighs down the rest of your site.
 
-To keep the file readable on a device with no stylesheet or JavaScript of its own, Blume rewrites the page into clean, standalone HTML: syntax-highlighted code becomes plain monospace, decorative icons and copy buttons are dropped, and a built-in e-reader stylesheet handles spacing, code blocks, and tables.
+To keep the file readable on a device with no stylesheet or JavaScript of its own, Blume rewrites the page into clean, standalone HTML: syntax-highlighted code becomes plain monospace, decorative icons and copy buttons are dropped, and a built-in e-reader stylesheet handles spacing, code blocks, and tables. Links to other pages point at your live site, since the book holds only this page.
+
+The book is titled after the page's heading, takes the page's language, and names your site's [`title`](/docs/configuration#site) as its author and publisher. Images are fetched into the book; one the browser can't fetch, such as an image on another host that doesn't allow cross-origin requests, is left out, with a warning in the browser console.
 
 ## What gets exported
 
-Both formats export the **single page** a reader is viewing — not the whole site — which matches where the action lives, beneath that page's table of contents.
+Both formats export the **single page** a reader is viewing — not the whole site — which matches where the action lives, beneath that page's table of contents. Like the other [page actions](/docs/content/navigation#page-actions), it shows where that right-hand column does, in windows at least 1,280px wide.
 
 :::note
 In an EPUB there's no JavaScript to switch tabs, so tabbed content — like [package-install](/docs/content/syntax) blocks and code groups — is expanded to show every panel at once. Client-rendered embeds such as Mermaid diagrams aren't included.

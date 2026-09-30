@@ -301,13 +301,42 @@ hr { border: 0; border-top: 1px solid #ddd; margin: 2em 0; }`;
   // for the EPUB: drop decorative SVGs and interactive controls (which render as
   // broken boxes in a reader), flatten Shiki's variable-colored code to plain
   // monospace text, and reveal panels the tab scripts would otherwise hide.
-  const buildEpubChapterHtml = (article: Element): string => {
+  // Links point at the site: a site-relative `/docs/page` means nothing inside
+  // the book, so every link but an in-page `#fragment` is made absolute.
+  const buildEpubChapterHtml = async (article: Element): Promise<string> => {
     const clone = article.cloneNode(true) as Element;
     for (const el of clone.querySelectorAll(
       "svg, button, select, script, style, link, noscript, template"
     )) {
       el.remove();
     }
+    for (const link of clone.querySelectorAll<HTMLAnchorElement>("a[href]")) {
+      if (!link.getAttribute("href")?.startsWith("#")) {
+        link.setAttribute("href", link.href);
+      }
+    }
+    // The generator fetches every image into the book, and one it can't fetch
+    // (a cross-origin image served without CORS headers, a 404) fails the
+    // whole export. Try each first, and leave out the ones that fail.
+    await Promise.all(
+      [...clone.querySelectorAll("img")].map(async (img) => {
+        if (!img.getAttribute("src")) {
+          return;
+        }
+        try {
+          const response = await fetch(img.src);
+          if (!response.ok) {
+            throw new Error(`HTTP ${response.status}`);
+          }
+        } catch (error) {
+          console.warn(
+            `[blume] EPUB export left out an image it couldn't fetch: ${img.src}`,
+            error
+          );
+          img.remove();
+        }
+      })
+    );
     for (const pre of clone.querySelectorAll("pre")) {
       const code = document.createElement("code");
       code.textContent = pre.textContent ?? "";
@@ -537,10 +566,24 @@ hr { border: 0; border-top: 1px solid #ddd; margin: 2em 0; }`;
         const epubModule = await loadEpub();
         const epub = epubModule.default?.default ?? epubModule.default;
         // The article HTML already opens with the page's <h1>, so don't let the
-        // generator prepend a second chapter-title heading.
+        // generator prepend a second chapter-title heading. The book's
+        // language is the article's (a fallback page's content locale, else
+        // the page's), and the site is its author and publisher; left out,
+        // the generator says English and "anonymous". Its defaults are spread
+        // under these options, so an unknown value is omitted, not undefined.
+        const site = document
+          .querySelector('meta[property="og:site_name"]')
+          ?.getAttribute("content");
+        const lang = article.closest("[lang]")?.getAttribute("lang");
         const result = await epub(
-          { css: EPUB_STYLES, prependChapterTitles: false, title },
-          [{ content: buildEpubChapterHtml(article), title }]
+          {
+            css: EPUB_STYLES,
+            prependChapterTitles: false,
+            title,
+            ...(site && { author: site, publisher: site }),
+            ...(lang && { lang }),
+          },
+          [{ content: await buildEpubChapterHtml(article), title }]
         );
         const blob =
           result instanceof Blob
