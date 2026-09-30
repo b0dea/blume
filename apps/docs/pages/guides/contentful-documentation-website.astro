@@ -78,13 +78,12 @@ export default defineConfig({
   </p>
   <p>
     Blume imports content at build time, so there's no live preview pane in
-    Contentful's editor: a change shows up after a sync or a rebuild. The
-    source only calls Contentful's global API hosts and has no option to
-    change them, so it doesn't fit a space on Contentful's EU data residency,
-    which is served from separate hosts like{" "}
-    <code>preview.eu.contentful.com</code>. And if everyone who writes your
-    docs works in Git, plain Markdown files are simpler: that's Blume's
-    default, with no CMS at all.
+    Contentful's editor: a change shows up after a sync or a rebuild. A space
+    on Contentful's EU data residency is served from separate hosts, so set
+    the source's <code>host</code> to <code>cdn.eu.contentful.com</code> and
+    its <code>previewHost</code> to <code>preview.eu.contentful.com</code>.
+    And if everyone who writes your docs works in Git, plain Markdown files
+    are simpler: that's Blume's default, with no CMS at all.
   </p>
 
   <h2>Model technical documentation in Contentful</h2>
@@ -261,8 +260,9 @@ export default defineConfig({
     prefix, so <code>install</code> becomes <code>/guides/install</code>. A
     slug with slashes nests, and the slug <code>index</code> becomes the
     landing page at <code>/guides</code>. The pages sit in a sidebar group of
-    their own, sorted by title, since the source has no order field. To read
-    a locale other than your space's default, set <code>locale</code>.
+    their own, sorted by title; to order them, add a number field to Doc and
+    name it in <code>fields.order</code>. To read a locale other than your
+    space's default, set <code>locale</code>.
   </p>
 
   <h2>How rich text maps to docs pages</h2>
@@ -297,6 +297,10 @@ export default defineConfig({
           An image loaded from Contentful's CDN, with the asset's description
           (or its title) as alt text
         </td>
+      </tr>
+      <tr>
+        <td>Any other embedded file, like a PDF</td>
+        <td>A link to the file, labeled with its title or file name</td>
       </tr>
       <tr>
         <td>An embedded code block entry</td>
@@ -532,13 +536,9 @@ npx blume preview`}
   </p>
   <h3>A code block or image shows in preview but not on the live site</h3>
   <p>
-    The page is published, but the entry or asset it embeds isn't. Publish
-    it, and the next build includes it.
-  </p>
-  <h3>An embedded file shows as a broken image</h3>
-  <p>
-    Every embedded asset becomes an image, including a PDF or a ZIP. Embed
-    only images, and link other files with a link to the asset instead.
+    The page is published, but the entry or asset it embeds isn't, and the
+    build warns <code>BLUME_SOURCE_UNRESOLVED_LINK</code> naming its ID.
+    Publish it, and the next build includes it.
   </p>
   <h3>A code block is missing even in preview</h3>
   <p>

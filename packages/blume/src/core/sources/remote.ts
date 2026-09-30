@@ -3,6 +3,7 @@ import { join } from "pathe";
 import { BlumeError } from "../diagnostics.ts";
 import matter from "../frontmatter.ts";
 import { neutralizeUnsafeLinks } from "../safe-links.ts";
+import type { Diagnostic } from "../types.ts";
 import {
   hashText,
   loadWithCache,
@@ -10,7 +11,7 @@ import {
   snapshotCache,
 } from "./cache.ts";
 import type { JsonObject, JsonValue } from "./json.ts";
-import { asString, getPath, isStringValue } from "./json.ts";
+import { asNumber, asString, getPath, isStringValue } from "./json.ts";
 import { slugify, slugifyPath } from "./normalize.ts";
 import type {
   ContentSource,
@@ -28,8 +29,15 @@ export interface RemoteSourceOptions {
    * offline warning.
    */
   assertConfigured?: () => void;
-  /** Pull every entry from the API; called on refresh and on each poll. */
-  fetchEntries: () => Promise<SourceEntry[]>;
+  /**
+   * Pull every entry from the API; called on refresh and on each poll.
+   * `warn` reports a problem with the content itself (an embed the API
+   * couldn't resolve, a node with no Markdown), which the load returns
+   * beside the entries; a load served from the snapshot repeats none.
+   */
+  fetchEntries: (
+    warn: (diagnostic: Diagnostic) => void
+  ) => Promise<SourceEntry[]>;
   name: string;
   /** Opt-in dev polling interval (seconds); omit to freeze for the session. */
   pollInterval?: number;
@@ -57,14 +65,24 @@ export const remoteSource = (
     refresh = ctx?.refresh ?? true
   ): Promise<SourceLoadResult> => {
     options.assertConfigured?.();
+    // Set only once a fetch succeeds, so a failed one that falls back to the
+    // snapshot reports nothing about pages it never delivered.
+    let warnings: Diagnostic[] = [];
     const result = await loadWithCache(
       options.name,
       cache,
-      options.fetchEntries,
+      async () => {
+        const found: Diagnostic[] = [];
+        const entries = await options.fetchEntries((diagnostic) => {
+          found.push(diagnostic);
+        });
+        warnings = found;
+        return entries;
+      },
       refresh
     );
     snapshot = new Map(result.entries.map((entry) => [entry.ref, entry]));
-    return result;
+    return { ...result, diagnostics: [...result.diagnostics, ...warnings] };
   };
 
   const read = async (ref: string): Promise<string> => {
@@ -97,6 +115,7 @@ export const remoteSource = (
 export interface RemoteFrontmatter {
   description?: string;
   draft?: boolean;
+  sidebar?: { order: number };
   title?: string;
 }
 
@@ -198,24 +217,32 @@ export interface RemoteFieldMap {
   description?: string;
   /** Field holding the last-modified ISO date. */
   lastModified?: string;
+  /** Field holding the sidebar order (a number); no default. */
+  order?: string;
   /** Field holding the route slug. */
   slug?: string;
   /** Field holding the page title. */
   title?: string;
 }
 
+/** A field map with its defaults filled in; `order` is read only when set. */
+export type RemoteFields = Required<Omit<RemoteFieldMap, "order">> &
+  Pick<RemoteFieldMap, "order">;
+
 /**
  * Map a document to a staged entry. The slug falls back to the document's id
  * when the slug field is missing or slugifies to nothing (pure punctuation),
  * so distinct documents never collapse onto one `untitled.md`; a slashed
- * slug keeps its segments. A string body is Markdown and passes through as
+ * slug keeps its segments. A number in the `order` field, when one is
+ * mapped, becomes the page's sidebar order. A string body is Markdown and
+ * passes through as
  * `.md`, its unsafe links reduced to their labels; any other shape goes to
  * the CMS's lowerer, and is written as `.mdx`
  * when `lowersToMdx` (the source has serializers, see `writesMdx`).
  */
 export const documentEntry = (
   doc: JsonObject,
-  fields: Required<RemoteFieldMap>,
+  fields: RemoteFields,
   id: string,
   lower: (body: JsonValue) => string,
   draft = false,
@@ -234,6 +261,10 @@ export const documentEntry = (
   }
   if (draft) {
     data.draft = true;
+  }
+  const order = fields.order ? asNumber(getPath(doc, fields.order)) : undefined;
+  if (order !== undefined) {
+    data.sidebar = { order };
   }
   const body = getPath(doc, fields.body);
   let markdown = "";

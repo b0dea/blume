@@ -195,7 +195,13 @@ plain **bold** *em* \`x*y\` ~~old~~ under [site](https://x.dev) entry [file](htt
       assetFromEntry({
         fields: { description: "Desc", file: { url: "/f.png" } },
       })
-    ).toStrictEqual({ description: "Desc", title: undefined, url: "/f.png" });
+    ).toStrictEqual({
+      contentType: undefined,
+      description: "Desc",
+      fileName: undefined,
+      title: undefined,
+      url: "/f.png",
+    });
     expect(assetFromEntry({ fields: {} })).toBeNull();
     expect(
       contentfulRichTextToMarkdown(
@@ -217,6 +223,33 @@ plain **bold** *em* \`x*y\` ~~old~~ under [site](https://x.dev) entry [file](htt
         ])
       )
     ).toBe("![Only](/f.png)\n");
+  });
+
+  it("links an embedded file that isn't an image", () => {
+    const file = (fields: JsonObject): JsonObject =>
+      node("embedded-asset-block", [], {
+        target: {
+          fields: {
+            file: {
+              contentType: "application/pdf",
+              fileName: "guide.pdf",
+              url: "//assets.ctfassets.net/s/guide.pdf",
+            },
+            ...fields,
+          },
+          sys: { id: "pdf" },
+        },
+      });
+    expect(
+      contentfulRichTextToMarkdown(
+        node("document", [file({ title: "The [guide]" }), file({})])
+      )
+    ).toBe(
+      String.raw`[The \[guide\]](https://assets.ctfassets.net/s/guide.pdf)
+
+[guide.pdf](https://assets.ctfassets.net/s/guide.pdf)
+`
+    );
   });
 });
 
@@ -313,6 +346,105 @@ describe("contentfulSource", () => {
     });
     expect(calls[1]?.url.searchParams.get("skip")).toBe("2");
     expect(calls[0]?.headers.get("authorization")).toBe("Bearer delivery");
+  });
+
+  it("warns about links the response didn't include, and resolves embeds of its own items", async () => {
+    const body = node("document", [
+      node("embedded-asset-block", [], link("gone-asset", "Asset")),
+      node("embedded-entry-block", [], link("gone-entry", "Entry")),
+      node("embedded-entry-block", [], link("gone-entry", "Entry")),
+      // `includes` never repeats an entry `items` holds.
+      node("embedded-entry-block", [], link("b", "Entry")),
+    ]);
+    const { fetchImpl } = recordingFetch(() => ({
+      items: [entry("a", { body, slug: "a" }), entry("b", { title: "B" })],
+      total: 2,
+    }));
+    const source = contentfulSource(
+      {
+        contentType: "doc",
+        fetchImpl,
+        name: "g",
+        serializers: {
+          doc: (linked) =>
+            `<Card title="${asString(getPath(linked, "fields.title")) ?? ""}" />`,
+        },
+        space: "s",
+        token: "delivery",
+      },
+      ctxFor(await tempDir("contentful-unresolved"))
+    );
+    const { diagnostics, entries } = await source.load();
+    expect(entries[0]?.body.text).toBe(
+      '{/* unsupported Contentful embedded entry */}\n\n{/* unsupported Contentful embedded entry */}\n\n<Card title="B" />\n'
+    );
+    // One warning per missing target, however often the page links it.
+    expect(diagnostics.map((d) => [d.code, d.message])).toStrictEqual([
+      [
+        "BLUME_SOURCE_UNRESOLVED_LINK",
+        `Source "g": "a.mdx" links to Contentful asset "gone-asset", which the response didn't include, so the page renders without it.`,
+      ],
+      [
+        "BLUME_SOURCE_UNRESOLVED_LINK",
+        `Source "g": "a.mdx" links to Contentful entry "gone-entry", which the response didn't include, so the page renders without it.`,
+      ],
+    ]);
+  });
+
+  it("reads an EU data residency space from its hosts", async () => {
+    const { calls, fetchImpl } = recordingFetch(() => ({
+      items: [],
+      total: 0,
+    }));
+    const options = {
+      contentType: "doc",
+      fetchImpl,
+      host: "cdn.eu.contentful.com",
+      name: "g",
+      previewHost: "preview.eu.contentful.com",
+      previewToken: "preview",
+      space: "s",
+      token: "delivery",
+    };
+    await contentfulSource(
+      options,
+      ctxFor(await tempDir("contentful-eu"))
+    ).load();
+    await contentfulSource(
+      options,
+      ctxFor(await tempDir("contentful-eu"), { preview: true })
+    ).load();
+    expect(calls.map((call) => call.url.origin)).toStrictEqual([
+      "https://cdn.eu.contentful.com",
+      "https://preview.eu.contentful.com",
+    ]);
+  });
+
+  it("reads the sidebar order from a mapped field", async () => {
+    const { fetchImpl } = recordingFetch(() => ({
+      items: [
+        entry("a", { position: 3, slug: "a" }),
+        entry("b", { position: "3", slug: "b" }),
+      ],
+      total: 2,
+    }));
+    const source = contentfulSource(
+      {
+        contentType: "doc",
+        fetchImpl,
+        fields: { order: "position" },
+        name: "g",
+        space: "s",
+        token: "delivery",
+      },
+      ctxFor(await tempDir("contentful-order"))
+    );
+    const { entries } = await source.load();
+    // Only a number is an order.
+    expect(entries.map((e) => e.data)).toStrictEqual([
+      { sidebar: { order: 3 } },
+      {},
+    ]);
   });
 
   it("reads drafts through the Preview API under --preview", async () => {

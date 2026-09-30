@@ -2,7 +2,7 @@ import type { JsonObject } from "./json.ts";
 import { asObject, asString, isJsonObject, objectsIn } from "./json.ts";
 import { lexicalToMarkdown } from "./lexical.ts";
 import { writesMdx } from "./lower.ts";
-import type { RemoteFieldMap, RestClient } from "./remote.ts";
+import type { RemoteFieldMap, RemoteFields, RestClient } from "./remote.ts";
 import {
   documentEntry,
   fetchJson,
@@ -44,7 +44,7 @@ export interface PayloadSourceOptions {
 
 const PAGE_SIZE = 100;
 
-const DEFAULT_FIELDS: Required<RemoteFieldMap> = {
+const DEFAULT_FIELDS: RemoteFields = {
   body: "content",
   description: "description",
   lastModified: "updatedAt",

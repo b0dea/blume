@@ -1,4 +1,5 @@
 import { BlumeError } from "../diagnostics.ts";
+import type { Diagnostic } from "../types.ts";
 import {
   assetFromEntry,
   contentfulRichTextToMarkdown,
@@ -13,7 +14,7 @@ import {
   objectsIn,
 } from "./json.ts";
 import { writesMdx } from "./lower.ts";
-import type { RemoteFieldMap, RestClient } from "./remote.ts";
+import type { RemoteFieldMap, RemoteFields, RestClient } from "./remote.ts";
 import {
   documentEntry,
   fetchJson,
@@ -30,6 +31,16 @@ export interface ContentfulSourceOptions {
   space: string;
   /** Environment id; default `master`. */
   environment?: string;
+  /**
+   * Delivery API host name; default `cdn.contentful.com`. A space with EU
+   * data residency reads from `cdn.eu.contentful.com`.
+   */
+  host?: string;
+  /**
+   * Preview API host name for `--preview`; default `preview.contentful.com`
+   * (`preview.eu.contentful.com` for EU data residency).
+   */
+  previewHost?: string;
   /** The content type id whose entries become pages. */
   contentType: string;
   /** Locale code to fetch; omit for the space's default locale. */
@@ -54,11 +65,11 @@ export interface ContentfulSourceOptions {
   fetchImpl?: typeof fetch;
 }
 
-const DELIVERY_HOST = "https://cdn.contentful.com";
-const PREVIEW_HOST = "https://preview.contentful.com";
+const DELIVERY_HOST = "cdn.contentful.com";
+const PREVIEW_HOST = "preview.contentful.com";
 const PAGE_SIZE = 100;
 
-const DEFAULT_FIELDS: Required<RemoteFieldMap> = {
+const DEFAULT_FIELDS: RemoteFields = {
   body: "body",
   description: "description",
   lastModified: "sys.updatedAt",
@@ -87,13 +98,18 @@ export const contentfulSource = (
   const toEntry = (
     item: JsonObject,
     assets: Map<string, JsonObject>,
-    linked: Map<string, JsonObject>
+    linked: Map<string, JsonObject>,
+    warn: (diagnostic: Diagnostic) => void
   ): SourceEntry => {
     const sys = asObject(item.sys) ?? {};
     const id = asString(sys.id) ?? "";
     // Field paths resolve against the entry's fields, with `sys` beside them.
     const view: JsonObject = { ...asObject(item.fields), sys };
-    return documentEntry(
+    // Links the response left out of `includes`: the API delivers no
+    // unpublished, archived, or deleted target, and the page renders without
+    // it.
+    const missing = new Set<string>();
+    const entry = documentEntry(
       view,
       fields,
       id,
@@ -102,15 +118,35 @@ export const contentfulSource = (
           ? contentfulRichTextToMarkdown(body, {
               resolveAsset: (assetId) => {
                 const asset = assets.get(assetId);
-                return asset ? assetFromEntry(asset) : null;
+                if (!asset) {
+                  missing.add(`asset "${assetId}"`);
+                  return null;
+                }
+                return assetFromEntry(asset);
               },
-              resolveEntry: (entryId) => linked.get(entryId) ?? null,
+              resolveEntry: (entryId) => {
+                const target = linked.get(entryId);
+                if (!target) {
+                  missing.add(`entry "${entryId}"`);
+                }
+                return target ?? null;
+              },
               serializers: options.serializers,
             })
           : "",
       false,
       writesMdx(options.serializers)
     );
+    for (const link of missing) {
+      warn({
+        code: "BLUME_SOURCE_UNRESOLVED_LINK",
+        message: `Source "${options.name}": "${entry.ref}" links to Contentful ${link}, which the response didn't include, so the page renders without it.`,
+        severity: "warning",
+        suggestion:
+          "Publish the linked asset or entry, or remove the link: the Delivery API returns only published content.",
+      });
+    }
+    return entry;
   };
 
   const preview = ctx?.preview ?? false;
@@ -132,7 +168,9 @@ export const contentfulSource = (
     }
   };
 
-  const fetchEntries = async (): Promise<SourceEntry[]> => {
+  const fetchEntries = async (
+    warn: (diagnostic: Diagnostic) => void
+  ): Promise<SourceEntry[]> => {
     const token = preview
       ? previewToken()
       : (options.token ?? process.env.CONTENTFUL_ACCESS_TOKEN);
@@ -145,8 +183,10 @@ export const contentfulSource = (
       fetchImpl: options.fetchImpl,
       headers: { authorization: `Bearer ${token}` },
     };
-    const host = preview ? PREVIEW_HOST : DELIVERY_HOST;
-    const base = `${host}/spaces/${options.space}/environments/${options.environment ?? "master"}/entries`;
+    const host = preview
+      ? (options.previewHost ?? PREVIEW_HOST)
+      : (options.host ?? DELIVERY_HOST);
+    const base = `https://${host}/spaces/${options.space}/environments/${options.environment ?? "master"}/entries`;
     const entries: SourceEntry[] = [];
     let skip = 0;
     let more = true;
@@ -167,10 +207,15 @@ export const contentfulSource = (
         throw new Error("Contentful returned a non-object response");
       }
       const assets = byId(objectsIn(getPath(page, "includes.Asset")));
-      const linked = byId(objectsIn(getPath(page, "includes.Entry")));
       const items = objectsIn(page.items);
+      // `includes` leaves out an entry the page's `items` already hold, so
+      // an embed of one of those resolves from `items`.
+      const linked = byId([
+        ...objectsIn(getPath(page, "includes.Entry")),
+        ...items,
+      ]);
       for (const item of items) {
-        entries.push(toEntry(item, assets, linked));
+        entries.push(toEntry(item, assets, linked, warn));
       }
       skip += items.length;
       more = items.length > 0 && skip < (asNumber(page.total) ?? 0);
