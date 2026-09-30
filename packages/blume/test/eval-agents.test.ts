@@ -373,10 +373,15 @@ describe("prompts", () => {
   });
 
   it("evalFixPrompt points at the report and protects the evals file", () => {
-    const prompt = evalFixPrompt("/tmp/report.json");
+    const prompt = evalFixPrompt(
+      "/tmp/report.json",
+      "blume eval --agent claude --file qa.yaml"
+    );
     expect(prompt).toContain("/tmp/report.json");
     expect(prompt).toContain("Never delete questions");
-    expect(prompt).toContain("blume eval");
+    expect(prompt).toContain(
+      "run `blume eval --agent claude --file qa.yaml` to verify"
+    );
   });
 
   it("initPrompt names the target file and the format", () => {

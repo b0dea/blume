@@ -94,7 +94,7 @@ Each failure names the missing facts and the page that should state them. To han
 blume eval --fix
 ```
 
-This writes the full JSON report to a file and opens the agent interactively with a prompt that walks it through each failed question: read the named page, add the missing facts in the page's voice, and rerun `blume eval` until everything passes. The session is interactive by design — you review the edits through the agent's own permission flow — and the agent is told never to delete questions or weaken expected facts to get to green.
+This writes the full JSON report to a file and opens the agent interactively with a prompt that walks it through each failed question: read the named page, add the missing facts in the page's voice, and rerun `blume eval` with the run's own `--agent`, `--file`, `--threshold`, and `--timeout` until everything passes. The session is interactive by design — you review the edits through the agent's own permission flow — and the agent is told never to delete questions or weaken expected facts to get to green.
 
 ## Flags
 

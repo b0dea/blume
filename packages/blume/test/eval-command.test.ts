@@ -220,8 +220,36 @@ describe("blume eval", () => {
       join(root, "interactive-prompt.txt"),
       "utf-8"
     );
-    expect(prompt).toContain("blume eval");
+    expect(prompt).toContain("run `blume eval --agent claude` to verify");
     expect(prompt).toContain("report.json");
+  });
+
+  it("tells the --fix agent to rerun with the run's own flags", async () => {
+    const root = await fixture({
+      ...PROJECT_FILES,
+      "qa evals.yaml": EVALS,
+    });
+    const bin = await fakeClaude(root);
+    const { exitCode } = await runClaude(
+      root,
+      bin,
+      { FAKE_VERDICT: FAIL_VERDICT },
+      "--file",
+      "qa evals.yaml",
+      "--threshold",
+      "0.5",
+      "--timeout",
+      "60",
+      "--fix"
+    );
+    expect(exitCode).toBe(0);
+    const prompt = await readFile(
+      join(root, "interactive-prompt.txt"),
+      "utf-8"
+    );
+    expect(prompt).toContain(
+      "run `blume eval --agent claude --file 'qa evals.yaml' --threshold 0.5 --timeout 60` to verify"
+    );
   });
 
   it("errors clearly without an evals file", async () => {
