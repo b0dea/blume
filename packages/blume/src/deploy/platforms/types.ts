@@ -133,6 +133,9 @@ export interface DeployPlatform {
   serverClientUnderBase: boolean;
   /** Where a server build's deploy bundle lands. */
   serverOutputDir: (context: ProjectContext) => string;
-  /** The directory a server build serves as static files. */
-  serverStaticDir: (context: ProjectContext) => string;
+  /**
+   * The directory a server build serves as static files, given the normalized
+   * `deployment.base` for a platform that serves them from `<dir>/<base>/`.
+   */
+  serverStaticDir: (context: ProjectContext, base: string) => string;
 }

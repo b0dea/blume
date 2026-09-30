@@ -3,6 +3,7 @@ import { cp, mkdir, rm } from "node:fs/promises";
 
 import { dirname, join } from "pathe";
 
+import { normalizeBasePath } from "../core/base-path.ts";
 import type { ResolvedConfig } from "../core/schema.ts";
 import type { ProjectContext } from "../core/types.ts";
 import type { ResolvedDeployment } from "./adapters/registry.ts";
@@ -29,8 +30,9 @@ export const deployOutputDir = (
  * artifacts (robots.txt, sitemap.xml, llms.txt, …) must be written here to be
  * served. A static build serves `dist/` wherever it lands; a server build
  * serves what its platform declares — the Build Output tree's `static/` half
- * on Vercel, Astro's `build.client` dir (`dist/client/`) on Node and
- * Cloudflare, `dist/` on Netlify.
+ * on Vercel (its `<base>/` directory under `deployment.base`), Astro's
+ * `build.client` dir (`dist/client/`) on Node and Cloudflare, `dist/` on
+ * Netlify.
  */
 export const deployStaticDir = (
   config: ResolvedConfig,
@@ -38,7 +40,10 @@ export const deployStaticDir = (
 ): string => {
   const { deployment } = config;
   return deployment.options.output === "server"
-    ? deployPlatform(deployment).serverStaticDir(context)
+    ? deployPlatform(deployment).serverStaticDir(
+        context,
+        normalizeBasePath(deployment.options.base)
+      )
     : distDir(context);
 };
 

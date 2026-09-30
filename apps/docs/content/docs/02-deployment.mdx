@@ -78,7 +78,7 @@ deployment: {
 }
 ```
 
-`base` (and `site`) are options of every host adapter too: `vercel({ base: "/docs" })`.
+`base` (and `site`) are options of every host adapter too: `vercel({ base: "/docs" })`. `@astrojs/vercel` ignores the base, so a `vercel()` server build moves the static files to `.vercel/output/static/docs/` and the routes and redirects in `.vercel/output/config.json` under `/docs` itself.
 
 Every page keeps its own path under the base, even in a content folder that shares the base's name: with `base: "/docs"`, `docs/setup.md` is served at `/docs/docs/setup`, and its canonical URL, sidebar link, and `llms.txt` entry point there. A root-relative link you write that already starts with the base is taken to include it and left as written, so link to that page with a relative link (`./docs/setup`) or its full path (`/docs/docs/setup`).
 
