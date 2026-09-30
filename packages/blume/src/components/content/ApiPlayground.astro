@@ -46,6 +46,7 @@ const tryIt = spec.playground !== "simple" && api.playground.enabled;
       model={model}
       operation={`${spec.method} ${spec.target}`}
       proxy={api.playground.proxy}
+      proxyConfig="api"
       slug="api-pages"
     />
   )
