@@ -6,6 +6,8 @@ import type { SearchFn, SearchHit } from "./types.ts";
  * that holds the secret key and talks to the service. The returned hits carry
  * service-derived text and the dialog injects title/excerpt as HTML, so both
  * are escaped (and query matches marked) here, like every other provider.
+ * A failed request rejects, as a hosted provider's does, so the dialog shows
+ * its error rather than an empty "no results".
  */
 export const createSearch =
   (opts: { api: string }): SearchFn =>
@@ -16,7 +18,9 @@ export const createSearch =
       method: "POST",
     });
     if (!response.ok) {
-      return { hits: [], sections: [] };
+      throw new Error(
+        `Search failed: ${opts.api} answered ${response.status}.`
+      );
     }
     // SAFETY: the endpoint is Blume-generated (`search-endpoint` template) and
     // responds with the SearchHit list it built; title/excerpt are still

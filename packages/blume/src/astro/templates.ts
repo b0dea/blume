@@ -41,6 +41,7 @@ import type {
   ResolvedSearchAdapter,
   SearchAdapterKind,
 } from "../search/adapters/registry.ts";
+import type { SourcePage } from "../search/source-pages.ts";
 import { buildFontEntries, fontLocaleCodes } from "../theme/fonts.ts";
 import { importSpecifier, wrapperPropsType } from "./component-slots.ts";
 import type { ExampleSpec } from "./examples.ts";
@@ -1687,14 +1688,17 @@ export const createSearch = () => create({ url });
 /**
  * Generate the Mixedbread search endpoint (`/api/search`). It holds the secret
  * key server-side and proxies semantic queries to the configured store. The
- * adapter's options are inlined as a literal so the route never imports the
- * config. The result mapping is best-effort and may need tuning to how your
- * content was synced (see the Mixedbread sync step / \`mxbai vs sync\`).
+ * adapter's options are inlined as literals so the route never imports the
+ * config. `pages` (see `sourcePages`) maps each source file to its page: a
+ * chunk links to the page whose file `mxbai store sync` uploaded it from,
+ * found by the longest trailing run of the path the CLI recorded.
  */
 export const mixedbreadSearchEndpointTemplate = (
   options: MixedbreadOptions,
+  pages: [string, SourcePage][],
   rateLimit?: RateLimitAdapter | null
 ): string => {
+  const { search_options: tuning, storeId, ...searchOptions } = options;
   const limit = rateLimitTemplate(rateLimit, "search");
   const imports = [
     'import type { APIRoute } from "astro";',
@@ -1709,9 +1713,26 @@ ${imports.join("\n")}
 export const prerender = false;
 
 const client = new Mixedbread({ apiKey: getSecret("MIXEDBREAD_API_KEY") ?? "" });
-const OPTIONS = ${JSON.stringify(options)};
-// Every option besides the store reaches the search call verbatim.
-const { storeId: STORE_ID, ...SEARCH_OPTIONS } = OPTIONS;
+const STORE_ID = ${JSON.stringify(storeId)};
+// Every other option reaches the search call verbatim.
+const SEARCH_OPTIONS = ${JSON.stringify(searchOptions)};
+const SEARCH_TUNING = ${JSON.stringify(tuning ?? {})};
+// Each page's source file, relative to the project root, and the page it renders.
+const PAGES = new Map<string, { title: string; url: string }>(${JSON.stringify(pages)});
+
+// The page a synced file renders. \`mxbai store sync\` records the path
+// relative to where it ran (the project root, or a monorepo root above it), so
+// the longest trailing run of that path that names a page's file wins.
+const pageFor = (path: string) => {
+  const segments = path.replaceAll("\\\\", "/").split("/");
+  for (let start = 0; start < segments.length; start += 1) {
+    const page = PAGES.get(segments.slice(start).join("/"));
+    if (page) {
+      return page;
+    }
+  }
+  return undefined;
+};
 ${limit.setup}
 export const POST: APIRoute = async (context) => {
   const { request } = context;
@@ -1737,23 +1758,32 @@ ${limit.check}  // A search body is one short query: read it under a 16 KB cap, 
     });
   }
   // \`top_k\` defaults to 8 unless an option sets it; the query and store
-  // always come from the request and \`storeId\`.
+  // always come from the request and \`storeId\`. File metadata is always
+  // returned: it holds the path \`mxbai store sync\` recorded for the file.
   const response = await client.stores.search({
     top_k: 8,
     ...SEARCH_OPTIONS,
     query,
+    search_options: { ...SEARCH_TUNING, return_metadata: true },
     store_identifiers: [STORE_ID],
   });
-  const hits = (response.data ?? []).map((chunk) => {
+  const seen = new Set<string>();
+  const hits = (response.data ?? []).flatMap((chunk) => {
+    const { file_path: path } = (chunk.metadata ?? {}) as { file_path?: unknown };
+    const page = typeof path === "string" ? pageFor(path) : undefined;
+    // A file no page renders has nowhere to link, and a page's later chunks
+    // would repeat it: one hit per page, at its best chunk.
+    if (!page || seen.has(page.url)) {
+      return [];
+    }
+    seen.add(page.url);
     const meta = chunk.generated_metadata ?? {};
     // Only a text chunk carries \`text\`; image, audio, and video chunks fall
     // back to the excerpt the store generated for them.
     const text = "text" in chunk ? chunk.text : undefined;
-    return {
-      excerpt: text ?? meta.excerpt ?? "",
-      title: meta.title ?? chunk.filename ?? "",
-      url: meta.url ?? "",
-    };
+    return [
+      { excerpt: text ?? meta.excerpt ?? "", title: page.title, url: page.url },
+    ];
   });
   return new Response(JSON.stringify(hits), {
     headers: { "Content-Type": "application/json" },

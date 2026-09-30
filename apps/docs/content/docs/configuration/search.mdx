@@ -223,7 +223,9 @@ Typesense's default tokenizer splits text on spaces, so in Chinese, Japanese, or
 
 ### Mixedbread
 
-Semantic search via [Mixedbread](https://www.mixedbread.com). Queries are proxied through a generated `/api/search` endpoint that holds your key, so this adapter **requires server output**: a host adapter such as `deployment: vercel()` from `blume/deploy` (see [Server rendering](/docs/deployment#server-rendering)). The endpoint reads `MIXEDBREAD_API_KEY`. Sync your content to the store with the Mixedbread CLI in your build, e.g. `mxbai vs sync <STORE_ID> ./content --ci`.
+Semantic search via [Mixedbread](https://www.mixedbread.com). Queries are proxied through a generated `/api/search` endpoint that holds your key, so this adapter **requires server output**: a host adapter such as `deployment: vercel()` from `blume/deploy` (see [Server rendering](/docs/deployment#server-rendering)). The endpoint reads `MIXEDBREAD_API_KEY`. Blume doesn't upload to the store: sync your content folder with the [Mixedbread CLI](https://www.npmjs.com/package/@mixedbread/cli) as part of your build, e.g. `mxbai store sync <STORE_ID> ./docs --yes` (the CLI reads its key from `MXBAI_API_KEY`).
+
+Each result links to the page its file renders, found by the path the CLI records for the file, so run the sync from your project root or a folder above it, such as a monorepo root. A page appears once, at its best-matching passage, and passages from files that aren't pages, or from pages excluded from search, are left out.
 
 ```ts blume.config.ts lineNumbers
 import { mixedbread } from "blume/search";

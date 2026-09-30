@@ -88,6 +88,7 @@ import {
 import { buildReferenceFiles } from "../openapi/scalar.ts";
 import { isOpenApiSource } from "../openapi/source.ts";
 import { buildSearchDocuments } from "../search/documents.ts";
+import { sourcePages } from "../search/source-pages.ts";
 import {
   examplesEntryTemplate,
   tailwindEntryTemplate,
@@ -914,6 +915,7 @@ export const eject = async (
     files.push({
       content: mixedbreadSearchEndpointTemplate(
         searchAdapter.options,
+        sourcePages(project),
         config.rateLimit
       ),
       path: join(srcDir, "pages", "api", "search.ts"),

@@ -321,13 +321,14 @@ describe("server-proxied search endpoint", () => {
     globalThis.fetch = originalFetch;
   });
 
-  it("returns an empty result when the endpoint responds non-ok", async () => {
+  it("rejects when the endpoint responds non-ok, so the dialog shows an error", async () => {
     // SAFETY: the stub covers the single search request; fetch's extra
     // properties (preconnect) are never touched.
     globalThis.fetch = ((_input) =>
       Promise.resolve(new Response("boom", { status: 500 }))) as typeof fetch;
-    const result = await createSearch({ api: "/api/search" })("q");
-    expect(result).toStrictEqual({ hits: [], sections: [] });
+    await expect(createSearch({ api: "/api/search" })("q")).rejects.toThrow(
+      "/api/search answered 500"
+    );
   });
 
   it("caps the server's hits at the search limit on success", async () => {

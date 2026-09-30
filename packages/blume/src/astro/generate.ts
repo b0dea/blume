@@ -102,6 +102,7 @@ import { isOpenApiSource } from "../openapi/source.ts";
 import { registry } from "../registry/registry.ts";
 import { buildSearchDocuments } from "../search/documents.ts";
 import { resolveSearchPopular } from "../search/popular.ts";
+import { sourcePages } from "../search/source-pages.ts";
 import {
   examplesEntryTemplate,
   tailwindEntryTemplate,
@@ -2320,7 +2321,10 @@ export const generateRuntime = async (
   if (searchAdapter.kind === "mixedbread") {
     await write(
       join(srcDir, "pages", "api", "search.ts"),
-      mixedbreadSearchEndpointTemplate(searchAdapter.options)
+      mixedbreadSearchEndpointTemplate(
+        searchAdapter.options,
+        sourcePages(project)
+      )
     );
   }
 

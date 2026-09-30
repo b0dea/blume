@@ -2506,22 +2506,23 @@ describe("static endpoint templates", () => {
   });
 
   it("proxies mixedbread queries with the store id and every other option", () => {
-    const out = mixedbreadSearchEndpointTemplate({
-      search_options: { rerank: true },
-      storeId: "store_42",
-      top_k: 3,
-    });
-    expect(out).toContain(
-      'const OPTIONS = {"search_options":{"rerank":true},"storeId":"store_42","top_k":3}'
+    const out = mixedbreadSearchEndpointTemplate(
+      {
+        search_options: { rerank: true },
+        storeId: "store_42",
+        top_k: 3,
+      },
+      [["docs/index.md", { title: "Home", url: "/" }]]
     );
+    expect(out).toContain('const STORE_ID = "store_42";');
+    expect(out).toContain('const SEARCH_OPTIONS = {"top_k":3};');
+    expect(out).toContain('const SEARCH_TUNING = {"rerank":true};');
+    expect(out).toContain('[["docs/index.md",{"title":"Home","url":"/"}]]');
     // Every option but the store reaches the search call: `top_k` only
     // defaults to 8, while the query and store stay the request's and
-    // `storeId`'s.
+    // `storeId`'s, and file metadata is always returned.
     expect(out).toContain(
-      "const { storeId: STORE_ID, ...SEARCH_OPTIONS } = OPTIONS;"
-    );
-    expect(out).toContain(
-      "client.stores.search({\n    top_k: 8,\n    ...SEARCH_OPTIONS,\n    query,\n    store_identifiers: [STORE_ID],\n  })"
+      "client.stores.search({\n    top_k: 8,\n    ...SEARCH_OPTIONS,\n    query,\n    search_options: { ...SEARCH_TUNING, return_metadata: true },\n    store_identifiers: [STORE_ID],\n  })"
     );
   });
 
@@ -2867,6 +2868,7 @@ describe(rateLimitTemplate, () => {
     expect(proxy).toContain("return handler(context.request);");
     const search = mixedbreadSearchEndpointTemplate(
       { storeId: "s" },
+      [],
       upstash()
     );
     expect(search.match(/from "astro:env\/server"/gu)).toHaveLength(1);

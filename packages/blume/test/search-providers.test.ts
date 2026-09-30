@@ -463,17 +463,21 @@ describe("searchClientTemplate", () => {
 
 describe("mixedbreadSearchEndpointTemplate", () => {
   it("reads the secret from the environment and inlines the options", () => {
-    const endpoint = mixedbreadSearchEndpointTemplate({
-      storeId: "store-123",
-    });
+    const endpoint = mixedbreadSearchEndpointTemplate(
+      { storeId: "store-123" },
+      []
+    );
     expect(endpoint).toContain('import { getSecret } from "astro:env/server"');
     expect(endpoint).toContain('getSecret("MIXEDBREAD_API_KEY")');
-    expect(endpoint).toContain('const OPTIONS = {"storeId":"store-123"};');
+    expect(endpoint).toContain('const STORE_ID = "store-123";');
     expect(endpoint).toContain("export const prerender = false;");
   });
 
   it("reads the request body under a cap before parsing it", () => {
-    const endpoint = mixedbreadSearchEndpointTemplate({ storeId: "store-123" });
+    const endpoint = mixedbreadSearchEndpointTemplate(
+      { storeId: "store-123" },
+      []
+    );
     expect(endpoint).toContain(
       'import { readCappedText } from "blume/core/request-body.ts";'
     );
