@@ -6,6 +6,7 @@ import { join } from "pathe";
 
 import { specIssues } from "../src/openapi/checks.ts";
 import type { ApiDocument } from "../src/openapi/model.ts";
+import { parseSpec } from "../src/openapi/parse.ts";
 import { openApiSource } from "../src/openapi/source.ts";
 
 /** Any value a parsed YAML/JSON document can hold. */
@@ -206,6 +207,50 @@ describe("specIssues: security schemes", () => {
         security: [null],
       })
     ).toStrictEqual([]);
+  });
+});
+
+describe("specIssues: x-webhooks", () => {
+  const hook = { newPet: { post: { summary: "New pet" } } };
+
+  it("flags x-webhooks in a spec that wasn't upgraded from 3.0", () => {
+    expect(
+      specIssues(asDocument({ openapi: "3.1.0", "x-webhooks": hook }))
+    ).toStrictEqual([
+      {
+        code: "BLUME_OPENAPI_X_WEBHOOKS",
+        message:
+          "The spec declares its webhooks under `x-webhooks`, the extension OpenAPI 3.0 tools read. Blume reads it only from a 3.0 spec, which it upgrades, so these webhooks are missing from the reference.",
+        suggestion:
+          "Rename `x-webhooks` to `webhooks`, the field OpenAPI 3.1 added for them.",
+      },
+    ]);
+  });
+
+  it("stays quiet when webhooks sits beside it", () => {
+    expect(
+      codes({ openapi: "3.1.0", webhooks: hook, "x-webhooks": hook })
+    ).toStrictEqual([]);
+  });
+
+  it("stays quiet for a 3.0 spec, whose upgrade renames it", async () => {
+    const dir = await mkdtemp(join(tmpdir(), "blume-openapi-checks-"));
+    try {
+      await writeFile(
+        join(dir, "spec.json"),
+        JSON.stringify({
+          info: { title: "Pets", version: "1" },
+          openapi: "3.0.3",
+          paths: {},
+          "x-webhooks": hook,
+        })
+      );
+      const { document } = await parseSpec("spec.json", dir);
+      expect(Object.keys(document.webhooks ?? {})).toStrictEqual(["newPet"]);
+      expect(specIssues(document)).toStrictEqual([]);
+    } finally {
+      await rm(dir, { force: true, recursive: true });
+    }
   });
 });
 

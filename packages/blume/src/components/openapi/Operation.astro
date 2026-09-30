@@ -182,6 +182,8 @@ interface CallbackEntry {
   method: string;
   name: string;
   operation: FullOperation;
+  /** The callback path item's own parameters, which each method inherits. */
+  pathParameters?: ParameterLike[];
 }
 
 // Callbacks: for each named callback (resolved through
@@ -206,6 +208,10 @@ const callbacks: CallbackEntry[] = Object.entries(
               // SAFETY: a path item's method entry is an operation object; the
               // object check above guards a spec that put a scalar there.
               operation: entry as FullOperation,
+              // SAFETY: the object check above passed, and a path item's
+              // `parameters` is a parameter list, which `mergeParameters`
+              // reads the way it reads an operation's.
+              pathParameters: (item as PathItemLike).parameters,
             },
           ]
         : [];
@@ -213,8 +219,13 @@ const callbacks: CallbackEntry[] = Object.entries(
   });
 });
 
-/** A callback's request body and responses, `$ref`s resolved. */
+/** A callback's parameters, request body, and responses, `$ref`s resolved. */
 const callbackParts = (entry: CallbackEntry) => ({
+  parameters: mergeParameters(
+    entry.pathParameters,
+    entry.operation.parameters,
+    components
+  ),
   requestBody: entry.operation.requestBody
     ? resolveComponentRef(entry.operation.requestBody, components, "requestBodies")
     : undefined,
@@ -303,6 +314,11 @@ const callbackParts = (entry: CallbackEntry) => ({
                           text={entry.operation.description}
                         />
                       )}
+                      <ParametersTable
+                        level={4}
+                        parameters={parts.parameters}
+                        schemas={schemas}
+                      />
                       {parts.requestBody && (
                         <RequestBody
                           direction="response"

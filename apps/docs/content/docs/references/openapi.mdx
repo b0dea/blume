@@ -275,7 +275,9 @@ webhooks:
           description: Return a 200 to acknowledge the event.
 ```
 
-An operation's [`callbacks`](https://spec.openapis.org/oas/v3.1.0#callback-object), the requests your API makes back to a URL the caller supplied, render in a **Callbacks** section on that operation's page. Each shows the URL expression (`{$request.body#/callbackUrl}`), its method, its request body, and its expected responses. Callbacks declared under `components.callbacks` and referenced with `$ref` work the same way.
+A 3.0 spec's webhooks under the `x-webhooks` extension become `webhooks` when Blume upgrades the spec to 3.1. A spec already at 3.1 or later isn't upgraded, so webhooks it still keeps under `x-webhooks` render nothing, with a [`BLUME_OPENAPI_X_WEBHOOKS`](#spec-warnings) warning: rename the field to `webhooks`.
+
+An operation's [`callbacks`](https://spec.openapis.org/oas/v3.1.0#callback-object), the requests your API makes back to a URL the caller supplied, render in a **Callbacks** section on that operation's page. Each shows the URL expression (`{$request.body#/callbackUrl}`), its method, its parameters (a signature header, say), its request body, and its expected responses. Callbacks declared under `components.callbacks` and referenced with `$ref` work the same way.
 
 Webhook pages are real pages: they're in search, `llms.txt`, and the MCP server, and their Markdown tells agents it's a request the API sends, so an agent won't try to call it.
 
@@ -289,6 +291,7 @@ Blume doesn't validate a spec against the OpenAPI schema: run a linter such as [
 | `BLUME_OPENAPI_PATH_PARAMETER_UNUSED` | An `in: path` parameter has no `{name}` in the path, so the value Try it asks for never reaches the URL. |
 | `BLUME_OPENAPI_UNKNOWN_SECURITY_SCHEME` | A `security` requirement names a scheme that `components.securitySchemes` doesn't define, so the [Authorization](#authorization) section can't describe it and requests send no credential for it. |
 | `BLUME_OPENAPI_UNSUPPORTED` | The spec uses an [OpenAPI 3.2](#openapi-32) feature Blume doesn't render yet: `additionalOperations`, which leaves those operations out, or an `in: querystring` parameter, which leaves the query string out of the page, Try it, and the code samples. |
+| `BLUME_OPENAPI_X_WEBHOOKS` | A 3.1 or later spec keeps its webhooks under `x-webhooks`, the extension 3.0 tools read, and has no `webhooks`, so none of them render. Rename the field to `webhooks`. |
 | `BLUME_OPENAPI_REF_PATH_ITEM` | A path or webhook is a `$ref` to a shared path item, such as one under `components.pathItems`. Blume doesn't resolve these, so its operations are missing from the reference. Inline the path item under `paths` or `webhooks`; its schemas, parameters, and responses can stay `$ref`s. |
 
 ## Embedding Scalar instead

@@ -178,12 +178,31 @@ const additionalOperationsIssue = (
 });
 
 /**
+ * A root `x-webhooks` and no `webhooks`. It's the extension OpenAPI 3.0 tools
+ * read for webhooks, and upgrading a 3.0 spec renames it to `webhooks`; a spec
+ * already at 3.1 or later isn't upgraded, so it stays an extension and its
+ * webhooks would be missing without a sign.
+ */
+const xWebhooksIssues = (document: ApiDocument): SpecIssue[] =>
+  "x-webhooks" in document && document.webhooks === undefined
+    ? [
+        {
+          code: "BLUME_OPENAPI_X_WEBHOOKS",
+          message:
+            "The spec declares its webhooks under `x-webhooks`, the extension OpenAPI 3.0 tools read. Blume reads it only from a 3.0 spec, which it upgrades, so these webhooks are missing from the reference.",
+          suggestion:
+            "Rename `x-webhooks` to `webhooks`, the field OpenAPI 3.1 added for them.",
+        },
+      ]
+    : [];
+
+/**
  * Check a parsed document for the mistakes above, and for the OpenAPI 3.2
  * features Blume doesn't render yet. `$ref` path items are skipped: the
  * extractor already reports them as missing from the reference.
  */
 export const specIssues = (document: ApiDocument): SpecIssue[] => {
-  const issues: SpecIssue[] = [];
+  const issues: SpecIssue[] = [...xWebhooksIssues(document)];
   // Scheme name -> the operations whose own `security` lists it.
   const requirers = new Map<string, string[]>();
   const visit = (name: string, item: PathItem, webhook: boolean): void => {
