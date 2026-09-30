@@ -399,10 +399,12 @@ const negotiateMarkdown =
       if (homeLinkHeader && isHomeUrl(req.url)) {
         res.setHeader("Link", homeLinkHeader);
       }
-      if (prefersMarkdown(req.headers.accept)) {
-        const variant = markdownVariantUrl(req.url, contentRoutes);
-        if (variant) {
-          res.setHeader("Vary", "Accept");
+      const variant = markdownVariantUrl(req.url, contentRoutes);
+      if (variant) {
+        // Both answers at a negotiated URL depend on `Accept`, the HTML one
+        // too, so a cache never hands one client's variant to the other.
+        res.setHeader("Vary", "Accept");
+        if (prefersMarkdown(req.headers.accept)) {
           req.url = variant;
         }
       }

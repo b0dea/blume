@@ -18,18 +18,94 @@
 
 import { SVG_ASSET_HEADERS } from "./headers.ts";
 
-/**
- * Regex for the `accept` header condition. Written to hold under both matching
- * semantics a router may apply — full-string and substring — by anchoring the
- * end and letting `(.*,)?` absorb any earlier list entries: it requires a
- * `text/markdown` or `text/x-markdown` entry terminated by `;`, `,`, or the end
- * of the header. Kept lookaround-free so it stays valid in RE2, and lowercase
- * only — real agents send lowercase media types, and q-values are not compared
- * (a client sending `text/markdown` at `q=0` is pathological). Browsers never
- * send `text/markdown`, so ordinary page requests are unaffected.
+/*
+ * The `accept` header conditions. Dev and the Cloudflare Worker negotiate the
+ * way `prefersMarkdown` (`astro/markdown-negotiation.ts`) does: media types in
+ * any case, and Markdown only when its q-value is above zero and at least
+ * HTML's. A routing condition is a regex over the whole header, with no
+ * arithmetic, so the comparison is spelled as two routes per rewrite:
+ *
+ * - a Markdown entry at full weight (no q-value, or `q=1`) always wins, since
+ *   nothing can outrank it;
+ * - a Markdown entry below full weight wins only when the header has no
+ *   `text/html` entry above zero (a `missing` condition), since two q-values
+ *   below 1 can't be compared. That case, like `text/markdown;q=0.9,
+ *   text/html;q=0.8`, gets HTML on Vercel where dev and Cloudflare send
+ *   Markdown.
+ *
+ * Every pattern is anchored at both ends and lets `(?:.*,)?` absorb the
+ * earlier list entries, so it holds under full-string and substring matching
+ * alike. Case-insensitivity is spelled out letter by letter and the patterns
+ * are lookaround-free, so they read the same in RE2, PCRE, and JavaScript.
+ * Like dev, only the first `q=` parameter of an entry counts, and a `q=`
+ * value is read as a decimal. Browsers never send `text/markdown`, so
+ * ordinary page requests are unaffected.
  */
-export const ACCEPT_MARKDOWN_HEADER_VALUE =
-  "(.*,)?\\s*text/(x-)?markdown(\\s*[;,].*)?$";
+
+/** `word` in any case, one character class per letter: `[Tt][Ee][Xx][Tt]`. */
+const anyCase = (word: string): string =>
+  word.replaceAll(/[a-z]/gu, (letter) => `[${letter.toUpperCase()}${letter}]`);
+
+/** An entry's parameters before its first `q=`: any that isn't one. */
+const OTHER_PARAMS = String.raw`(?:;\s*(?:[^\sq;,][^;,]*|q(?:[^=;,][^;,]*)?)?)*`;
+
+/** Everything after an entry's first `q=` value, up to the next entry. */
+const LATER_PARAMS = "(?:;[^,]*)?";
+
+/** A `q=` value of 1 or more: full weight. */
+const FULL_WEIGHT = String.raw`0*[1-9][0-9]*(?:\.[0-9]*)?`;
+
+/** A `q=` value above zero and below 1. */
+const PARTIAL_WEIGHT = String.raw`0*\.[0-9]*[1-9][0-9]*`;
+
+/** A `q=` value that isn't zero: it has a character besides `0` and `.`. */
+const NONZERO_WEIGHT = String.raw`[\s0.]*[^\s0.;,][^;,]*`;
+
+/** A header with an entry of `type` weighed by `weight`, or by no `q=` when it's optional. */
+const acceptEntry = (type: string, weight: string, optional: boolean) =>
+  String.raw`^(?:.*,)?\s*${type}\s*${OTHER_PARAMS}(?:;\s*q=\s*${weight}\s*${LATER_PARAMS})${optional ? "?" : ""}(?:,.*)?$`;
+
+/** A header with a `type` entry at full weight. */
+const fullWeight = (type: string) => acceptEntry(type, FULL_WEIGHT, true);
+
+/** A header with a `type` entry weighed above zero and below 1. */
+const partialWeight = (type: string) =>
+  acceptEntry(type, PARTIAL_WEIGHT, false);
+
+/** A header with a `text/html` entry weighed above zero. */
+const ACCEPT_HTML = acceptEntry(anyCase("text/html"), NONZERO_WEIGHT, true);
+
+const MARKDOWN_TYPE = `${anyCase("text/")}(?:${anyCase("x-")})?${anyCase("markdown")}`;
+
+const JSON_TYPE = `${anyCase("application/")}(?:${anyCase("problem")}\\+)?${anyCase("json")}`;
+
+/** One header condition on a Build Output route. */
+export interface VercelCondition {
+  key?: string;
+  type: string;
+  value?: string;
+}
+
+/** The conditions of one route: all of `has`, none of `missing`. */
+export interface AcceptConditions {
+  has: VercelCondition[];
+  missing?: VercelCondition[];
+}
+
+const accept = (value: string): VercelCondition => ({
+  key: "accept",
+  type: "header",
+  value,
+});
+
+/** The pair of conditions a route answering `type` is written once for each. */
+const preferring = (type: string): AcceptConditions[] => [
+  { has: [accept(fullWeight(type))] },
+  { has: [accept(partialWeight(type))], missing: [accept(ACCEPT_HTML)] },
+];
+
+/** When a client prefers `text/markdown` (or `text/x-markdown`) over HTML. */
+export const ACCEPT_MARKDOWN_CONDITIONS = preferring(MARKDOWN_TYPE);
 
 /**
  * The JSON counterpart, for the problem-details 404: `application/json` or
@@ -37,8 +113,7 @@ export const ACCEPT_MARKDOWN_HEADER_VALUE =
  * (the catch-all wildcard does not match), so ordinary page requests are
  * unaffected.
  */
-export const ACCEPT_JSON_HEADER_VALUE =
-  "(.*,)?\\s*application/(problem\\+)?json(\\s*[;,].*)?$";
+export const ACCEPT_JSON_CONDITIONS = preferring(JSON_TYPE);
 
 /**
  * A Build Output API route — the subset these helpers read and write. Parsed
@@ -49,23 +124,29 @@ export interface VercelRoute {
   continue?: boolean;
   dest?: string;
   handle?: string;
-  has?: { key?: string; type: string; value?: string }[];
+  has?: VercelCondition[];
   headers?: Record<string, string>;
+  missing?: VercelCondition[];
   src?: string;
   status?: number;
 }
+
+/** `route` once per condition pair, so it fires when either holds. */
+const conditioned = (
+  route: VercelRoute,
+  conditions: readonly AcceptConditions[]
+): VercelRoute[] => conditions.map((condition) => ({ ...route, ...condition }));
 
 /** Whether a parsed route field is a real string (the config is raw JSON). */
 const isString = (value: string | undefined): value is string =>
   typeof value === "string";
 
-const ACCEPT_MARKDOWN_CONDITION: VercelRoute["has"] = [
-  { key: "accept", type: "header", value: ACCEPT_MARKDOWN_HEADER_VALUE },
-];
-
-const ACCEPT_JSON_CONDITION: VercelRoute["has"] = [
-  { key: "accept", type: "header", value: ACCEPT_JSON_HEADER_VALUE },
-];
+/** The Markdown conditions' `has` values, to recognize a route this module wrote. */
+const MARKDOWN_VALUES = new Set(
+  ACCEPT_MARKDOWN_CONDITIONS.flatMap(({ has }) =>
+    has.map((condition) => condition.value)
+  )
+);
 
 const VARY_ACCEPT = { vary: "Accept" };
 
@@ -88,13 +169,15 @@ const NOT_FOUND_HTML_DEST = "/404.html";
  * request one of those would have answered.
  */
 const NOT_FOUND_MARKDOWN_ROUTES: readonly VercelRoute[] = [
-  {
-    dest: NOT_FOUND_MARKDOWN_DEST,
-    has: ACCEPT_MARKDOWN_CONDITION,
-    headers: VARY_ACCEPT,
-    src: "^/.*$",
-    status: 404,
-  },
+  ...conditioned(
+    {
+      dest: NOT_FOUND_MARKDOWN_DEST,
+      headers: VARY_ACCEPT,
+      src: "^/.*$",
+      status: 404,
+    },
+    ACCEPT_MARKDOWN_CONDITIONS
+  ),
   { dest: NOT_FOUND_MARKDOWN_DEST, src: "^/.*\\.mdx?$", status: 404 },
 ];
 
@@ -106,13 +189,15 @@ const NOT_FOUND_MARKDOWN_ROUTES: readonly VercelRoute[] = [
  * has already had its turn.
  */
 const NOT_FOUND_JSON_ROUTES: readonly VercelRoute[] = [
-  {
-    dest: NOT_FOUND_JSON_DEST,
-    has: ACCEPT_JSON_CONDITION,
-    headers: VARY_ACCEPT,
-    src: "^/.*$",
-    status: 404,
-  },
+  ...conditioned(
+    {
+      dest: NOT_FOUND_JSON_DEST,
+      headers: VARY_ACCEPT,
+      src: "^/.*$",
+      status: 404,
+    },
+    ACCEPT_JSON_CONDITIONS
+  ),
   { dest: NOT_FOUND_JSON_DEST, src: "^/.*\\.json$", status: 404 },
 ];
 
@@ -203,25 +288,29 @@ export const buildNegotiationRoutes = (
   const chunks = chunkPatterns(rest);
 
   const rewriteRoutes: VercelRoute[] = home
-    ? [
+    ? conditioned(
         {
           dest: "/index.md",
-          has: ACCEPT_MARKDOWN_CONDITION,
           headers:
             homeTokens === undefined
               ? VARY_ACCEPT
               : { ...VARY_ACCEPT, "x-markdown-tokens": String(homeTokens) },
           src: "^/$",
         },
-      ]
+        ACCEPT_MARKDOWN_CONDITIONS
+      )
     : [];
   for (const chunk of chunks) {
-    rewriteRoutes.push({
-      dest: "$1.md",
-      has: ACCEPT_MARKDOWN_CONDITION,
-      headers: VARY_ACCEPT,
-      src: `^(${chunk.join("|")})/?$`,
-    });
+    rewriteRoutes.push(
+      ...conditioned(
+        {
+          dest: "$1.md",
+          headers: VARY_ACCEPT,
+          src: `^(${chunk.join("|")})/?$`,
+        },
+        ACCEPT_MARKDOWN_CONDITIONS
+      )
+    );
   }
 
   const headerChunks = chunkPatterns(home ? ["/", ...rest] : rest);
@@ -292,9 +381,8 @@ const isCorsRoute = (route: VercelRoute): boolean =>
  * their `/404.md` destination.
  */
 const isNegotiationRoute = (route: VercelRoute): boolean =>
-  route.has?.some(
-    (condition) => condition.value === ACCEPT_MARKDOWN_HEADER_VALUE
-  ) === true ||
+  route.has?.some((condition) => MARKDOWN_VALUES.has(condition.value)) ===
+    true ||
   (route.dest === NOT_FOUND_MARKDOWN_DEST && route.status === 404) ||
   (route.dest === NOT_FOUND_JSON_DEST && route.status === 404) ||
   (route.continue === true &&
