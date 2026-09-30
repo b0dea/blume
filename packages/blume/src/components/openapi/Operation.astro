@@ -131,6 +131,10 @@ const params = mergeParameters(
 const requestBody = operation?.requestBody
   ? resolveComponentRef(operation.requestBody, components, "requestBodies")
   : undefined;
+// A request body table leaves out `readOnly` fields. A webhook's or
+// callback's body is a request the API sends, so it reads like a response
+// (and like its payload example): `readOnly` fields in, `writeOnly` out.
+const bodyDirection = isWebhook ? "response" : "request";
 const responses = Object.fromEntries(
   Object.entries(operation?.responses ?? {}).map(([status, response]) => [
     status,
@@ -253,6 +257,7 @@ const callbackParts = (entry: CallbackEntry) => ({
           <ParametersTable parameters={params} schemas={schemas} />
           {requestBody && (
             <RequestBody
+              direction={bodyDirection}
               expandAll={spec.expandSchemas}
               requestBody={requestBody}
               schemas={schemas}
@@ -300,6 +305,7 @@ const callbackParts = (entry: CallbackEntry) => ({
                       )}
                       {parts.requestBody && (
                         <RequestBody
+                          direction="response"
                           expandAll={spec.expandSchemas}
                           level={4}
                           requestBody={parts.requestBody}

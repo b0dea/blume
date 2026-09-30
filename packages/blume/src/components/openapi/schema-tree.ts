@@ -98,13 +98,32 @@ interface PendingRef {
   slot: SchemaSlot;
 }
 
-/** Plan the table tree for one schema (a request body, a response, a payload). */
+/**
+ * Which way a schema's data travels, when its table has one: a request body
+ * leaves out the `readOnly` fields the server generates, and a response the
+ * `writeOnly` ones it never returns, as the examples beside them do.
+ */
+export type SchemaDirection = "request" | "response";
+
+/**
+ * Plan the table tree for one schema (a request body, a response, a payload).
+ * With a `direction`, every table in the tree leaves out the fields that
+ * don't travel that way.
+ */
 export const schemaTree = (
   root: SchemaLike,
-  schemas: Record<string, SchemaLike>
+  schemas: Record<string, SchemaLike>,
+  direction?: SchemaDirection
 ): SchemaNode => {
   const queue: PendingRef[] = [];
   const expanded = new Set<string>();
+  const omitted = direction === "request" ? "readOnly" : "writeOnly";
+
+  /** Whether a property stays out of this tree's tables. */
+  const hidden = (property: SchemaLike): boolean =>
+    direction !== undefined &&
+    (property[omitted] === true ||
+      resolveSchema(schemas, property)[omitted] === true);
 
   /**
    * A table for `schema`, where `ancestors` are the named schemas already
@@ -156,12 +175,14 @@ export const schemaTree = (
         : undefined;
     };
     const { properties, required } = objectProperties(schema, schemas);
-    const rows: SchemaRow[] = properties.map(([name, property]) => ({
-      children: rowChildren(property),
-      name,
-      required: required.has(name),
-      schema: property,
-    }));
+    const rows: SchemaRow[] = properties
+      .filter(([, property]) => !hidden(property))
+      .map(([name, property]) => ({
+        children: rowChildren(property),
+        name,
+        required: required.has(name),
+        schema: property,
+      }));
     // Shared properties beside a `oneOf`/`anyOf` (`amount` and `currency`
     // next to `Card | BankAccount`) render above the variants, planned first
     // as they read first.

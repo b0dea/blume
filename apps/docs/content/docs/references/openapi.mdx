@@ -92,6 +92,8 @@ Every sample is plain, copy-pasteable code for the request, written with the lan
 
 Each value is quoted by its own language's rules, so a header like `If-Match: "33a64df5"` or a body with a `$` in it reaches the API as written.
 
+Schema tables follow the way the data travels, as the examples do: a request body leaves out `readOnly` properties, which the server sets, and a response leaves out `writeOnly` ones, which it never returns. A [webhook or callback](#webhooks-and-callbacks) body is a request your API sends, so it reads like a response.
+
 ### Your own samples
 
 To show your SDK instead of a raw HTTP call, add `x-codeSamples` to an operation in the spec. It's the extension Redocly defined, and Speakeasy and Stainless can write it for you. Each entry takes a `lang`, the `source`, and an optional `label`:
