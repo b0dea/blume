@@ -1,7 +1,8 @@
 /**
  * Contentful rich text → Markdown. Covers the block, inline, and mark types
  * the Rich Text editor emits; embedded entries fall through to a serializer
- * keyed by content type or are noted in a comment. Links to assets and
+ * keyed by content type or are noted in a comment, and a link to an entry
+ * points at its page when the source says it has one. Links to assets and
  * entries arrive unresolved from the Delivery API (`data.target` is a
  * `sys` link), so the source hands in resolvers over the response's
  * `includes`; a document the SDK already resolved (with `fields` inline)
@@ -36,6 +37,11 @@ export interface ContentfulAsset {
 }
 
 export interface ContentfulRichTextOptions {
+  /**
+   * The route of a linked entry's page; an entry hyperlink to an entry with
+   * none keeps only its text.
+   */
+  entryHref?: (entry: JsonObject) => string | undefined;
   /** Resolve an asset link (`data.target.sys.id`) to its file. */
   resolveAsset?: (id: string) => ContentfulAsset | null;
   /** Resolve an entry link to the entry (`sys` plus `fields`). */
@@ -171,11 +177,16 @@ const inlineNodeParts = (
         linkedAsset(node, options)?.url
       );
     }
+    case "entry-hyperlink": {
+      const entry = linkedTarget(node, options.resolveEntry);
+      const href = entry ? options.entryHref?.(entry) : undefined;
+      return linkParts(inlineParts(children(node), options), href);
+    }
     case "embedded-entry-inline": {
       return [{ markdown: embeddedEntry(node, options) }];
     }
     default: {
-      // entry-hyperlink (no route to point at) and anything unknown: the label.
+      // Anything unknown: the label.
       return inlineParts(children(node), options);
     }
   }

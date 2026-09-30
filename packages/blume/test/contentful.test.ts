@@ -9,6 +9,7 @@ import {
 import { contentfulSource } from "../src/core/sources/contentful.ts";
 import type { JsonObject, JsonValue } from "../src/core/sources/json.ts";
 import { asString, getPath } from "../src/core/sources/json.ts";
+import { normalizeEntry } from "../src/core/sources/normalize.ts";
 import { resolveSources } from "../src/core/sources/resolve.ts";
 import { contentful } from "../src/sources/contentful.ts";
 import {
@@ -50,6 +51,12 @@ const resolvedAsset: JsonObject = {
   },
   sys: { id: "asset-1", type: "Asset" },
 };
+
+/** An entry whose slug is its id. */
+const slugEntry = (id: string): JsonObject => ({
+  fields: { slug: id },
+  sys: { id, type: "Entry" },
+});
 
 describe("contentfulRichTextToMarkdown", () => {
   it("renders the block, inline, and mark types the editor emits", () => {
@@ -225,6 +232,57 @@ plain **bold** *em* \`x*y\` ~~old~~ under [site](https://x.dev) entry [file](htt
     ).toBe("![Only](/f.png)\n");
   });
 
+  it("links an entry hyperlink to the route entryHref gives it", () => {
+    const md = contentfulRichTextToMarkdown(
+      node("document", [
+        paragraph(
+          node("entry-hyperlink", [text("Install", "bold")], {
+            target: slugEntry("install"),
+          }),
+          text(" "),
+          node("entry-hyperlink", [text("resolved")], link("setup", "Entry")),
+          text(" "),
+          node("entry-hyperlink", [text("no route")], link("other", "Entry")),
+          text(" "),
+          node("entry-hyperlink", [text("missing")], link("gone", "Entry")),
+          text(" "),
+          // A node the lowering doesn't know keeps its text too.
+          node("resource-hyperlink", [text("resource")], {
+            target: {
+              sys: {
+                linkType: "Contentful:Entry",
+                type: "ResourceLink",
+                urn: "crn:contentful:::content:spaces/other/entries/e1",
+              },
+            },
+          })
+        ),
+      ]),
+      {
+        entryHref: (entry) =>
+          getPath(entry, "sys.id") === "other"
+            ? undefined
+            : `/guides/${asString(getPath(entry, "fields.slug")) ?? ""}`,
+        resolveEntry: (id) => (id === "gone" ? null : slugEntry(id)),
+      }
+    );
+    expect(md).toBe(
+      "[**Install**](/guides/install) [resolved](/guides/setup) no route missing resource\n"
+    );
+    // Without entryHref, every entry hyperlink keeps only its text.
+    expect(
+      contentfulRichTextToMarkdown(
+        node("document", [
+          paragraph(
+            node("entry-hyperlink", [text("text")], {
+              target: slugEntry("install"),
+            })
+          ),
+        ])
+      )
+    ).toBe("text\n");
+  });
+
   it("links an embedded file that isn't an image", () => {
     const file = (fields: JsonObject): JsonObject =>
       node("embedded-asset-block", [], {
@@ -389,6 +447,145 @@ describe("contentfulSource", () => {
         `Source "g": "a.mdx" links to Contentful entry "gone-entry", which the response didn't include, so the page renders without it.`,
       ],
     ]);
+  });
+
+  it("links an entry hyperlink to its page when the source builds one", async () => {
+    const hyperlink = (id: string, label: string): JsonObject =>
+      node("entry-hyperlink", [text(label)], link(id, "Entry"));
+    const body = node("document", [
+      paragraph(
+        hyperlink("b", "same response"),
+        text(", "),
+        hyperlink("c", "next page"),
+        text(", "),
+        hyperlink("d", "no slug"),
+        text(", "),
+        hyperlink("note-1", "other type"),
+        text(", "),
+        hyperlink("filtered", "filtered out"),
+        text(", "),
+        hyperlink("gone", "unpublished")
+      ),
+    ]);
+    const note: JsonObject = {
+      fields: { label: "Careful" },
+      sys: { contentType: { sys: { id: "callout" } }, id: "note-1" },
+    };
+    const later = [entry("c", { slug: "SDK/Set up" }), entry("d", {})];
+    const { fetchImpl } = recordingFetch(({ url }): JsonValue => {
+      if (url.searchParams.get("skip") === "0") {
+        return {
+          // `includes` carries the entries a later page delivers, and one of
+          // the source's own type that `params` keeps off the site; never
+          // one this page's `items` hold.
+          includes: {
+            Entry: [note, ...later, entry("filtered", { slug: "hidden" })],
+          },
+          items: [
+            entry("a", { body, slug: "intro" }),
+            entry("b", { slug: "install" }),
+          ],
+          total: 4,
+        };
+      }
+      return { items: later, total: 4 };
+    });
+    const source = contentfulSource(
+      {
+        contentType: "doc",
+        fetchImpl,
+        name: "guides",
+        params: { "fields.section": "sdk" },
+        prefix: "guides",
+        space: "s",
+        token: "delivery",
+      },
+      ctxFor(await tempDir("contentful-hyperlink"))
+    );
+    const { diagnostics, entries } = await source.load();
+    expect(entries.map((e) => e.ref)).toStrictEqual([
+      "intro.md",
+      "install.md",
+      "sdk/set-up.md",
+      "d.md",
+    ]);
+    // Each link matches the page its entry is staged as, under the prefix.
+    expect(entries[0]?.body.text).toBe(
+      "[same response](/guides/install), [next page](/guides/sdk/set-up), [no slug](/guides/d), other type, filtered out, unpublished\n"
+    );
+    // An unpublished target warns like an unpublished embed.
+    expect(diagnostics.map((d) => [d.code, d.message])).toStrictEqual([
+      [
+        "BLUME_SOURCE_UNRESOLVED_LINK",
+        `Source "guides": "intro.md" links to Contentful entry "gone", which the response didn't include, so the page renders without it.`,
+      ],
+    ]);
+  });
+
+  it("links an entry hyperlink to the route the page publishes at, drafts included", async () => {
+    const body = node("document", [
+      paragraph(
+        node("entry-hyperlink", [text("Setup")], link("setup", "Entry")),
+        text(" / "),
+        node("entry-hyperlink", [text("Accueil")], link("fr-home", "Entry")),
+        text(" / "),
+        node("entry-hyperlink", [text("v1")], link("old", "Entry"))
+      ),
+    ]);
+    // Under --preview the Preview API answers, drafts among its entries, and
+    // they link the same way.
+    const { calls, fetchImpl } = recordingFetch(() => ({
+      items: [
+        entry("home", { body, slug: "index" }),
+        entry("setup", { slug: "setup" }),
+        entry("fr-home", { slug: "fr/index" }),
+        entry("old", { slug: "v1/setup" }),
+      ],
+      total: 4,
+    }));
+    const { i18n, versions } = blumeConfigSchema.parse({
+      i18n: {
+        defaultLocale: "en",
+        hideDefaultLocalePrefix: false,
+        locales: [
+          { code: "en", label: "English" },
+          { code: "fr", label: "Français" },
+        ],
+      },
+      versions: { archived: [{ id: "v1" }], current: { label: "v2" } },
+    });
+    const source = contentfulSource(
+      {
+        contentType: "doc",
+        fetchImpl,
+        i18n,
+        name: "cms",
+        prefix: "cms",
+        previewToken: "preview",
+        space: "s",
+        versions,
+      },
+      ctxFor(await tempDir("contentful-hyperlink-routes"), { preview: true })
+    );
+    const { entries } = await source.load();
+    expect(calls[0]?.url.origin).toBe("https://preview.contentful.com");
+    // The routes the pipeline gives the linked pages.
+    const routes = new Map(
+      entries.flatMap((staged) =>
+        normalizeEntry(staged, {
+          defaultType: "docs",
+          i18n,
+          source: { name: "cms", prefix: "cms", staged: true },
+          versions,
+        }).pages.map((page) => [staged.ref, page.route])
+      )
+    );
+    expect(routes.get("setup.md")).toBe("/en/cms/setup");
+    expect(routes.get("fr/index.md")).toBe("/fr/cms");
+    expect(routes.get("v1/setup.md")).toBe("/en/v1/cms/setup");
+    expect(entries[0]?.body.text).toBe(
+      "[Setup](/en/cms/setup) / [Accueil](/fr/cms) / [v1](/en/v1/cms/setup)\n"
+    );
   });
 
   it("reads an EU data residency space from its hosts", async () => {
@@ -592,5 +789,51 @@ describe("resolveSources (contentful)", () => {
     expect(sources[0]?.name).toBe("cms");
     expect(sources[0]?.staged).toBe(true);
     expect(sources[0]?.prefix).toBe("cms");
+  });
+
+  it("places entry hyperlinks by the project's i18n config", async () => {
+    const config = blumeConfigSchema.parse({
+      content: {
+        sources: [
+          contentful({ contentType: "doc", prefix: "cms", space: "s" }),
+        ],
+      },
+      i18n: {
+        defaultLocale: "en",
+        hideDefaultLocalePrefix: false,
+        locales: [
+          { code: "en", label: "English" },
+          { code: "fr", label: "Français" },
+        ],
+      },
+    });
+    const outDir = await tempDir("contentful-resolve");
+    const [source] = resolveSources(
+      config,
+      { ...projectContext, outDir, root: outDir },
+      { mode: "build" }
+    );
+    const { fetchImpl } = recordingFetch(() => ({
+      items: [
+        entry("a", {
+          body: node("document", [
+            paragraph(node("entry-hyperlink", [text("B")], link("b", "Entry"))),
+          ]),
+          slug: "a",
+        }),
+        entry("b", { slug: "b" }),
+      ],
+      total: 2,
+    }));
+    const original = globalThis.fetch;
+    globalThis.fetch = fetchImpl;
+    try {
+      await withEnv("CONTENTFUL_ACCESS_TOKEN", "delivery", async () => {
+        const { entries } = (await source?.load()) ?? { entries: [] };
+        expect(entries[0]?.body.text).toBe("[B](/en/cms/b)\n");
+      });
+    } finally {
+      globalThis.fetch = original;
+    }
   });
 });

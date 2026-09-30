@@ -230,15 +230,27 @@ export type RemoteFields = Required<Omit<RemoteFieldMap, "order">> &
   Pick<RemoteFieldMap, "order">;
 
 /**
- * Map a document to a staged entry. The slug falls back to the document's id
- * when the slug field is missing or slugifies to nothing (pure punctuation),
- * so distinct documents never collapse onto one `untitled.md`; a slashed
- * slug keeps its segments. A number in the `order` field, when one is
- * mapped, becomes the page's sidebar order. A string body is Markdown and
- * passes through as
- * `.md`, its unsafe links reduced to their labels; any other shape goes to
- * the CMS's lowerer, and is written as `.mdx`
- * when `lowersToMdx` (the source has serializers, see `writesMdx`).
+ * The slug a document's staged entry is named by. It falls back to the
+ * document's id when the slug field is missing or slugifies to nothing (pure
+ * punctuation), so distinct documents never collapse onto one
+ * `untitled.md`; a slashed slug keeps its segments.
+ */
+export const documentSlug = (
+  doc: JsonObject,
+  slugField: string,
+  id: string
+): string =>
+  slugifyPath(asString(getPath(doc, slugField)) ?? id) ||
+  slugify(id) ||
+  "untitled";
+
+/**
+ * Map a document to a staged entry named by its {@link documentSlug}. A
+ * number in the `order` field, when one is mapped, becomes the page's
+ * sidebar order. A string body is Markdown and passes through as `.md`, its
+ * unsafe links reduced to their labels; any other shape goes to the CMS's
+ * lowerer, and is written as `.mdx` when `lowersToMdx` (the source has
+ * serializers, see `writesMdx`).
  */
 export const documentEntry = (
   doc: JsonObject,
@@ -248,8 +260,7 @@ export const documentEntry = (
   draft = false,
   lowersToMdx = false
 ): SourceEntry => {
-  const slugValue = asString(getPath(doc, fields.slug)) ?? id;
-  const slug = slugifyPath(slugValue) || slugify(id) || "untitled";
+  const slug = documentSlug(doc, fields.slug, id);
   const data: RemoteFrontmatter = {};
   const title = asString(getPath(doc, fields.title));
   const description = asString(getPath(doc, fields.description));
