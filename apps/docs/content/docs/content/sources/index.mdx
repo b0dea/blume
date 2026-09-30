@@ -76,7 +76,7 @@ In dev, a remote source is served from its snapshot when it has one, so restarti
 
 Two flags control how remote content is fetched and what's included:
 
-- **`--preview`** on `blume dev` or `blume build` renders drafts and pulls unpublished CMS content — Sanity switches to its `previewDrafts` perspective, Notion stops filtering by `Status`, Contentful reads through the Preview API, and Payload and Strapi request drafts. Production builds without the flag exclude drafts as usual, so a preview build is a safe way to review unpublished work before it ships.
+- **`--preview`** on `blume dev` or `blume build` renders drafts and pulls unpublished CMS content — Sanity switches to its `previewDrafts` perspective, Contentful reads through the Preview API, and Payload and Strapi request drafts. Notion always reads every page and stages the ones whose `Status` isn't published as drafts, so `blume dev` shows them with or without the flag, and `blume build --preview` renders them. Production builds without the flag exclude drafts as usual, so a preview build is a safe way to review unpublished work before it ships.
 - **`blume sync`** re-fetches every remote source and regenerates the runtime. Dev is cache-first — a remote source is fetched once and served from `.blume/cache` on restart (fast and offline-tolerant), so `blume sync` is how you pull the latest CMS content without restarting the dev server (a running server hot-reloads). Add `--force` to drop the cache first, or set `pollInterval` on a source to refresh automatically.
 
 ```sh
