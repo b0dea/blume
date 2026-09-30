@@ -438,10 +438,13 @@ echo ".env.local" >> .gitignore`}
   <p>
     Where Blume has no Markdown for a node, it writes a comment into the page
     source, like <code>&lt;!-- unsupported Lexical block: Code --&gt;</code>, and
-    nothing renders there. It doesn't warn, so the "Send a request" section is
-    missing its command, with no error. To list every such node, read the snapshot Blume
-    keeps of the source. Run this in the docs project after{" "}
-    <code>blume dev</code> or <code>blume build</code> has fetched it:
+    nothing renders there, so the "Send a request" section is missing its
+    command. The fetch that finds one warns{" "}
+    <code>BLUME_SOURCE_UNSUPPORTED_NODE</code>, naming the page and the node,
+    but a dev server serving its snapshot doesn't fetch, so doesn't repeat it.
+    To list every such node at any time, read the snapshot Blume keeps of the
+    source. Run this in the docs project after <code>blume dev</code> or{" "}
+    <code>blume build</code> has fetched it:
   </p>
   <CodeBlock
     code={`node -e '
@@ -651,7 +654,9 @@ export const Docs: CollectionConfig = {
   </p>
   <h3>A block renders as nothing</h3>
   <p>
-    It has no serializer. Serializers are keyed by the block's type, exactly as
+    It has no serializer, and the build warned{" "}
+    <code>BLUME_SOURCE_UNSUPPORTED_NODE</code> for it. Serializers are keyed
+    by the block's type, exactly as
     Payload stores it, so Payload's code block needs <code>Code</code>, not{" "}
     <code>code</code>. Run the check under{" "}
     <a href="#check-what-carried-over">Check what carried over</a> to list
