@@ -235,9 +235,11 @@ const PROMPT_CLOSE = /<\/Prompt>/u;
 // the same marker — and the only spelling that survives the MDX parser, where
 // a bare `{…}` is a JSX expression and `#id` is not a valid one (`Could not
 // parse expression with acorn`). Further bracket markers may follow the brace
-// (`{#id} [toc]`), nothing else.
+// (`{#id} [toc]`), nothing else. The spaced `{ #id }` and kramdown's
+// `{: #id }` (MkDocs `attr_list` writes both) fail the compile the same way,
+// so they match too, though neither is an anchor in `.md`.
 const BARE_CURLY_MARKER =
-  /(?<!\\)\{#(?<id>[^\s}]+)\}(?:\s*\[(?:#[^\s\]]+|!?toc)\])*\s*$/u;
+  /(?<!\\)(?<marker>\{:?\s*#(?<id>[^\s}]+)\s*\})(?:\s*\[(?:#[^\s\]]+|!?toc)\])*\s*$/u;
 
 // A raw HTML element carrying an `id` — `<a id="…">`, `<section id='…'>`,
 // the unquoted `<a id=plain>`, or the JSX spelling `<div id={"…"}>` — whose
@@ -259,6 +261,8 @@ export interface CurlyMarker {
   id: string;
   /** 1-based line of the heading (a setext heading's first text line) in the body. */
   line: number;
+  /** The braces as written (`{#id}`, `{ #id }`, `{: #id }`). */
+  marker: string;
 }
 
 /** Scanner state: the open fence plus the paragraph lines accumulated so far. */
@@ -628,9 +632,9 @@ const noteCurlyMarker = (
   line: number,
   state: HeadingScanState
 ): void => {
-  const id = text.match(BARE_CURLY_MARKER)?.groups?.id;
-  if (id !== undefined) {
-    state.curlyMarkers.push({ id, line });
+  const groups = text.match(BARE_CURLY_MARKER)?.groups;
+  if (groups?.id !== undefined && groups.marker !== undefined) {
+    state.curlyMarkers.push({ id: groups.id, line, marker: groups.marker });
   }
 };
 
@@ -1127,7 +1131,8 @@ const entryLinks = (entry: SourceEntry): PageLink[] =>
     : extractLinks(entry.body.text, entryLineOffset(entry));
 
 /**
- * Diagnostics for `{#id}` heading markers in an `.mdx` page. The MDX parser
+ * Diagnostics for `{#id}` heading markers (and the spaced `{ #id }` and
+ * kramdown `{: #id }` spellings) in an `.mdx` page. The MDX parser
  * reads a bare `{…}` as a JSX expression, so the page fails to compile —
  * reported here, at the marker's source line, instead of as a raw acorn error
  * at render time. An included `.md` partial is spliced into the including
@@ -1140,7 +1145,7 @@ const curlyMarkerDiagnostics = (
   markers: CurlyMarker[],
   sourceName: string
 ): Diagnostic[] =>
-  markers.map(({ id, line }) => {
+  markers.map(({ id, line, marker }) => {
     const origin = entry.expanded?.origins[line - 1];
     const page = entry.sourcePath ?? `${sourceName}:${entry.ref}`;
     const inPartial = origin !== undefined && origin.file !== entry.sourcePath;
@@ -1149,8 +1154,8 @@ const curlyMarkerDiagnostics = (
       file: origin?.file ?? page,
       line: origin?.line ?? line + entryLineOffset(entry),
       message: inPartial
-        ? `\`{#${id}}\` is a JSX expression once this partial is included in ${page} (.mdx), so that page fails to compile.`
-        : `\`{#${id}}\` is a JSX expression in .mdx, so this page fails to compile.`,
+        ? `\`${marker}\` is a JSX expression once this partial is included in ${page} (.mdx), so that page fails to compile.`
+        : `\`${marker}\` is a JSX expression in .mdx, so this page fails to compile.`,
       severity: "error",
       suggestion: `Write \`[#${id}]\` or escape it as \`\\{#${id}\\}\` — both pin the same anchor in .md and .mdx.`,
     };

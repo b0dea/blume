@@ -1009,13 +1009,20 @@ describe(scanBody, () => {
       "## E {#e}",
       "```",
       "## {#f}",
+      // MkDocs `attr_list` spellings fail the MDX compile the same way.
+      "## G { #g }",
+      "## H {: #h }",
+      "## I {:#i} [toc]",
     ].join("\n");
     const scan = scanBody(body);
     expect(scan.curlyMarkers).toStrictEqual([
-      { id: "a", line: 4 },
-      { id: "b", line: 6 },
-      { id: "d", line: 9 },
-      { id: "f", line: 13 },
+      { id: "a", line: 4, marker: "{#a}" },
+      { id: "b", line: 6, marker: "{#b}" },
+      { id: "d", line: 9, marker: "{#d}" },
+      { id: "f", line: 13, marker: "{#f}" },
+      { id: "g", line: 14, marker: "{ #g }" },
+      { id: "h", line: 15, marker: "{: #h }" },
+      { id: "i", line: 16, marker: "{:#i}" },
     ]);
     expect(scan.headings.map((h) => h.slug)).toContain("c");
   });

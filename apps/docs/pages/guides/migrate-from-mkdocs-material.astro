@@ -895,9 +895,10 @@ npx blume validate --strict`}
     An attribute list is still in an <code>.mdx</code> page:{" "}
     <code>{"{ .md-button }"}</code>, <code>{"{ #id }"}</code>, or{" "}
     <code>{"{ width=\"300\" }"}</code>. MDX reads braces as JavaScript. Remove
-    it, or write an anchor as <code>[#id]</code>. Blume flags an unspaced{" "}
-    <code>{"{#id}"}</code> as <code>BLUME_MDX_CURLY_ANCHOR</code> before the
-    compile, but the spaced form goes straight to the compiler.
+    it, or write an anchor as <code>[#id]</code>. Blume flags an anchor
+    written as <code>{"{#id}"}</code>, <code>{"{ #id }"}</code>, or{" "}
+    <code>{"{: #id }"}</code> as <code>BLUME_MDX_CURLY_ANCHOR</code> before
+    the compile, but other attribute lists go straight to the compiler.
   </p>
   <h3>A page fails with "to create a comment in MDX"</h3>
   <p>

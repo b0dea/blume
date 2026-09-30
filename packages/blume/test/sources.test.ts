@@ -401,6 +401,36 @@ describe("normalizeEntry", () => {
     expect(escaped.pages[0]?.headings[0]?.slug).toBe("a");
   });
 
+  it("reports the spaced and kramdown {#id} spellings as written in .mdx", () => {
+    const mdx = normalizeEntry(
+      {
+        body: { format: "mdx", text: "## A { #a }\n\n## B {: #b }\n" },
+        data: {},
+        ref: "a.mdx",
+      },
+      { defaultType: "doc", source: { name: "s", staged: false } }
+    );
+    const md = normalizeEntry(
+      { body: { format: "md", text: "## A { #a }\n" }, data: {}, ref: "a.md" },
+      { defaultType: "doc", source: { name: "s", staged: false } }
+    );
+    expect(mdx.diagnostics.map((d) => [d.message, d.suggestion])).toStrictEqual(
+      [
+        [
+          "`{ #a }` is a JSX expression in .mdx, so this page fails to compile.",
+          "Write `[#a]` or escape it as `\\{#a\\}` — both pin the same anchor in .md and .mdx.",
+        ],
+        [
+          "`{: #b }` is a JSX expression in .mdx, so this page fails to compile.",
+          "Write `[#b]` or escape it as `\\{#b\\}` — both pin the same anchor in .md and .mdx.",
+        ],
+      ]
+    );
+    // Only the unspaced `{#id}` is an anchor in .md; these stay heading text.
+    expect(md.diagnostics).toStrictEqual([]);
+    expect(md.pages[0]?.headings[0]?.text).toBe("A { #a }");
+  });
+
   it("names a path-less remote .mdx entry by source and ref in the {#id} diagnostic", () => {
     const { diagnostics } = normalizeEntry(
       { body: { format: "mdx", text: "## A {#a}\n" }, data: {}, ref: "a.mdx" },
