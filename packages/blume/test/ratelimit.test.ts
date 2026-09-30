@@ -8,6 +8,7 @@ import {
   createLimiter,
   memoryLimiter,
   rateLimited,
+  UPSTASH_COUNT_SCRIPT,
   upstashLimiter,
 } from "../src/ratelimit/runtime.ts";
 import type { RateLimitContext } from "../src/ratelimit/runtime.ts";
@@ -48,7 +49,7 @@ const clock = () => {
   };
 };
 
-/** An Upstash REST stub answering with `count` and `ttl`. */
+/** An Upstash REST stub whose script answers with `count` and `ttl`. */
 const upstashStub = (count: number | null, ttl: number, ok = true) => {
   const calls: { body: string; headers: HeadersInit; url: string }[] = [];
   const stub = (url: string | URL | Request, init?: RequestInit) => {
@@ -58,9 +59,10 @@ const upstashStub = (count: number | null, ttl: number, ok = true) => {
       url: String(url),
     });
     return Promise.resolve(
-      Response.json([{ result: "OK" }, { result: count }, { result: ttl }], {
-        status: ok ? 200 : 500,
-      })
+      Response.json(
+        { result: count === null ? null : [count, ttl] },
+        { status: ok ? 200 : 500 }
+      )
     );
   };
   // SAFETY: the limiter only calls `fetch(url, init)`, which the stub serves.
@@ -158,7 +160,7 @@ describe(memoryLimiter, () => {
 });
 
 describe(upstashLimiter, () => {
-  it("counts in one pipeline and reads the window's remaining seconds", async () => {
+  it("counts in one script and reads the window's remaining seconds", async () => {
     const stub = upstashStub(4, 42);
     const limit = upstashLimiter(
       3,
@@ -168,24 +170,33 @@ describe(upstashLimiter, () => {
       stub.fetch
     );
     expect(await limit("k")).toStrictEqual({ allowed: false, retryAfter: 42 });
-    expect(stub.calls[0]?.url).toBe("https://eu.upstash.io/pipeline");
+    expect(stub.calls[0]?.url).toBe("https://eu.upstash.io");
+    // One command, which Redis runs as one step: the key can't expire
+    // between counting and reading it, and come back with no expiry.
     expect(JSON.parse(stub.calls[0]?.body ?? "")).toStrictEqual([
-      ["SET", "k", "0", "EX", "600", "NX"],
-      ["INCR", "k"],
-      ["TTL", "k"],
+      "EVAL",
+      UPSTASH_COUNT_SCRIPT,
+      "1",
+      "k",
+      "600",
     ]);
+    // A key without an expiry, new or left behind, gets the window.
+    expect(UPSTASH_COUNT_SCRIPT).toContain("if ttl < 0 then");
+    expect(UPSTASH_COUNT_SCRIPT).toContain(
+      'redis.call("EXPIRE", KEYS[1], ARGV[1])'
+    );
     expect(stub.calls[0]?.headers).toMatchObject({
       authorization: "Bearer t0k",
     });
   });
 
-  it("falls back to the window when the key has no expiry yet", async () => {
+  it("falls back to the window when no whole second is left", async () => {
     const limit = upstashLimiter(
       3,
       600,
       "https://x",
       "t",
-      upstashStub(1, -1).fetch
+      upstashStub(1, 0).fetch
     );
     expect(await limit("k")).toStrictEqual({ allowed: true, retryAfter: 600 });
   });
