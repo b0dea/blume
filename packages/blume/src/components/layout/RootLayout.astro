@@ -911,6 +911,7 @@ const localeRedirect = localeTargets
                 (apiRail || modeLayout.width === "full") && "[&>*]:max-w-none",
                 modeLayout.width === "center" && "[&>*]:max-w-[54rem]",
               ]}
+              data-blume-page-end
             >
               {directoryGroup && <Directory group={directoryGroup} />}
               <RelatedPages links={relatedItems} title={strings.page.related} />
