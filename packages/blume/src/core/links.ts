@@ -607,6 +607,8 @@ export const validateLinks = async (
     i18n?: LocaleRouting | null;
     publicDir: string | null;
     checkExternal?: boolean;
+    /** External URLs not to request (`--ignore`). Internal links are always checked. */
+    ignore?: (url: string) => boolean;
     /** Configured redirects; their `from` paths count as valid link targets. */
     redirects?: { from: string }[];
   }
@@ -654,8 +656,11 @@ export const validateLinks = async (
     });
   }
 
-  if (options.checkExternal && external.length > 0) {
-    diagnostics.push(...(await checkExternalLinks(external)));
+  // `--ignore` names URLs that can't be checked from where this runs: a
+  // placeholder host, a local server, a site that turns bots away.
+  const probed = external.filter((ref) => !options.ignore?.(ref.url));
+  if (options.checkExternal && probed.length > 0) {
+    diagnostics.push(...(await checkExternalLinks(probed)));
   }
 
   // A partial spliced into several pages (or every locale of one) yields the

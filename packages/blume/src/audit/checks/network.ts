@@ -313,7 +313,8 @@ export const networkChecks: CheckModule = {
 };
 
 /**
- * Outbound links, probed over the network (`--external`).
+ * Outbound links, probed over the network (`--external`), except those an
+ * `--ignore` glob matches.
  *
  * Severity is graded rather than flat: a 404 is the author's bug, but a 403 or a
  * 5xx is usually rate limiting or someone else's outage, and failing a build on
@@ -332,7 +333,7 @@ export const externalChecks: CheckModule = {
     for (const page of context.pages) {
       for (const link of page.links) {
         const resolved = resolveHref(page.url, link.href, origin, deployBase);
-        if (resolved.kind !== "external") {
+        if (resolved.kind !== "external" || context.ignore(resolved.url)) {
           continue;
         }
         const pages = linkers.get(resolved.url);

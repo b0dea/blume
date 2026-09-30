@@ -435,6 +435,20 @@ describe("external checks", () => {
     expect(await run(externalChecks, ctx)).toContain("EXTERNAL_LINK_REDIRECT");
   });
 
+  it("leaves out an outbound link that --ignore matches", async () => {
+    const ctx = context({
+      ignore: (url) => url === `${ORIGIN}/gone`,
+      pages: [
+        snapshot({
+          links: [link(`${ORIGIN}/gone`), link(`${ORIGIN}/redirects`)],
+          url: "/",
+        }),
+      ],
+      site: "https://x.dev",
+    });
+    expect(await run(externalChecks, ctx)).toEqual(["EXTERNAL_LINK_REDIRECT"]);
+  });
+
   it("probes a shared outbound link once, not once per linking page", async () => {
     const ctx = context({
       pages: [

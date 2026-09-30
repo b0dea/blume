@@ -27,6 +27,7 @@ Findings are grouped by check rather than listed per page, so the report reads a
 - `--fail-on error|warning|info` — the CI gate: exit non-zero at this severity or above. Defaults to `error`; `--strict` is an alias for `--fail-on warning`.
 - `--url <origin>` — also probe a live deployment for status codes, response headers, and configured redirects.
 - `--external` — probe outbound links over the network.
+- `--ignore <glob>` — with `--external`, don't probe an outbound link whose URL matches the glob, like `--ignore "https://api.acme.example/**"`. Repeat the flag for more patterns. It matches the way [`blume validate --ignore`](/docs/cli/validate#flags) does, and internal links are always checked.
 - `--only <check|category>` / `--skip <check|category>` — narrow the report to, or away from, these checks or categories (comma-separated). A term that names no check or category is an error that suggests the closest one, so a typo can't quietly empty the report.
 - `--list-checks` — print every check the audit can report, then exit.
 - `--verbose` — list every affected page with each finding's full detail, instead of the first few.
@@ -55,7 +56,7 @@ These requests go out as a plain HTTP client, not as a crawler: the audit doesn'
 
 The audit requests every exact redirect's old URL (a pattern names no single URL to request). One that 404s is an error. One that answers 200 is a warning: a host that doesn't read the redirect file the build wrote serves the build's meta-refresh page there instead of an HTTP redirect, which readers follow but crawlers may not. See [Redirects](/docs/deployment#redirects) for what each host reads.
 
-Outbound links are graded rather than flatly failed: a 404 or 410, or a host name that doesn't resolve, is a broken link you can fix, while any other error status (a 401 or 403 from a site that turns bots away, a 429, a 5xx), a refused connection, or a timeout is usually rate limiting or someone else's outage and is reported as a warning.
+Outbound links are graded rather than flatly failed: a 404 or 410, or a host name that doesn't resolve, is a broken link you can fix, while any other error status (a 401 or 403 from a site that turns bots away, a 429, a 5xx), a refused connection, or a timeout is usually rate limiting or someone else's outage and is reported as a warning. Leave out URLs the audit can't check from where it runs, like a placeholder domain or a local server, with `--ignore`.
 
 ## Fixing the findings with an agent
 

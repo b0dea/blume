@@ -175,6 +175,26 @@ describe("validateLinks — external link probing", () => {
     ]);
   });
 
+  it("never requests a URL that --ignore matches", async () => {
+    const diagnostics = await validateLinks(
+      graphWith([
+        link("https://notfound.example"),
+        link("https://server.example", 2),
+      ]),
+      {
+        checkExternal: true,
+        ignore: (url) => url === "https://notfound.example",
+        publicDir: null,
+      }
+    );
+    expect(diagnostics.map((diagnostic) => diagnostic.message)).toStrictEqual([
+      "External link https://server.example is unreachable (HTTP 500).",
+    ]);
+    expect(calls.map((call) => call.url)).toStrictEqual([
+      "https://server.example",
+    ]);
+  });
+
   it("retries with GET when HEAD is rejected by the server", async () => {
     const diagnostics = await check([link("https://method.example")]);
     expect(diagnostics).toHaveLength(0);
