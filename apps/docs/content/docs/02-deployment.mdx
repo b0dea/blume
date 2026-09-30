@@ -18,6 +18,8 @@ sidebar:
 
 These settings work on Vercel, Netlify, Cloudflare Pages, GitHub Pages, Amazon S3 + CloudFront, or any bucket or CDN. Make sure `blume` is a dependency so the host can run the build.
 
+On Cloudflare Workers, which serves a static build as static assets, set `"html_handling": "drop-trailing-slash"` under `assets` in your Wrangler config. Blume writes each page as `<route>/index.html` and links to it without a trailing slash, and Cloudflare's default (`auto-trailing-slash`) answers `/quickstart` with a `307` to `/quickstart/`. A [`cloudflare()` server build](#server-rendering) routes every page through its Worker, which serves `/quickstart` under either setting, so there it only matters when the build warns `Could not wire Accept: text/markdown negotiation` and the static layer serves the pages itself.
+
 A static build includes:
 
 - every docs and custom page as static HTML
