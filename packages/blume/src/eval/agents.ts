@@ -192,12 +192,18 @@ const claudeArgs = (context: InvocationContext): string[] => {
   // deny list below doesn't name (`Monitor` runs shell commands, `Skill`
   // loads the user's skills), so a reader has only the docs MCP tools and the
   // judge has no tools at all. The deny list stays as a second layer.
+  // `--setting-sources ""` is codex's `--ignore-user-config`: no settings
+  // files, so the user's hooks, plugins, and CLAUDE.md can't hand the reader
+  // context the docs never gave it. Not `--bare`, which also stops reading a
+  // subscription login and fails with "Not logged in".
   const base = [
     "-p",
     "--output-format",
     "json",
     "--strict-mcp-config",
     "--tools",
+    "",
+    "--setting-sources",
     "",
   ];
   if (context.mcp) {

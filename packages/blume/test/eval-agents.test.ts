@@ -167,6 +167,8 @@ describe("agentArgs", () => {
       "--strict-mcp-config",
       "--tools",
       "",
+      "--setting-sources",
+      "",
       "--mcp-config",
       "/work/mcp-config.json",
       "--allowedTools",
@@ -194,6 +196,19 @@ describe("agentArgs", () => {
       agentArgs("claude", { lastMessagePath: "/work/verdict.txt" }),
     ]) {
       expect(args[args.indexOf("--tools") + 1]).toBe("");
+    }
+  });
+
+  it("keeps the user's Claude Code settings and CLAUDE.md out of a claude run", () => {
+    // Like codex's `--ignore-user-config`: hooks, plugins, and memory would
+    // otherwise feed the reader context the docs never gave it. Not `--bare`,
+    // which also stops reading a subscription login.
+    for (const args of [
+      agentArgs("claude", { lastMessagePath: "/work/answer.txt", mcp }),
+      agentArgs("claude", { lastMessagePath: "/work/verdict.txt" }),
+    ]) {
+      expect(args[args.indexOf("--setting-sources") + 1]).toBe("");
+      expect(args).not.toContain("--bare");
     }
   });
 
