@@ -1570,13 +1570,16 @@ describe("createAskContext", () => {
     const system = await ground([{ content: "ポイント", role: "user" }]);
     expect(system).toContain("ポイントの扱い (/ja/points)");
 
-    // A Japanese translation of an English-default site grounds it too.
+    // A Japanese translation of an English-default site grounds it too,
+    // asked from a Japanese page (a question from nowhere keeps to English).
     const translated = createAskContext({
       defaultLocale: "en",
       documents,
       site: null,
     });
-    const answer = await translated([{ content: "ポイント", role: "user" }]);
+    const answer = await translated([{ content: "ポイント", role: "user" }], {
+      path: "/ja",
+    });
     expect(answer).toContain("ポイントの扱い (/ja/points)");
   });
 
