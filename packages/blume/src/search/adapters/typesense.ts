@@ -6,12 +6,12 @@ import type { SearchAdapter } from "./types.ts";
 /**
  * Connection details for a self-hosted or cloud Typesense node. The browser
  * queries the collection with the search-only `apiKey`; the build-time sync
- * recreates the collection with `TYPESENSE_ADMIN_API_KEY`, which never enters
- * the config.
+ * rebuilds it with `TYPESENSE_ADMIN_API_KEY`, which never enters the config.
  */
 export interface TypesenseNamedOptions {
   /** The search-only API key (public — it ships to the browser). */
   apiKey: string;
+  /** The alias the sync points at each new collection, and searches read. */
   collection: string;
   host: string;
   /** Defaults to 443. */
@@ -45,8 +45,9 @@ export const typesenseOptionsSchema = z
   .catchall(z.json());
 
 /**
- * Hosted search on Typesense. Each `blume build` drops and recreates the
- * collection so deleted or renamed pages don't linger as stale hits.
+ * Hosted search on Typesense. Each `blume build` imports into a new
+ * collection and swaps the `collection` alias onto it, so deleted or renamed
+ * pages don't linger as stale hits and searches never read a partial index.
  */
 export const typesense = (options: TypesenseOptions): TypesenseAdapter => ({
   kind: "typesense",

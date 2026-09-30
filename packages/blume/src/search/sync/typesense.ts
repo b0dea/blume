@@ -10,14 +10,41 @@ export type TypesenseSyncConfig = Pick<
   "collection" | "host" | "port" | "protocol"
 >;
 
+type TypesenseClient = InstanceType<typeof TypesenseSdk.Client>;
+
 /**
- * Import the search records into a Typesense collection. Uses the admin key
- * from `TYPESENSE_ADMIN_API_KEY`. Throws on a missing key so the caller can
- * warn.
+ * The collection an alias points at, or `undefined` when there is no such
+ * alias. Only a 404 means that: any other failure (a key that can't read
+ * aliases, an outage) throws before the sync has touched anything.
+ */
+const aliasTarget = async (
+  client: TypesenseClient,
+  alias: string,
+  errors: typeof TypesenseSdk.Errors
+): Promise<string | undefined> => {
+  try {
+    const { collection_name: target } = await client.aliases(alias).retrieve();
+    return target;
+  } catch (error) {
+    if (error instanceof errors.ObjectNotFound) {
+      return undefined;
+    }
+    throw error;
+  }
+};
+
+/**
+ * Import the search records into Typesense. Uses the admin key from
+ * `TYPESENSE_ADMIN_API_KEY`. Throws on a missing key so the caller can warn.
  *
- * The collection is dropped and recreated on each sync so that pages deleted or
- * renamed since the last sync don't linger as stale search hits that 404 when
- * clicked (an upsert alone never removes them).
+ * `collection` names an alias. Each sync imports every record into a new
+ * collection (`<collection>_<timestamp>`), points the alias at it, then drops
+ * the collection it replaced: searches keep reading the previous collection
+ * until the new one is complete, pages deleted or renamed since the last sync
+ * don't linger as stale hits that 404 when clicked, and a sync that fails
+ * leaves the previous collection serving. A collection named `collection`
+ * itself, from a sync before the alias existed, is dropped just before the
+ * alias takes its name, since Typesense won't let the two share one.
  */
 export const syncTypesense = async (
   records: SearchRecord[],
@@ -29,7 +56,7 @@ export const syncTypesense = async (
   }
   // `require`, not `import()`: this runs in `astro:build:done` (see
   // `core/node-require.ts`).
-  const { Client }: typeof TypesenseSdk = nodeRequire("typesense");
+  const { Client, Errors }: typeof TypesenseSdk = nodeRequire("typesense");
   const client = new Client({
     apiKey: adminKey,
     nodes: [
@@ -41,16 +68,9 @@ export const syncTypesense = async (
     ],
   });
 
-  const collection = client.collections(config.collection);
-  let exists = true;
-  try {
-    await collection.retrieve();
-  } catch {
-    exists = false;
-  }
-  if (exists) {
-    await collection.delete();
-  }
+  const alias = config.collection;
+  const previous = await aliasTarget(client, alias, Errors);
+  const name = `${alias}_${Date.now()}`;
   await client.collections().create({
     fields: [
       { name: "title", type: "string" },
@@ -66,7 +86,7 @@ export const syncTypesense = async (
       { facet: true, name: "locale", optional: true, type: "string" },
       { facet: true, name: "version", optional: true, type: "string" },
     ],
-    name: config.collection,
+    name,
   });
 
   const documents = records.map((record) => ({
@@ -81,8 +101,31 @@ export const syncTypesense = async (
     url: record.url,
     version: record.version,
   }));
-  await client
-    .collections(config.collection)
-    .documents()
-    .import(documents, { action: "upsert" });
+  try {
+    await client
+      .collections(name)
+      .documents()
+      .import(documents, { action: "upsert" });
+  } catch (error) {
+    // Nothing reads the new collection yet: drop it, and the alias keeps
+    // serving the last complete sync.
+    await client.collections(name).delete();
+    throw error;
+  }
+
+  if (previous === undefined) {
+    let legacy = true;
+    try {
+      await client.collections(alias).retrieve();
+    } catch {
+      legacy = false;
+    }
+    if (legacy) {
+      await client.collections(alias).delete();
+    }
+  }
+  await client.aliases().upsert(alias, { collection_name: name });
+  if (previous !== undefined) {
+    await client.collections(previous).delete();
+  }
 };

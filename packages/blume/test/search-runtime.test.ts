@@ -97,10 +97,16 @@ interface ConstructedClients {
   oramaCloud?: ClientConfig;
   typesense?: ClientConfig;
 }
-interface CapturedTypesenseSync {
-  created?: boolean;
+/** What the mocked Typesense server holds, and what the sync did to it. */
+interface TypesenseServer {
+  /** The alias's collection, or the error looking it up fails with. */
+  alias?: string | Error;
+  /** A collection holds the alias's name itself (a sync from before aliases). */
+  legacy?: boolean;
+  importError?: Error;
+  /** Each call the sync made, in order, with the collection it named. */
+  calls: string[];
   schema?: TypesenseCollectionSchema;
-  deleted?: boolean;
   docs?: SyncedRecord[];
   options?: { action: string };
 }
@@ -121,15 +127,11 @@ let cloudDeploy: () => Promise<boolean>;
 let typesenseSearch: (
   params: TypesenseSearchParams
 ) => Promise<{ hits: { document: HostedRecord }[] }>;
-let typesenseRetrieve: () => Promise<Record<string, never>>;
-let typesenseCreate: (
-  schema: TypesenseCollectionSchema
-) => Promise<TypesenseCollectionSchema>;
-let typesenseImport: (
-  docs: SyncedRecord[],
-  options: { action: string }
-) => Promise<{ success: boolean }[]>;
-let typesenseDelete: () => Promise<Record<string, never>>;
+let typesenseServer: TypesenseServer = { calls: [] };
+/** The SDK's 404, which the sync reads as "no such alias". */
+class TypesenseNotFoundError extends Error {
+  override name = "TypesenseNotFoundError";
+}
 
 // Turn an object factory into a `new`-able constructor — the SDKs are used as
 // `new Client(...)` etc., and a function invoked with `new` that returns an
@@ -199,23 +201,54 @@ mockSdk("@oramacloud/client", () => ({
 }));
 // Hoisted out of the mock factory so its inner methods don't nest past the
 // four-level depth limit (mock.module → constructor → collections → documents).
-const typesenseDocuments = () => ({
-  import: (docs: SyncedRecord[], options: { action: string }) =>
-    typesenseImport(docs, options),
+const typesenseDocuments = (name?: string) => ({
+  import: (docs: SyncedRecord[], options: { action: string }) => {
+    typesenseServer.calls.push(`import ${name}`);
+    typesenseServer.docs = docs;
+    typesenseServer.options = options;
+    return typesenseServer.importError
+      ? Promise.reject(typesenseServer.importError)
+      : Promise.resolve([{ success: true }]);
+  },
   search: (params: TypesenseSearchParams) => typesenseSearch(params),
+});
+const typesenseCollection = (name?: string) => ({
+  create: (schema: TypesenseCollectionSchema) => {
+    typesenseServer.calls.push(`create ${schema.name}`);
+    typesenseServer.schema = schema;
+    return Promise.resolve(schema);
+  },
+  delete: () => {
+    typesenseServer.calls.push(`delete ${name}`);
+    return Promise.resolve({ name });
+  },
+  documents: () => typesenseDocuments(name),
+  retrieve: () =>
+    typesenseServer.legacy
+      ? Promise.resolve({ name })
+      : Promise.reject(new TypesenseNotFoundError()),
+});
+const typesenseAliases = (name?: string) => ({
+  retrieve: () => {
+    const { alias } = typesenseServer;
+    if (alias instanceof Error) {
+      return Promise.reject(alias);
+    }
+    return alias === undefined
+      ? Promise.reject(new TypesenseNotFoundError())
+      : Promise.resolve({ collection_name: alias, name });
+  },
+  upsert: (alias: string, mapping: { collection_name: string }) => {
+    typesenseServer.calls.push(`alias ${alias} ${mapping.collection_name}`);
+    return Promise.resolve({ ...mapping, name: alias });
+  },
 });
 mockSdk("typesense", () => ({
   Client: asConstructor((config) => {
     constructed.typesense = config;
-    return {
-      collections: (_name?: string) => ({
-        create: (schema: TypesenseCollectionSchema) => typesenseCreate(schema),
-        delete: () => typesenseDelete(),
-        documents: typesenseDocuments,
-        retrieve: () => typesenseRetrieve(),
-      }),
-    };
+    return { aliases: typesenseAliases, collections: typesenseCollection };
   }),
+  Errors: { ObjectNotFound: TypesenseNotFoundError },
 }));
 
 const INDEX = [
@@ -635,38 +668,30 @@ describe("hosted sync uploads", () => {
     expect(captured.deployed).toBe(true);
   });
 
-  it("typesense creates the collection then upserts documents", async () => {
+  /** The sync's calls, with each timestamped collection name as `docs_<n>`. */
+  const typesenseCalls = (): string[] =>
+    typesenseServer.calls.map((call) => call.replaceAll(/_\d+/gu, "_<n>"));
+
+  it("typesense imports into a new collection and points the alias at it", async () => {
     process.env.TYPESENSE_ADMIN_API_KEY = "admin";
-    const captured: CapturedTypesenseSync = {};
-    typesenseRetrieve = () => Promise.reject(new Error("not found"));
-    typesenseDelete = () => {
-      captured.deleted = true;
-      return Promise.resolve({});
-    };
-    typesenseCreate = (schema) => {
-      captured.created = true;
-      captured.schema = schema;
-      return Promise.resolve(schema);
-    };
-    typesenseImport = (docs, options) => {
-      captured.docs = docs;
-      captured.options = options;
-      return Promise.resolve([]);
-    };
+    typesenseServer = { calls: [] };
     const { syncTypesense } = await import("../src/search/sync/typesense.ts");
     await syncTypesense(records, { collection: "docs", host: "h" });
-    // First run: no existing collection, so nothing to drop.
-    expect(captured.deleted).toBeUndefined();
-    expect(captured.created).toBe(true);
-    expect(captured.options?.action).toBe("upsert");
-    expect(captured.docs?.[0]).toMatchObject({
+    // First run: no alias and no collection of that name, so nothing to drop.
+    expect(typesenseCalls()).toStrictEqual([
+      "create docs_<n>",
+      "import docs_<n>",
+      "alias docs docs_<n>",
+    ]);
+    expect(typesenseServer.options?.action).toBe("upsert");
+    expect(typesenseServer.docs?.[0]).toMatchObject({
       boost: 2,
       id: "/a",
       keywords: ["setup"],
     });
     // The collection sorts by boost and searches keywords.
     expect(
-      captured.schema?.fields.filter((field) =>
+      typesenseServer.schema?.fields.filter((field) =>
         ["boost", "keywords"].includes(field.name)
       )
     ).toStrictEqual([
@@ -686,27 +711,67 @@ describe("hosted sync uploads", () => {
       version: "current",
     };
     await syncTypesense([bare], { collection: "docs", host: "h" });
-    expect(captured.docs?.[0]?.keywords).toStrictEqual([]);
+    expect(typesenseServer.docs?.[0]?.keywords).toStrictEqual([]);
   });
 
-  it("typesense drops an existing collection before recreating it", async () => {
+  it("typesense swaps the alias, then drops the collection it replaced", async () => {
     process.env.TYPESENSE_ADMIN_API_KEY = "admin";
-    const captured: CapturedTypesenseSync = {};
-    typesenseRetrieve = () => Promise.resolve({});
-    typesenseDelete = () => {
-      captured.deleted = true;
-      return Promise.resolve({});
-    };
-    typesenseCreate = (schema) => {
-      captured.created = true;
-      return Promise.resolve(schema);
-    };
-    typesenseImport = () => Promise.resolve([]);
+    typesenseServer = { alias: "docs_1", calls: [] };
     const { syncTypesense } = await import("../src/search/sync/typesense.ts");
     await syncTypesense(records, { collection: "docs", host: "h" });
-    // A pre-existing collection is dropped so stale records don't survive.
-    expect(captured.deleted).toBe(true);
-    expect(captured.created).toBe(true);
+    // Searches read docs_1 until the alias moves, so none see a partial index.
+    expect(typesenseCalls()).toStrictEqual([
+      "create docs_<n>",
+      "import docs_<n>",
+      "alias docs docs_<n>",
+      "delete docs_<n>",
+    ]);
+    expect(typesenseServer.calls.at(-1)).toBe("delete docs_1");
+  });
+
+  it("typesense replaces a collection from before the alias under its name", async () => {
+    process.env.TYPESENSE_ADMIN_API_KEY = "admin";
+    typesenseServer = { calls: [], legacy: true };
+    const { syncTypesense } = await import("../src/search/sync/typesense.ts");
+    await syncTypesense(records, { collection: "docs", host: "h" });
+    // An alias can't share a collection's name: the old collection goes once
+    // the new one is complete, and the alias takes the name straight after.
+    expect(typesenseCalls()).toStrictEqual([
+      "create docs_<n>",
+      "import docs_<n>",
+      "delete docs",
+      "alias docs docs_<n>",
+    ]);
+  });
+
+  it("typesense keeps the previous collection serving when the import fails", async () => {
+    process.env.TYPESENSE_ADMIN_API_KEY = "admin";
+    typesenseServer = {
+      alias: "docs_1",
+      calls: [],
+      importError: new Error("1 documents failed during import"),
+    };
+    const { syncTypesense } = await import("../src/search/sync/typesense.ts");
+    await expect(
+      syncTypesense(records, { collection: "docs", host: "h" })
+    ).rejects.toThrow("failed during import");
+    // The half-built collection goes; the alias never moved off docs_1.
+    expect(typesenseCalls()).toStrictEqual([
+      "create docs_<n>",
+      "import docs_<n>",
+      "delete docs_<n>",
+    ]);
+    expect(typesenseServer.calls).not.toContain("delete docs_1");
+  });
+
+  it("typesense stops before building anything when the alias lookup fails", async () => {
+    process.env.TYPESENSE_ADMIN_API_KEY = "admin";
+    typesenseServer = { alias: new Error("Forbidden"), calls: [] };
+    const { syncTypesense } = await import("../src/search/sync/typesense.ts");
+    await expect(
+      syncTypesense(records, { collection: "docs", host: "h" })
+    ).rejects.toThrow("Forbidden");
+    expect(typesenseServer.calls).toStrictEqual([]);
   });
 
   it("the dispatcher runs the provider sync and reports success", async () => {

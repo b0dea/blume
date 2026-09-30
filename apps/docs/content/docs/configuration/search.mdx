@@ -205,7 +205,7 @@ search: oramaCloud({
 
 ### Typesense
 
-Self-hosted or cloud [Typesense](https://typesense.org). The browser queries the collection with the search-only key; `blume build` recreates the collection and imports documents using `TYPESENSE_ADMIN_API_KEY`. The collection is dropped and rebuilt on every sync so deleted or renamed pages don't linger as stale results — if you hand-tune the collection's settings, reapply them after a build.
+Self-hosted or cloud [Typesense](https://typesense.org). The browser queries the collection with the search-only key. Each `blume build` imports your pages into a new collection using `TYPESENSE_ADMIN_API_KEY`, then points an [alias](https://typesense.org/docs/latest/api/collection-alias.html) named after `collection` at it and drops the collection it replaced. Searches keep reading the previous collection until the new one is complete, and deleted or renamed pages don't linger as stale results. If the sync fails, the build warns and the alias keeps serving the last complete sync. The admin key needs to manage collections and aliases. On the first sync, a collection that already has the `collection` name (from an earlier Blume version) is replaced by the alias, and search keys scoped to that name keep working. Settings you hand-tune on a collection don't carry over to the next one, so reapply them after a build.
 
 ```ts blume.config.ts lineNumbers
 import { typesense } from "blume/search";
