@@ -2251,7 +2251,10 @@ export const generateRuntime = async (
     writeMcpFiles(mcp, write, agentData),
     writeApiFiles(project, api, write, agentData, mcp),
     playgroundProxy.enabled
-      ? write(playgroundProxy.entrypoint, playgroundProxyTemplate(proxyOrigins))
+      ? write(
+          playgroundProxy.entrypoint,
+          playgroundProxyTemplate(proxyOrigins, config.rateLimit)
+        )
       : Promise.resolve(false),
   ]);
 
