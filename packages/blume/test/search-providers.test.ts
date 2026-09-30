@@ -611,6 +611,23 @@ describe("syncSearchProvider", () => {
     });
   }
 
+  it("warns and skips orama-cloud without an indexId, even with its key set", async () => {
+    // `indexId` is what turns the Orama Cloud sync on.
+    process.env.ORAMA_PRIVATE_API_KEY = "private";
+    const log = reporter();
+    try {
+      await syncSearchProvider(
+        emptyProject(
+          oramaCloud({ apiKey: "pub", endpoint: "https://x.orama.run" })
+        ),
+        log
+      );
+    } finally {
+      Reflect.deleteProperty(process.env, "ORAMA_PRIVATE_API_KEY");
+    }
+    expect(log.calls.warn[0]).toContain("indexId");
+  });
+
   it("throws when the orama-cloud index id is absent", async () => {
     // `indexId` is optional on the adapter (the browser client doesn't need
     // it), so the sync is what reports its absence.

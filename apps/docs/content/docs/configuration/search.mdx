@@ -135,6 +135,8 @@ The `search` and `search_select` events then carry `queryChars`, the query's len
 
 The client-side adapters are keyless and need no options — their clients are configured from `i18n` (or, for Pagefind, from the built HTML), so an unknown key is rejected by config validation rather than ignored. The hosted ones take **public** credentials (safe to ship to the browser) and read their **secret** admin key from an environment variable at build time — the secret never lands in the config or the client bundle. Every option you pass to a hosted adapter is kept verbatim and handed to its search client in the browser (or, for Mixedbread, to the search endpoint), so an option Blume doesn't name still reaches the SDK — Algolia's `liteClient`, the Typesense `Client`, or `OramaClient`. Those options must be JSON values — the descriptor is inlined into the generated project as a literal, so a function, `undefined`, or a bigint fails config validation with a path instead of vanishing on the way.
 
+Algolia, Orama Cloud, and Typesense upload your pages to their index at the end of each `blume build`. When the admin key isn't set, the build warns and skips the upload, so a build without secrets, such as a local one, still works. When the key is set and the upload fails (a wrong key, an unreachable host, a rejected record), the build fails with `BLUME_SEARCH_SYNC_FAILED` instead of deploying against an index it didn't update.
+
 ### Orama (default)
 
 Blume's default engine. It builds a JSON index served at `/blume-search.json` and queries it in the browser — instant, client-side, and live in `blume dev` as you edit. No keys, no service. Omitting `search` entirely selects it; spell it out only when you want to be explicit:
@@ -202,7 +204,7 @@ search: algolia({
 
 ### Orama Cloud
 
-Hosted Orama (install `@oramacloud/client`). The browser queries your index endpoint with the public API key; `blume build` pushes records to the index using `ORAMA_PRIVATE_API_KEY`. Set `indexId` to enable the sync.
+Hosted Orama (install `@oramacloud/client`). The browser queries your index endpoint with the public API key; `blume build` pushes records to the index using `ORAMA_PRIVATE_API_KEY`. Set `indexId` to enable the sync; without it, the build warns and skips the sync even with the key set.
 
 ```ts blume.config.ts lineNumbers
 import { oramaCloud } from "blume/search";
@@ -216,7 +218,7 @@ search: oramaCloud({
 
 ### Typesense
 
-Self-hosted or cloud [Typesense](https://typesense.org). Install `typesense`. The browser queries the collection with the search-only key. Each `blume build` imports your pages into a new collection using `TYPESENSE_ADMIN_API_KEY`, then points an [alias](https://typesense.org/docs/latest/api/collection-alias.html) named after `collection` at it and drops the collection it replaced. Searches keep reading the previous collection until the new one is complete, and deleted or renamed pages don't linger as stale results. If the sync fails, the build warns and the alias keeps serving the last complete sync. The admin key needs to manage collections and aliases. On the first sync, a collection that already has the `collection` name (from an earlier Blume version) is replaced by the alias, and search keys scoped to that name keep working. Settings you hand-tune on a collection don't carry over to the next one, so reapply them after a build.
+Self-hosted or cloud [Typesense](https://typesense.org). Install `typesense`. The browser queries the collection with the search-only key. Each `blume build` imports your pages into a new collection using `TYPESENSE_ADMIN_API_KEY`, then points an [alias](https://typesense.org/docs/latest/api/collection-alias.html) named after `collection` at it and drops the collection it replaced. Searches keep reading the previous collection until the new one is complete, and deleted or renamed pages don't linger as stale results. If the sync fails, the build fails and the alias keeps serving the last complete sync. The admin key needs to manage collections and aliases. On the first sync, a collection that already has the `collection` name (from an earlier Blume version) is replaced by the alias, and search keys scoped to that name keep working. Settings you hand-tune on a collection don't carry over to the next one, so reapply them after a build.
 
 ```ts blume.config.ts lineNumbers
 import { typesense } from "blume/search";

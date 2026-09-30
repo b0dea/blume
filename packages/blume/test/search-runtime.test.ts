@@ -4,7 +4,12 @@ import { createRequire } from "node:module";
 import type { JsonValue } from "../src/core/adapter.ts";
 import type { BlumeProject } from "../src/core/project-graph.ts";
 import { blumeConfigSchema } from "../src/core/schema.ts";
-import { algolia } from "../src/search/adapters/index.ts";
+import type { BlumeConfigInput } from "../src/core/schema.ts";
+import {
+  algolia,
+  oramaCloud,
+  typesense,
+} from "../src/search/adapters/index.ts";
 import { syncSearchProvider } from "../src/search/sync/index.ts";
 
 /**
@@ -576,6 +581,44 @@ describe("client loaders", () => {
 const algoliaBytes = (object: SaveObjectsArgs["objects"][number]): number =>
   Buffer.byteLength(JSON.stringify(object), "utf-8");
 
+/** A project with no pages, configured with `search`. */
+const syncProject = (search: BlumeConfigInput["search"]): BlumeProject => {
+  const config = blumeConfigSchema.parse({ search });
+  return {
+    config,
+    context: {
+      componentsFile: null,
+      configFile: null,
+      contentRoot: "/tmp/docs",
+      outDir: "/tmp/.blume",
+      pagesRoot: null,
+      root: "/tmp",
+      themeFile: null,
+    },
+    diagnostics: [],
+    droppedPages: 0,
+    graph: {
+      diagnostics: [],
+      navigation: { featured: [], selectors: [], sidebar: [], tabs: [] },
+      navigationByLocale: {},
+      navigationByVersion: {},
+      pages: [],
+      routes: new Map(),
+    },
+    manifest: {
+      blumeVersion: "0.0.0",
+      contentRoot: "/tmp/docs",
+      output: config.deployment.options.output,
+      projectRoot: "/tmp",
+      routes: [],
+      version: 1,
+    },
+    mode: "build",
+    sources: [],
+    themeFontsConfigured: false,
+  };
+};
+
 describe("hosted sync uploads", () => {
   const page = {
     _id: "/a",
@@ -922,49 +965,73 @@ describe("hosted sync uploads", () => {
       captured.value = args;
       return Promise.resolve();
     };
-    const config = blumeConfigSchema.parse({
-      search: algolia({ apiKey: "k", appId: "app", indexName: "docs" }),
-    });
-    const project: BlumeProject = {
-      config,
-      context: {
-        componentsFile: null,
-        configFile: null,
-        contentRoot: "/tmp/docs",
-        outDir: "/tmp/.blume",
-        pagesRoot: null,
-        root: "/tmp",
-        themeFile: null,
-      },
-      diagnostics: [],
-      droppedPages: 0,
-      graph: {
-        diagnostics: [],
-        navigation: { featured: [], selectors: [], sidebar: [], tabs: [] },
-        navigationByLocale: {},
-        navigationByVersion: {},
-        pages: [],
-        routes: new Map(),
-      },
-      manifest: {
-        blumeVersion: "0.0.0",
-        contentRoot: "/tmp/docs",
-        output: config.deployment.options.output,
-        projectRoot: "/tmp",
-        routes: [],
-        version: 1,
-      },
-      mode: "build",
-      sources: [],
-      themeFontsConfigured: false,
-    };
     const messages: string[] = [];
-    await syncSearchProvider(project, {
-      start: (message) => messages.push(message),
-      success: (message) => messages.push(message),
-      warn: (message) => messages.push(message),
-    });
+    await syncSearchProvider(
+      syncProject(algolia({ apiKey: "k", appId: "app", indexName: "docs" })),
+      {
+        start: (message) => messages.push(message),
+        success: (message) => messages.push(message),
+        warn: (message) => messages.push(message),
+      }
+    );
     expect(captured.value?.indexName).toBe("docs");
     expect(messages.some((message) => message.includes("Synced"))).toBe(true);
   });
+
+  // With its admin key set, a hosted adapter's failed sync fails the build
+  // instead of deploying the site against an index it didn't update. (Unset,
+  // the sync warns and skips: see search-providers.test.ts.)
+  const failingSyncs = [
+    {
+      env: "ALGOLIA_ADMIN_API_KEY",
+      fail: () => {
+        algoliaSave = () => Promise.reject(new Error("Invalid API key"));
+      },
+      search: algolia({ apiKey: "k", appId: "app", indexName: "docs" }),
+    },
+    {
+      env: "ORAMA_PRIVATE_API_KEY",
+      fail: () => {
+        cloudSnapshot = () => Promise.reject(new Error("Invalid API key"));
+      },
+      search: oramaCloud({
+        apiKey: "k",
+        endpoint: "https://x.orama.run",
+        indexId: "idx",
+      }),
+    },
+    {
+      env: "TYPESENSE_ADMIN_API_KEY",
+      fail: () => {
+        typesenseServer = { alias: new Error("Invalid API key"), calls: [] };
+      },
+      search: typesense({ apiKey: "k", collection: "docs", host: "h" }),
+    },
+  ];
+
+  for (const { env, fail, search } of failingSyncs) {
+    it(`fails the build when ${search.kind} has ${env} but its sync fails`, async () => {
+      process.env[env] = "admin";
+      fail();
+      const warnings: string[] = [];
+      try {
+        await expect(
+          syncSearchProvider(syncProject(search), {
+            start: () => 0,
+            success: () => 0,
+            warn: (message) => warnings.push(message),
+          })
+        ).rejects.toMatchObject({
+          diagnostic: {
+            code: "BLUME_SEARCH_SYNC_FAILED",
+            message: `Search sync to ${search.kind} failed: Invalid API key`,
+            severity: "error",
+          },
+        });
+      } finally {
+        Reflect.deleteProperty(process.env, env);
+      }
+      expect(warnings).toStrictEqual([]);
+    });
+  }
 });
