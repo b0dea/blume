@@ -192,7 +192,8 @@ test.describe("dropdowns", () => {
     page,
   }) => {
     await page.goto("/docs/quickstart");
-    const actions = page.locator("[data-blume-page-actions]");
+    // The rail's block: the mobile "On this page" copy is hidden at this width.
+    const actions = page.locator("[data-blume-toc] [data-blume-page-actions]");
     const dropdown = actions.locator("details").first();
     const open = actions.locator("details[open]");
 
@@ -219,7 +220,8 @@ test.describe("dropdowns", () => {
     page,
   }) => {
     await page.goto("/docs/quickstart");
-    const actions = page.locator("[data-blume-page-actions]");
+    // The rail's block: the mobile "On this page" copy is hidden at this width.
+    const actions = page.locator("[data-blume-toc] [data-blume-page-actions]");
     const dropdown = actions.locator("details").first();
     const open = actions.locator("details[open]");
 

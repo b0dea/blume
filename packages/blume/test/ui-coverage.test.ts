@@ -884,6 +884,41 @@ describe("layout chrome sources", () => {
     }
   });
 
+  it("puts the page actions in the mobile On this page dropdown", async () => {
+    // The rail only shows at `xl`, so below it the same actions ride in the
+    // outline's dropdown, which renders wherever the rail would, headings or
+    // not.
+    const root = await layoutSource("RootLayout.astro");
+    expect(root).toMatch(
+      /showToc && \(\s*<TableOfContentsSlot[^>]*variant="mobile"\s*>\s*<PageActions \{\.\.\.pageActions\} variant="mobile" \/>\s*<\/TableOfContentsSlot>/u
+    );
+    expect(root).toContain("<PageActions {...pageActions} divider={hasToc} />");
+    const toc = await layoutSource("TableOfContents.astro");
+    expect(toc).toContain(
+      '(headings.length > 0 || hasChildren) && variant === "mobile" && ('
+    );
+    expect(toc).toMatch(/<slot \/>\s*<\/details>/u);
+    // In there the groups expand in place: no light-dismiss, no placement.
+    const actions = await layoutSource("PageActions.astro");
+    expect(actions).toContain(
+      'const groupAttrs = mobile ? {} : { "data-blume-dropdown": "" };'
+    );
+    expect(actions).toContain(
+      'const panelAttrs = mobile ? {} : { "data-blume-menu": "" };'
+    );
+    // Both blocks bind on every load and swap, and a group open in place is
+    // never taken for the floating dropdown the resize handler places.
+    expect(actions).toContain(
+      'for (const root of document.querySelectorAll("[data-blume-page-actions]")) {'
+    );
+    expect(actions).toContain(
+      'document.addEventListener("astro:after-swap", initAllPageActions);'
+    );
+    expect(actions).toContain(
+      '"[data-blume-page-actions] details[data-blume-dropdown][open]"'
+    );
+  });
+
   it("rotates a collapsible disclosure's indicator from its own details only", async () => {
     // `group-open:` matches any descendant of an open `.group`, and each of
     // these disclosures nests inside others of the same kind (sidebar groups,
@@ -891,6 +926,7 @@ describe("layout chrome sources", () => {
     // indicator reflected an open ancestor's state instead of its own.
     const disclosures = [
       "layout/NavTree.astro",
+      "layout/PageActions.astro",
       "content/TreeFolder.astro",
       "content/AccordionItem.astro",
       "openapi/SchemaProperty.astro",
