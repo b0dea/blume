@@ -36,12 +36,20 @@ interface HostedRecord {
 }
 interface SaveObjectsArgs {
   indexName: string;
-  objects: { objectID: string }[];
+  objects: {
+    content: string;
+    locale: string;
+    objectID: string;
+    title: string;
+    url: string;
+  }[];
 }
 /** The slice of an Algolia index's settings the sync reads and writes. */
 interface AlgoliaSettings {
+  attributeForDistinct?: string;
   attributesForFaceting?: string[];
   customRanking?: string[];
+  distinct?: boolean;
 }
 /** One `setSettings` call the Algolia sync made, and whether it was awaited. */
 interface AlgoliaSettingsWrite {
@@ -372,6 +380,15 @@ describe("client loaders", () => {
                 url: "/a",
                 version: "current",
               },
+              // A later record of the same page (a long page the sync
+              // split) adds no second row.
+              {
+                content: "c, continued",
+                description: "d",
+                title: "A",
+                url: "/a",
+                version: "current",
+              },
               {
                 content: "c2",
                 description: "d2",
@@ -401,6 +418,7 @@ describe("client loaders", () => {
     // cross-version badge works for hosted results too.
     expect(hits[0]?.version).toBe("");
     expect(hits[1]?.version).toBe("v1.0");
+    expect(hits.map((hit) => hit.url)).toStrictEqual(["/a", "/b"]);
 
     await search("q", { locale: "fr" });
     expect(captured.value?.requests[0]?.facetFilters).toStrictEqual([
@@ -554,21 +572,24 @@ describe("client loaders", () => {
   });
 });
 
+/** An uploaded Algolia object's size, as Algolia measures it. */
+const algoliaBytes = (object: SaveObjectsArgs["objects"][number]): number =>
+  Buffer.byteLength(JSON.stringify(object), "utf-8");
+
 describe("hosted sync uploads", () => {
-  const records = [
-    {
-      _id: "/a",
-      boost: 2,
-      content: "c",
-      description: "d",
-      keywords: ["setup"],
-      locale: "en",
-      tag: "guides",
-      title: "A",
-      url: "/a",
-      version: "current",
-    },
-  ];
+  const page = {
+    _id: "/a",
+    boost: 2,
+    content: "c",
+    description: "d",
+    keywords: ["setup"],
+    locale: "en",
+    tag: "guides",
+    title: "A",
+    url: "/a",
+    version: "current",
+  };
+  const records = [page];
 
   it("algolia uploads objects keyed by objectID", async () => {
     process.env.ALGOLIA_ADMIN_API_KEY = "admin";
@@ -581,6 +602,95 @@ describe("hosted sync uploads", () => {
     await syncAlgolia(records, { appId: "app", indexName: "docs" });
     expect(captured.value?.indexName).toBe("docs");
     expect(captured.value?.objects[0]?.objectID).toBe("/a");
+  });
+
+  /** Every object the next Algolia sync uploads, captured. */
+  const captureAlgolia = (): Captured<SaveObjectsArgs> => {
+    const captured: Captured<SaveObjectsArgs> = {};
+    algoliaSave = (args) => {
+      captured.value = args;
+      return Promise.resolve();
+    };
+    return captured;
+  };
+  const DECLARED: AlgoliaSettings = {
+    attributesForFaceting: ["filterOnly(locale)", "filterOnly(version)"],
+    customRanking: ["desc(boost)"],
+  };
+
+  it("algolia splits a page too long for one record, listing it once by url", async () => {
+    process.env.ALGOLIA_ADMIN_API_KEY = "admin";
+    const captured = captureAlgolia();
+    algoliaSettings = DECLARED;
+    algoliaSettingsWrites.length = 0;
+    const words = Array.from({ length: 4000 }, (_, index) => `word${index}`);
+    const long = {
+      ...page,
+      _id: "/long",
+      content: words.join(" "),
+      url: "/long",
+    };
+    const { syncAlgolia } = await import("../src/search/sync/algolia.ts");
+    await syncAlgolia([page, long], { appId: "app", indexName: "docs" });
+    const objects = captured.value?.objects ?? [];
+    // The short page stays one record under its own id.
+    expect(objects[0]?.objectID).toBe("/a");
+    const pieces = objects.slice(1);
+    expect(pieces.length).toBeGreaterThan(1);
+    expect(pieces.map((piece) => piece.objectID)).toStrictEqual(
+      pieces.map((_, index) => (index === 0 ? "/long" : `/long#${index}`))
+    );
+    // Each piece fits Algolia's cap and carries the page's own fields, and
+    // the body is cut between words.
+    for (const piece of pieces) {
+      expect(algoliaBytes(piece)).toBeLessThanOrEqual(10_000);
+      expect(piece).toMatchObject({ locale: "en", title: "A", url: "/long" });
+    }
+    expect(pieces.map((piece) => piece.content).join(" ")).toBe(long.content);
+    expect(algoliaSettingsWrites[0]?.indexSettings).toStrictEqual({
+      ...DECLARED,
+      attributeForDistinct: "url",
+      distinct: true,
+    });
+  });
+
+  it("algolia cuts an unspaced script between characters", async () => {
+    process.env.ALGOLIA_ADMIN_API_KEY = "admin";
+    const captured = captureAlgolia();
+    algoliaSettings = DECLARED;
+    // 3 bytes a character, no spaces: 15,000 bytes of body.
+    const content = "検索".repeat(2500);
+    const { syncAlgolia } = await import("../src/search/sync/algolia.ts");
+    await syncAlgolia([{ ...page, content }], {
+      appId: "app",
+      indexName: "docs",
+    });
+    const objects = captured.value?.objects ?? [];
+    expect(objects).toHaveLength(2);
+    for (const piece of objects) {
+      expect(algoliaBytes(piece)).toBeLessThanOrEqual(10_000);
+    }
+    expect(objects.map((piece) => piece.content).join("")).toBe(content);
+  });
+
+  it("algolia keeps the site's own distinct attribute, and uploads whole what can't split", async () => {
+    process.env.ALGOLIA_ADMIN_API_KEY = "admin";
+    const captured = captureAlgolia();
+    algoliaSettings = { ...DECLARED, attributeForDistinct: "section" };
+    algoliaSettingsWrites.length = 0;
+    const { syncAlgolia } = await import("../src/search/sync/algolia.ts");
+    const long = { ...page, content: "word ".repeat(3000) };
+    await syncAlgolia([long], { appId: "app", indexName: "docs" });
+    expect(captured.value?.objects.length).toBeGreaterThan(1);
+    expect(algoliaSettingsWrites).toStrictEqual([]);
+
+    // A title alone past the cap leaves no room for any body: the record
+    // goes up whole, and Algolia's rejection names it.
+    const huge = { ...page, content: "body", title: "t".repeat(12_000) };
+    await syncAlgolia([huge], { appId: "app", indexName: "docs" });
+    expect(
+      captured.value?.objects.map((piece) => piece.objectID)
+    ).toStrictEqual(["/a"]);
   });
 
   it("algolia declares the locale and version filters, keeping the site's own facets", async () => {
