@@ -2326,7 +2326,8 @@ export const generateRuntime = async (
       join(srcDir, "pages", "api", "search.ts"),
       mixedbreadSearchEndpointTemplate(
         searchAdapter.options,
-        sourcePages(project)
+        sourcePages(project),
+        config.rateLimit
       )
     );
   }

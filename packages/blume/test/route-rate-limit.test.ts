@@ -11,6 +11,7 @@ import { scanProject } from "../src/core/project-graph.ts";
 import { node } from "../src/deploy/adapters/index.ts";
 import { memory } from "../src/ratelimit/index.ts";
 import { eject } from "../src/registry/eject.ts";
+import { mixedbread } from "../src/search/adapters/index.ts";
 
 // `rateLimit` covers every server route a reader can call: the assistant, the
 // playground's built-in proxy, and Mixedbread search. `blume dev` and
@@ -27,8 +28,12 @@ afterAll(async () => {
 });
 
 const PROXY_ROUTE = "src/blume-openapi/api-proxy.ts";
+const SEARCH_ROUTE = "src/pages/api/search.ts";
 
-/** A fresh project with the built-in proxy and a limit of two requests. */
+/**
+ * A fresh project with the built-in proxy, Mixedbread search, and a limit of
+ * two requests.
+ */
 const project = async (): Promise<string> => {
   const root = await mkdtemp(join(tmpdir(), "blume-route-limit-"));
   dirs.push(root);
@@ -38,6 +43,7 @@ const project = async (): Promise<string> => {
   deployment: ${JSON.stringify(node())},
   rateLimit: ${JSON.stringify(memory({ requests: 2 }))},
   reference: [{ kind: "openapi", options: { playground: { proxy: true }, spec: "./openapi.json" }, requiredSecrets: [], runtimeDeps: [] }],
+  search: ${JSON.stringify(mixedbread({ storeId: "store_7" }))},
 };
 `,
     "docs/index.md": "# Home\n",
@@ -81,16 +87,33 @@ type Route = (context: {
   request: Request;
 }) => Promise<Response>;
 
-/** Load a generated route outside Astro, with every Blume import a file URL. */
+/**
+ * Load a generated route outside Astro: the secret becomes a constant, the
+ * Mixedbread SDK an inert stub, and every Blume import a file URL.
+ */
 const loadRoute = async (source: string, method: string): Promise<Route> => {
   const dir = await mkdtemp(join(tmpdir(), "blume-route-limit-load-"));
   dirs.push(dir);
+  const stub = join(dir, "mixedbread.mjs");
+  await writeFile(
+    stub,
+    "export default class Mixedbread { stores = { search: async () => ({ data: [] }) }; }\n"
+  );
   const file = join(dir, "route.ts");
   await writeFile(
     file,
-    source.replaceAll(/"blume\/(?<path>[^"]+)"/gu, (_match, path: string) =>
-      JSON.stringify(pathToFileURL(join(PKG_ROOT, "src", path)).href)
-    )
+    source
+      .replace(
+        'import { getSecret } from "astro:env/server";',
+        'const getSecret = (_name: string) => "test-key";'
+      )
+      .replace(
+        'from "@mixedbread/sdk";',
+        `from ${JSON.stringify(pathToFileURL(stub).href)};`
+      )
+      .replaceAll(/"blume\/(?<path>[^"]+)"/gu, (_match, path: string) =>
+        JSON.stringify(pathToFileURL(join(PKG_ROOT, "src", path)).href)
+      )
   );
   // SAFETY: the generated route exports its handler under the method's name.
   const route = (await import(file)) as Record<string, Route>;
@@ -134,5 +157,17 @@ describe("rate limiting in the generated server routes", () => {
     expect(
       await statuses(proxy, "https://docs.example/_api-proxy", 3)
     ).toStrictEqual([400, 400, 429]);
+  }, 30_000);
+
+  it("limits Mixedbread search in dev and build as eject does", async () => {
+    const { ejected, generated } = await routes(SEARCH_ROUTE);
+    expect(generated).toContain(
+      'const limited = await rateLimited(limiter, context, "search");'
+    );
+    expect(generated).toBe(ejected);
+    const search = await loadRoute(generated, "POST");
+    expect(
+      await statuses(search, "https://docs.example/api/search", 3)
+    ).toStrictEqual([200, 200, 429]);
   }, 30_000);
 });
