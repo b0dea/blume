@@ -116,7 +116,7 @@ deployment: vercel({
 | `node()` | `@astrojs/node` | Self-hosted Node servers, containers |
 | `cloudflare()` | `@astrojs/cloudflare` | Cloudflare Workers |
 
-`vercel()` and `node()` ship with Blume — choosing one just works. `netlify()` and `cloudflare()` need their package installed in your project (e.g. `bun add -d @astrojs/netlify`). If it's missing, `blume build` stops with the install command for your package manager, `blume dev` warns, and [`blume doctor`](/docs/cli/doctor) reports it. With pnpm 10 or later, also approve the build scripts those packages bring (`sharp`, and `workerd` for Cloudflare) under `allowBuilds` in `pnpm-workspace.yaml`, or pnpm stops the install.
+`vercel()` and `node()` ship with Blume — choosing one just works. `netlify()` and `cloudflare()` need their package installed in your project (e.g. `bun add -d @astrojs/netlify`). If it's missing, `blume build` stops with the install command for your package manager, `blume dev` warns, and [`blume doctor`](/docs/cli/doctor) reports it. With pnpm, also approve the build scripts those packages bring under `allowBuilds` in `pnpm-workspace.yaml`, beside the `esbuild` entry `blume init` writes: `sharp` for Netlify, whose adapter pulls in its own copy, and `workerd` for Cloudflare. pnpm 11 and later stop the install with `ERR_PNPM_IGNORED_BUILDS` until you approve them; pnpm 10 skips the scripts with a warning. `allowBuilds` needs pnpm 10.26 or later.
 
 Naming an adapter switches the build to server output. To keep a static build on that host — with its site detection and the platform files it reads — pass `output: "static"`:
 
@@ -224,7 +224,7 @@ Blume keeps two caches a build can reuse. Astro's and Vite's caches live under `
 - **GitHub Actions** and other runners you manage keep nothing unless you cache the directory yourself:
 
 ```yaml
-- uses: actions/cache@v4
+- uses: actions/cache@v6
   with:
     path: node_modules/.cache/blume/og
     key: blume-og-${{ runner.os }}-${{ hashFiles('**/bun.lock', '**/package-lock.json', '**/pnpm-lock.yaml') }}
