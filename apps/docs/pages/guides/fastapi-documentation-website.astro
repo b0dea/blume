@@ -619,9 +619,11 @@ npx blume validate`}
   </table>
   <p>
     On Vercel, the Root Directory setting is under Build and Deployment in the
-    project settings. A build there can't read files outside that directory,
-    which is one more reason to commit the spec inside <code>docs-site</code>{" "}
-    rather than generate it during the build.
+    project settings. With{" "}
+    <strong>Include source files outside of the Root Directory in the Build Step</strong>{" "}
+    turned off (it's on by default), a build there can't read files outside
+    that directory, which is one more reason to commit the spec inside{" "}
+    <code>docs-site</code> rather than generate it during the build.
   </p>
   <p>
     Blume detects your site's URL on Vercel and Netlify. On other hosts,
