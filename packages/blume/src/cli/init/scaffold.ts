@@ -679,7 +679,7 @@ const ESBUILD_APPROVAL = "  allowBuilds:\n    esbuild: true";
  * What the project still needs from a workspace it sits in, when `init` left
  * that workspace's config alone: a place in a pnpm workspace's `packages`
  * (pnpm skips a folder it doesn't list), pnpm's approval for esbuild's build
- * script (pnpm 10 and later fail the install without it), or Yarn Berry's
+ * script (pnpm 11 and later fail the install without it), or Yarn Berry's
  * `node_modules` linker. Undefined when the workspace already has it, or the
  * project doesn't sit in one.
  */
@@ -699,12 +699,12 @@ export const workspaceNote = (
       const entry = `  packages:\n    - ${relative(workspace, root)}`;
       return approved
         ? `This folder sits inside the pnpm workspace at ${file}, which doesn't list it under packages, so pnpm won't install it. Add it there before installing:\n\n${entry}`
-        : `This folder sits inside the pnpm workspace at ${file}, which doesn't list it under packages, so pnpm won't install it. Add it there before installing, and approve esbuild's build script, or pnpm 10 and later stop the install:\n\n${entry}\n${ESBUILD_APPROVAL}`;
+        : `This folder sits inside the pnpm workspace at ${file}, which doesn't list it under packages, so pnpm won't install it. Add it there before installing, and approve esbuild's build script, or pnpm 11 and later stop the install:\n\n${entry}\n${ESBUILD_APPROVAL}`;
     }
     if (approved) {
       return;
     }
-    return `This project joins the pnpm workspace at ${file}. Approve esbuild's build script there before installing, or pnpm 10 and later stop the install:\n\n${ESBUILD_APPROVAL}`;
+    return `This project joins the pnpm workspace at ${file}. Approve esbuild's build script there before installing, or pnpm 11 and later stop the install:\n\n${ESBUILD_APPROVAL}`;
   }
   if (answers.packageManager !== "yarn" || yarnMajor(env.userAgent) === 1) {
     return;
