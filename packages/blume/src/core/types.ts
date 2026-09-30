@@ -62,6 +62,10 @@ export interface PageLink {
    * only those go through the image pipeline; a plain link to the same path
    * resolves as a site route. */
   image?: boolean;
+  /** Set when the target is a lowercase `<a href>`, which ships as written:
+   * the Markdown pipeline neither resolves its relative path file-style nor
+   * mounts the base path on it, so it's checked the way a browser reads it. */
+  raw?: boolean;
   /** 1-based line number in the source file. */
   line: number;
   /** 1-based column of the target within the line. */

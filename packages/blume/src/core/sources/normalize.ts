@@ -918,6 +918,42 @@ export const targetOffsetIn = (
   title: string | undefined
 ): number => matched.length - 1 - (title?.length ?? 0) - target.length;
 
+// A link-reference definition's destination, at the start of what follows its
+// `[label]:` (see `REF_DEFINITION`): `<…>`, which may hold spaces, or else the
+// run up to the first space, before any title.
+const DEFINITION_DESTINATION = /^(?:<(?<angle>[^<>]*)>|(?<bare>\S+))/u;
+
+// A CommonMark autolink (`<https://example.com>`). Only http(s) targets are
+// ever checked, so no other scheme is read. MDX rejects the syntax, so in
+// practice it's a `.md` page's.
+const AUTOLINK = /<(?<target>https?:\/\/[^\s<>]*)>/giu;
+
+/**
+ * Record the destination of a link-reference definition on `line`: a
+ * reference link (`[text][label]`, `[label]`) renders with it, so it's the
+ * target to check, once for every link that cites it. A footnote definition
+ * (`[^1]: …`) is no link; the links inside it are read like any others.
+ */
+const scanDefinition = (
+  line: string,
+  lineNumber: number,
+  links: PageLink[]
+): void => {
+  const groups = line.match(REF_DEFINITION)?.groups;
+  if (groups?.label === undefined || groups.label.startsWith("^")) {
+    return;
+  }
+  const rest = groups.rest ?? "";
+  const destination = rest.match(DEFINITION_DESTINATION)?.groups;
+  const target = destination?.angle ?? destination?.bare;
+  if (target) {
+    // `rest` runs to the end of the line; an angle-bracketed target starts
+    // one past its `<`.
+    const at = line.length - rest.length + (destination?.angle ? 1 : 0);
+    links.push({ column: at + 1, line: lineNumber, target });
+  }
+};
+
 /**
  * Extract link targets from a markdown body for later validation, recording the
  * 1-based line/column of each target. Skips fenced code blocks and inline code.
@@ -982,18 +1018,32 @@ const scanLinkLine = (
       });
     }
   }
+  for (const match of masked.matchAll(AUTOLINK)) {
+    const target = match.groups?.target ?? "";
+    links.push({ column: match.index + 2, line: lineNumber, target });
+  }
+  scanDefinition(masked, lineNumber, links);
   return next;
 };
 
 /**
- * A component's string `href` (`<Card href="./install" />`): the attribute
- * may sit on a later line than the tag name, where a formatter wraps a long
- * element, so the gap between them spans lines. An expression-valued
- * `href={…}` isn't a literal target, and a lowercase tag is raw HTML in a
- * `.md` page, so neither is matched.
+ * A component's string `href` (`<Card href="./install" />`), or a lowercase
+ * `<a href>`: the attribute may sit on a later line than the tag name, where
+ * a formatter wraps a long element, so the gap between them spans lines. An
+ * expression-valued `href={…}` isn't a literal target, so it isn't matched,
+ * and no other lowercase tag is a link.
  */
-const COMPONENT_HREF =
-  /<[A-Z][\w.]*(?=[\s/>])[^<>]*?\shref=(?:"(?<double>[^"]*)"|'(?<single>[^']*)')/gu;
+const ELEMENT_HREF =
+  /<(?:[A-Z][\w.]*|(?<anchor>a))(?=[\s/>])[^<>]*?\shref=(?:"(?<double>[^"]*)"|'(?<single>[^']*)')/gu;
+
+/**
+ * An inline link whose label wraps onto later lines of its paragraph
+ * (`[a long⏎label](/x)`), as a formatter leaves one: the line scan can't see
+ * it. The label holds a line break but no blank line (which would end the
+ * paragraph) and no brackets, so a match never repeats a one-line link.
+ */
+const WRAPPED_LINK =
+  /\[[^[\]\n]*(?:\n(?![ \t]*(?:\n|$))[^[\]\n]*)+\]\((?<target>(?:[^()\s]|\([^()\s]*\))+)(?<title>\s+"[^"]*")?\)/gu;
 
 /** The body with fenced blocks and inline code blanked, shape preserved. */
 const maskCode = (lines: readonly string[]): string => {
@@ -1009,24 +1059,83 @@ const maskCode = (lines: readonly string[]): string => {
   return masked.join("\n");
 };
 
-/** Every component `href` target in `body`, with its 1-based position. */
-const componentHrefs = (
+/** The offset each of `lines` starts at once they're joined with `\n`. */
+const lineStartsOf = (lines: readonly string[]): number[] => {
+  const starts: number[] = [];
+  let at = 0;
+  for (const line of lines) {
+    starts.push(at);
+    at += line.length + 1;
+  }
+  return starts;
+};
+
+/**
+ * The 1-based position of offset `at` in the joined text whose `lineStarts`
+ * are given, lines shifted by `lineOffset`. A binary search, so a page with
+ * many links isn't rescanned from the top for each one.
+ */
+const positionIn = (
+  lineStarts: readonly number[],
+  at: number,
+  lineOffset: number
+): Pick<PageLink, "column" | "line"> => {
+  let low = 0;
+  let high = lineStarts.length - 1;
+  while (low < high) {
+    const mid = Math.ceil((low + high) / 2);
+    if ((lineStarts[mid] ?? 0) <= at) {
+      low = mid;
+    } else {
+      high = mid - 1;
+    }
+  }
+  return {
+    column: at - (lineStarts[low] ?? 0) + 1,
+    line: lineOffset + low + 1,
+  };
+};
+
+/**
+ * Every link in `body` that can span lines, with its 1-based position: an
+ * element's `href` (see `ELEMENT_HREF`) and a link whose label wraps (see
+ * `WRAPPED_LINK`). A lowercase `<a>` is raw HTML in `.md` and a plain element
+ * in `.mdx`; the Markdown pipeline passes either through as written, so its
+ * target is marked `raw`.
+ */
+const multilineLinks = (
   lines: readonly string[],
   lineOffset: number
 ): PageLink[] => {
   const links: PageLink[] = [];
   const text = maskCode(lines);
-  for (const match of text.matchAll(COMPONENT_HREF)) {
+  const lineStarts = lineStartsOf(lines);
+  for (const match of text.matchAll(ELEMENT_HREF)) {
     const target = match.groups?.double ?? match.groups?.single ?? "";
     // The value ends one character (its closing quote) before the match does.
     const at = match.index + match[0].length - target.length - 1;
-    const before = text.slice(0, at);
-    const lineStart = before.lastIndexOf("\n") + 1;
-    links.push({
-      column: at - lineStart + 1,
-      line: lineOffset + before.split("\n").length,
+    const link: PageLink = {
+      ...positionIn(lineStarts, at, lineOffset),
       target,
-    });
+    };
+    if (match.groups?.anchor) {
+      link.raw = true;
+    }
+    links.push(link);
+  }
+  for (const match of text.matchAll(WRAPPED_LINK)) {
+    const target = match.groups?.target ?? "";
+    const at =
+      match.index + targetOffsetIn(match[0], target, match.groups?.title);
+    const link: PageLink = {
+      ...positionIn(lineStarts, at, lineOffset),
+      target,
+    };
+    // As on one line, a preceding `!` makes it an image embed.
+    if (text[match.index - 1] === "!") {
+      link.image = true;
+    }
+    links.push(link);
   }
   return links;
 };
@@ -1042,9 +1151,7 @@ export const extractLinks = (body: string, lineOffset = 0): PageLink[] => {
     fence = scanLinkLine(line, lineNumber, fence, links);
   }
 
-  return body.includes("href=")
-    ? [...links, ...componentHrefs(lines, lineOffset)]
-    : links;
+  return [...links, ...multilineLinks(lines, lineOffset)];
 };
 
 // Double-quoted strings hold JSX attribute values and JSON in `{...}` props; a

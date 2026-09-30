@@ -11,8 +11,8 @@
 // annotation and summary scripts under `bash -e`, `blume validate --external`
 // against a 404, a 429, an unresolvable host, and a live URL, and
 // `blume audit --only` with the ids below (accepted, then "No build found").
-// Also confirmed that validate skips reference-style links, autolinks, raw
-// `<a>` tags, and link labels that wrap onto a second line. The workflows,
+// validate has since learned reference-style links, autolinks, raw `<a>`
+// tags, and link labels that wrap onto a second line. The workflows,
 // `blume build`, and a full `blume audit` were not run. Review: rechecked the
 // grading (core/probe.ts), the link scanner (MD_LINK and COMPONENT_HREF in
 // core/sources/normalize.ts), and the audit ids and --fail-on gate; built
@@ -217,12 +217,12 @@ BLUME_BROKEN_ANCHOR No anchor target on /configuration matches #api-keys.
   </table>
   <p>
     <code>validate</code> checks inline links written as{" "}
-    <code>[text](target)</code>, image embeds, and a component's string{" "}
-    <code>href</code>. It doesn't see reference-style links (<code>[text][ref]</code>),
-    autolinks (<code>&lt;https://…&gt;</code>), lowercase HTML{" "}
-    <code>&lt;a href&gt;</code> tags, <code>{"href={…}"}</code> expressions, or
-    a link whose label wraps onto a second line, which some formatters produce.
-    It doesn't check your navigation config either.
+    <code>[text](target)</code>, even when a formatter wraps the label onto a
+    second line, reference-style links (<code>[text][ref]</code>), autolinks
+    (<code>&lt;https://…&gt;</code>), image embeds, a component's string{" "}
+    <code>href</code>, and lowercase HTML <code>&lt;a href&gt;</code> tags. It
+    doesn't see <code>{"href={…}"}</code> expressions or a bare URL written
+    without link syntax, and it doesn't check your navigation config either.
   </p>
   <p>
     <code>audit</code> sees every <code>&lt;a href&gt;</code> the build
@@ -492,10 +492,10 @@ git push`}
   <h3>A link you know is broken isn't reported</h3>
   <p>
     If <code>validate</code> passes, the link is probably one of the forms it
-    doesn't read: a reference-style link, an autolink, a raw{" "}
-    <code>&lt;a&gt;</code> tag, or a label that wraps across lines. The audit
-    step after the build catches it. Rewriting it as a one-line inline link
-    moves it back into the fast check.
+    doesn't read: an <code>{"href={…}"}</code> expression, or a bare URL
+    written without link syntax. The audit step after the build catches it.
+    Rewriting it as an inline link or a string <code>href</code> moves it back
+    into the fast check.
   </p>
   <h3>A link to a custom page is reported as broken</h3>
   <p>

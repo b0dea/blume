@@ -312,10 +312,13 @@ const checkPathLink = (
 ): LinkResult => {
   // Page routes carry the site-wide base; an absolute author path is written
   // as if mounted at root, so base it for the route lookup (idempotent — a
-  // relative link already resolved against the based `page.route`). A real
-  // route always wins over the asset-extension heuristic, so a dotted route
-  // (e.g. `/releases/v1.0`) isn't misread as a missing asset.
-  const authoredRoute = toRoute(withBasePath(ctx.basePath, resolved));
+  // relative link already resolved against the based `page.route`). A raw
+  // `<a href>` ships unbased, so it's looked up as written. A real route
+  // always wins over the asset-extension heuristic, so a dotted route (e.g.
+  // `/releases/v1.0`) isn't misread as a missing asset.
+  const authoredRoute = toRoute(
+    link.raw ? resolved : withBasePath(ctx.basePath, resolved)
+  );
   const route = servedRoute(authoredRoute, page, ctx);
   if (ctx.routes.has(route)) {
     return fragment ? checkAnchor(route, fragment, site, ctx, via) : null;
@@ -555,9 +558,14 @@ const classifyLink = (
     return fragment ? checkAnchor(page.route, fragment, site, ctx, via) : null;
   }
 
-  const resolved = rawPath.startsWith("/")
-    ? rawPath
-    : relativeTarget(page, rawPath, ctx);
+  let resolved = rawPath;
+  if (!rawPath.startsWith("/")) {
+    // A raw `<a href>` isn't rewritten, so the browser resolves it against
+    // the page's slashless URL: its parent directory, even on an index page.
+    resolved = link.raw
+      ? resolveRelative(page.route, rawPath, false)
+      : relativeTarget(page, rawPath, ctx);
+  }
   return checkPathLink(resolved, fragment, page, link, site, ctx, via);
 };
 
