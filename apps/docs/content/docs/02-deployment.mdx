@@ -16,7 +16,14 @@ sidebar:
 | Output directory | `dist`         |
 | Node version     | 22.12 or newer |
 
-These settings work on Vercel, Netlify, Cloudflare Pages, GitHub Pages, Amazon S3 + CloudFront, or any bucket or CDN. Make sure `blume` is a dependency so the host can run the build.
+These settings work on Vercel, Netlify, Cloudflare Pages, GitHub Pages, or any bucket or CDN. Make sure `blume` is a dependency so the host can run the build.
+
+Amazon S3 behind CloudFront, with a private bucket read through origin access control, needs two more pieces, because the S3 REST endpoint looks up each key exactly and serves each file with the type it was uploaded with:
+
+- A CloudFront Function on viewer requests that maps each page URL to the `index.html` Blume writes for it: `/quickstart` to `/quickstart/index.html`, and `/` (or any path ending in `/`) to its `index.html`. Leave a path whose last segment has a dot (`/quickstart.md`, `/_astro/app.js`) unchanged, and keep the function off `/.well-known/*`, whose `api-catalog` has no extension. Without it, S3 answers `/quickstart` with a `403` or `404`.
+- Uploads that set the types a guess from the file extension gets wrong or leaves without a charset: `text/markdown; charset=utf-8` for `.md` and `.mdx`, `text/plain; charset=utf-8` for `.txt`, and `application/linkset+json; profile="https://www.rfc-editor.org/info/rfc9727"` for `.well-known/api-catalog`. `dist/_headers` lists every rule your build needs.
+
+The [S3 and CloudFront guide](/guides/s3-cloudfront-documentation-site) has a CloudFormation template with the function and a deploy script that uploads with these types.
 
 On Cloudflare Workers, which serves a static build as static assets, set `"html_handling": "drop-trailing-slash"` under `assets` in your Wrangler config. Blume writes each page as `<route>/index.html` and links to it without a trailing slash, and Cloudflare's default (`auto-trailing-slash`) answers `/quickstart` with a `307` to `/quickstart/`. A [`cloudflare()` server build](#server-rendering) routes every page through its Worker, which serves `/quickstart` under either setting, so there it only matters when the build warns `Could not wire Accept: text/markdown negotiation` and the static layer serves the pages itself.
 
