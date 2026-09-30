@@ -9,6 +9,8 @@ description: blume doctor diagnoses configuration and content problems before yo
 blume doctor
 ```
 
+`blume init` also adds it to `package.json` as a `doctor` script. With pnpm, run that as `pnpm run doctor` (`pnpm --filter <workspace> run doctor` from a monorepo root): a bare `pnpm doctor` runs pnpm's own built-in `doctor` command instead of the script.
+
 ## What it checks
 
 - **The Node version** against the range the installed `blume` package supports, read from its own `engines` field. A version outside it is a warning: things may work, but it isn't a combination Blume tests.

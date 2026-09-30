@@ -53,6 +53,10 @@ On Vercel and Netlify, automatic detection prefers your stable production domain
 
 During `blume dev`, the site URL falls back to your local dev server (e.g. `http://localhost:4321`) when none is set, so site-gated features — Open Graph images, canonicals, the sitemap — work out of the box. Builds never use this fallback, so production output is never pointed at localhost.
 
+### Monorepos
+
+Deploy the docs workspace as its own project, with the host's root directory set to it (Vercel's **Root Directory**, Netlify's **Base directory**) and the settings above. On Vercel, leave **Include source files outside of the Root Directory in the Build Step** on, which is the default, whenever the docs read files outside their workspace: [component examples](/docs/content/components#component) or a workspace package they import, an `@source` path in `theme.css`, or a spec elsewhere in the repository. With it off, the build can't reach those files. The [monorepo guide](/guides/monorepo-documentation-site) walks through a pnpm and Turborepo setup.
+
 ## Preview locally
 
 Before you ship, preview the production build exactly as a static host would serve it:
