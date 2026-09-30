@@ -29,7 +29,7 @@ navigation: {
 ```
 
 :::note
-Operations are indexed for search by their **summary, description, tag, and endpoint** (`GET /pets/{id}`). The rendered schema tables and code samples aren't full-text indexed; search matches an operation's title, prose, section, and path, then links to its own page.
+Operations are indexed for search by their **summary, description, tag, and endpoint** (`GET /pets/{id}`). The rendered schema tables and generated code samples aren't full-text indexed; search matches an operation's title, prose, section, and path, then links to its own page. [Your own samples](#your-own-samples) are indexed like any code block, only with [`search.indexing.includeCodeBlocks`](/docs/configuration/search).
 :::
 
 ## A local spec
@@ -123,7 +123,19 @@ paths:
             planter list
 ```
 
-These samples render as their own tabs, ahead of the generated ones, and stay as written when readers change the [Try it](#try-it-playground) form. The older `x-code-samples` spelling works too. To show only your own samples, set `codeSamples: false`.
+These samples render as their own tabs, ahead of the generated ones, and stay as written when readers change the [Try it](#try-it-playground) form. The older `x-code-samples` spelling works too. To show only your own samples, set `codeSamples: false`. Unlike the generated samples, they're also in the operation page's Markdown copy, so `llms-full.txt`, the MCP server, and the assistant see your SDK calls.
+
+A `source` can also be a `$ref` to a file that holds the sample's code, the way Redocly describes keeping samples in files of their own. Blume reads the file relative to the spec, fetching it when the spec is a URL. A `$ref` it can't read, or one that points inside a document (`#/…`), leaves that sample out with a [`BLUME_OPENAPI_CODE_SAMPLE_REF`](#spec-warnings) warning:
+
+```yaml openapi.yaml lineNumbers
+paths:
+  /plants:
+    get:
+      x-codeSamples:
+        - lang: go
+          source:
+            $ref: ./code_samples/go/list_plants.go
+```
 
 ## Try it playground
 
@@ -291,6 +303,7 @@ Blume doesn't validate a spec against the OpenAPI schema: run a linter such as [
 | `BLUME_OPENAPI_PATH_PARAMETER_UNUSED` | An `in: path` parameter has no `{name}` in the path, so the value Try it asks for never reaches the URL. |
 | `BLUME_OPENAPI_UNKNOWN_SECURITY_SCHEME` | A `security` requirement names a scheme that `components.securitySchemes` doesn't define, so the [Authorization](#authorization) section can't describe it and requests send no credential for it. |
 | `BLUME_OPENAPI_UNSUPPORTED` | The spec uses an [OpenAPI 3.2](#openapi-32) feature Blume doesn't render yet: `additionalOperations`, which leaves those operations out, or an `in: querystring` parameter, which leaves the query string out of the page, Try it, and the code samples. |
+| `BLUME_OPENAPI_CODE_SAMPLE_REF` | An `x-codeSamples` entry's `source` is a `$ref` Blume can't read, or one that points inside a document, so that [sample](#your-own-samples) is left out. |
 | `BLUME_OPENAPI_X_WEBHOOKS` | A 3.1 or later spec keeps its webhooks under `x-webhooks`, the extension 3.0 tools read, and has no `webhooks`, so none of them render. Rename the field to `webhooks`. |
 | `BLUME_OPENAPI_REF_PATH_ITEM` | A path or webhook is a `$ref` to a shared path item, such as one under `components.pathItems`. Blume doesn't resolve these, so its operations are missing from the reference. Inline the path item under `paths` or `webhooks`; its schemas, parameters, and responses can stay `$ref`s. |
 

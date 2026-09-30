@@ -58,7 +58,8 @@ await mkdir("out");
 
 for (const [index, { name, sample }] of samples.entries()) {
   const { label = "", lang, source } = sample ?? {};
-  // Blume skips an entry like this without a warning, so fail on it here.
+  // Blume skips a malformed entry without a warning, and a $ref source isn't
+  // code this script can check, so fail on both here.
   if (typeof lang !== "string" || typeof source !== "string" || typeof label !== "string") {
     problems.push(\`\${name}: sample \${index} needs a string lang and source\`);
     continue;
@@ -369,11 +370,14 @@ export default defineConfig({
     </li>
   </ul>
   <p>
-    One more limit: samples live only on the rendered page. Site search
-    doesn't index them, and the page's Markdown copy, which agents, the MCP
-    server, and the assistant read, holds the endpoint and description but not
-    the samples. If agents should learn your SDK, write a hand-written
-    quickstart page with the same calls.
+    Your samples also reach the page's Markdown copy, which agents, the MCP
+    server, and the assistant read, so an agent that looks up an operation
+    sees your SDK call too. Site search indexes them like any other code
+    block: only when{" "}
+    <a href="/docs/configuration/search">
+      <code>search.indexing.includeCodeBlocks</code>
+    </a>{" "}
+    is on.
   </p>
 
   <h2>Test every sample against your SDK</h2>
@@ -387,7 +391,8 @@ export default defineConfig({
   <p>
     First, a script that finds every <code>x-codeSamples</code> entry and
     writes each TypeScript and Python one to <code>out/</code>. It also fails
-    on entries Blume would skip without a warning:
+    on entries it can't check, such as a <code>source</code> that's a{" "}
+    <code>$ref</code> to a file:
   </p>
   <CodeBlock
     code={extractMjsCode}

@@ -251,7 +251,7 @@ const parseReference = async (
       warnings,
     };
   }
-  const { document, warnings } = await parseSpec(
+  const { document, issues, warnings } = await parseSpec(
     reference.spec,
     ctx.projectRoot,
     { ...options, overlays: reference.overlays }
@@ -260,7 +260,7 @@ const parseReference = async (
   return {
     document,
     extractWarnings: extracted.warnings,
-    issues: specIssues(document),
+    issues: [...issues, ...specIssues(document)],
     operations: extracted.operations,
     tags: extracted.tags,
     warnings,

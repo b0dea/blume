@@ -32,6 +32,19 @@ const NAMED_OPERATIONS = 3;
 /** One entry of a document's `paths` or `webhooks` map. */
 type PathItem = NonNullable<ApiDocument["paths"]>[string];
 
+/**
+ * How a warning names an operation: `GET /pets`, or a webhook by its name
+ * (`Webhook "newPet" (POST)`), since a webhook has no path.
+ */
+export const operationLabel = (
+  name: string,
+  method: string,
+  webhook: boolean
+): string =>
+  webhook
+    ? `Webhook "${name}" (${method.toUpperCase()})`
+    : `${method.toUpperCase()} ${name}`;
+
 /** One entry of a `parameters` list: a parameter, or a `$ref` to one. */
 type ParameterEntry = NonNullable<OperationObject["parameters"]>[number];
 
@@ -225,9 +238,7 @@ export const specIssues = (document: ApiDocument): SpecIssue[] => {
       if (!isObject(operation)) {
         continue;
       }
-      const signature = webhook
-        ? `Webhook "${name}" (${method.toUpperCase()})`
-        : `${method.toUpperCase()} ${name}`;
+      const signature = operationLabel(name, method, webhook);
       for (const scheme of requiredSchemes(operation.security)) {
         requirers.set(scheme, [...(requirers.get(scheme) ?? []), signature]);
       }
