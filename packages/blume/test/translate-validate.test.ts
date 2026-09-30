@@ -124,6 +124,24 @@ npm install blume
     expect(parsed.data.title).toBe("Installation");
   });
 
+  it("leaves the source's seo.canonical out of the translation", () => {
+    const withSeo = (seo: string): string =>
+      SOURCE.replace("slug: install\n", `slug: install\nseo:\n${seo}`);
+    const agent = (seo: string): string =>
+      withSeo(seo)
+        .replace("# Install\n", "# Installation\n")
+        .replace("Run the installer.", "Lancez l'installateur.");
+    // It names the source-language page, so the translation falls back to
+    // its own default canonical; the rest of `seo` stays.
+    const kept = "  canonical: https://acme.com/install\n  noindex: true\n";
+    expect(matter(okText(withSeo(kept), agent(kept))).data.seo).toStrictEqual({
+      noindex: true,
+    });
+    // An `seo` block holding only the canonical goes with it.
+    const only = "  canonical: https://acme.com/install\n";
+    expect(matter(okText(withSeo(only), agent(only))).data.seo).toBeUndefined();
+  });
+
   it("keeps the source value when the agent blanks a translatable field", () => {
     const agent = `---
 title: ""
