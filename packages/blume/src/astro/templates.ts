@@ -4,6 +4,7 @@ import { pathToFileURL } from "node:url";
 import { dirname, isAbsolute, join, relative } from "pathe";
 
 import type { AskRetrievalOptions } from "../ai/ask-context.ts";
+import { ASK_MAX_MESSAGES, ASK_MAX_MESSAGES_CHARS } from "../ai/ask-limits.ts";
 import type { AskBackend } from "../ai/ask.ts";
 import { buildHomeLinkHeader } from "../ai/link-headers.ts";
 import type { CaptchaAdapter } from "../captcha/schema.ts";
@@ -1282,8 +1283,8 @@ const askCaptchaTemplate = (adapter?: CaptchaAdapter): RateLimitTemplate => {
 
 /**
  * Largest request body the assistant route reads: 64 KB, well above the
- * 24,000-character message budget it validates next, so a real conversation
- * never meets it.
+ * message budget it validates next (`ai/ask-limits.ts`), so a real
+ * conversation never meets it.
  */
 const ASK_BODY_LIMIT_BYTES = 65_536;
 
@@ -1392,7 +1393,7 @@ ${limit.check}  const text = await readCappedText(request, ${ASK_BODY_LIMIT_BYTE
   const valid =
     Array.isArray(raw) &&
     raw.length > 0 &&
-    raw.length <= 40 &&
+    raw.length <= ${ASK_MAX_MESSAGES} &&
     raw.every(
       (m: unknown) =>
         typeof m === "object" &&
@@ -1400,10 +1401,10 @@ ${limit.check}  const text = await readCappedText(request, ${ASK_BODY_LIMIT_BYTE
         ("role" in m && (m.role === "user" || m.role === "assistant")) &&
         ("content" in m && typeof m.content === "string")
     ) &&
-    JSON.stringify(raw).length <= 24_000;
+    JSON.stringify(raw).length <= ${ASK_MAX_MESSAGES_CHARS};
   if (!valid) {
     return new Response(
-      "Invalid request: send 1-40 user/assistant messages with string content.",
+      "Invalid request: send 1-${ASK_MAX_MESSAGES} user/assistant messages with string content.",
       { status: 400 }
     );
   }

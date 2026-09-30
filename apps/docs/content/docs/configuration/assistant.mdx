@@ -146,6 +146,8 @@ Blume sends the same `POST` body as its built-in route:
 }
 ```
 
+`messages` is the conversation so far, ending with the new question. The built-in route takes at most 40 messages and 24,000 characters of them as JSON, so once a conversation outgrows either, the panel sends its latest turns that fit and drops the oldest.
+
 Return a successful response whose body is a plain UTF-8 text stream. If the endpoint is on another origin, allow the docs origin with CORS: accept `OPTIONS` and `POST`, permit the `content-type` request header, and return the CORS headers on both the preflight and streamed response. With `endpoint` set, Blume generates the chat UI but no server route, grounding snapshot, provider dependency, or provider-secret warning; your backend owns retrieval, authentication, rate limiting, model access, and citations. An adapter set alongside it is ignored.
 
 ## Cross-origin callers
