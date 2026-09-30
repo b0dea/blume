@@ -168,6 +168,8 @@ export default defineConfig({
     }),
   ],
   search: {
+    // Query text reaches only the `blume:track` listener above.
+    analytics: { queries: false },
     popular: [
       { href: "/docs", icon: "rocket", label: "Getting started" },
       { href: "/events", icon: "radio", label: "Event reference" },

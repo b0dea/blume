@@ -20,7 +20,7 @@ export default defineConfig({
 });
 ```
 
-An adapter is a plain description of the backend — not a live client — so Blume can inline it into the generated site and into an ejected project. Pass the adapter directly, or use the object form when you also want to set the [popular links](#popular-pages) or [indexing](#whats-indexed) options beside it:
+An adapter is a plain description of the backend — not a live client — so Blume can inline it into the generated site and into an ejected project. Pass the adapter directly, or use the object form when you also want to set the [popular links](#popular-pages), [indexing](#whats-indexed), or [analytics](#search-analytics) options beside it:
 
 ```ts blume.config.ts lineNumbers
 import { pagefind } from "blume/search";
@@ -121,7 +121,15 @@ Keywords are searched on every adapter except Mixedbread.
 
 With an [analytics adapter](/docs/configuration/analytics) configured, search reports what readers look for. A query is recorded once it settles, after a second without typing or when the reader picks a result or closes the dialog, as a `search` event with the `query`, the number of `results`, and the `path` it was searched from. A query with no results shows up with `results: 0`, so filtering on it lists what your docs don't cover yet. Picking a result sends a `search_select` event with the `query`, the result's 1-based `position`, its `url`, and the `path` it was picked from, for click-through.
 
-Queries are sent as typed, up to 100 characters. Your analytics sees them the way it sees any page's search terms, so treat them as reader input. With [cookie consent](/docs/configuration/consent) on, only readers who allowed analytics are counted.
+Queries are sent as typed, up to 100 characters. Your analytics sees them the way it sees any page's search terms, so treat them as reader input: a reader can paste an email address or a key into the box, and Google Analytics and Plausible forbid sending personal data. To keep query text away from your providers, turn it off:
+
+```ts blume.config.ts lineNumbers
+search: {
+  analytics: { queries: false },
+},
+```
+
+The `search` and `search_select` events then carry `queryChars`, the query's length, in place of `query`. The text travels only on the [`blume:track`](/docs/configuration/analytics#custom-events) DOM event, as `query` in `detail.props`, so a listener you write can forward it wherever you decide it belongs, the way the [assistant](/docs/configuration/assistant#analytics) handles questions. With [cookie consent](/docs/configuration/consent) on, only readers who allowed analytics are counted.
 
 ## Adapters
 

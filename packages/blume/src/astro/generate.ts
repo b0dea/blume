@@ -1269,6 +1269,7 @@ export const buildRuntimeData = (project: BlumeProject): string => {
       openInChat: config.ai.openInChat,
       repoUrl,
       search: {
+        analytics: config.search.analytics,
         enabled: config.search.provider.mode !== "none",
         popular: resolveSearchPopular(config.search.popular, config.basePath),
         provider: config.search.provider.kind,

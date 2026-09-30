@@ -169,6 +169,16 @@ describe("search config schema", () => {
     });
   });
 
+  it("sends query text to analytics unless search.analytics.queries is off", () => {
+    expect(blumeConfigSchema.parse({}).search.analytics).toStrictEqual({
+      queries: true,
+    });
+    expect(
+      parse({ analytics: { queries: false }, provider: orama() }).search
+        .analytics
+    ).toStrictEqual({ queries: false });
+  });
+
   it("accepts nested JSON in a passthrough option", () => {
     const result = blumeConfigSchema.safeParse({
       search: algolia({

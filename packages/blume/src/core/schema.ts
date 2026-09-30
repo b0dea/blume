@@ -788,9 +788,17 @@ const searchIndexingSchema = z
   })
   .prefault({});
 
+/** What the search dialog's analytics events carry. */
+const searchAnalyticsSchema = z
+  .strictObject({
+    queries: z.boolean().default(true),
+  })
+  .prefault({});
+
 /** The object form of `search`: the adapter plus its adapter-independent settings. */
 const searchOptionsSchema = z.strictObject(
   {
+    analytics: searchAnalyticsSchema,
     indexing: searchIndexingSchema,
     /** Curated links for the Cmd+K empty state; defaults to the first sidebar pages. */
     popular: z.array(searchPopularLinkSchema).default([]),

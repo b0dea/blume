@@ -519,6 +519,16 @@ export type SearchProviderConfig = AnySearchAdapter | false;
 
 /** The object form of `search`: the adapter plus adapter-independent settings. */
 export interface SearchOptions {
+  /** What search reports to the configured analytics providers. */
+  analytics?: {
+    /**
+     * Send each query's text with the `search` and `search_select` events.
+     * Defaults to `true`. `false` sends the query's length (`queryChars`)
+     * instead, and the text rides only the `blume:track` DOM event, for a
+     * site to forward on its own terms.
+     */
+    queries?: boolean;
+  };
   /** Indexing behavior. */
   indexing?: {
     /**
@@ -542,7 +552,7 @@ export interface SearchOptions {
 /**
  * Search configuration. Pass an adapter directly (`search: algolia({…})`, or
  * `false`) as shorthand for the object form, which also carries `popular`
- * links and `indexing` settings.
+ * links and `indexing` and `analytics` settings.
  */
 export type SearchConfig = SearchProviderConfig | SearchOptions;
 

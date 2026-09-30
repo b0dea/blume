@@ -97,6 +97,7 @@ const kbd = "rounded border border-border bg-muted px-1 py-0.5 font-mono";
   data-i18n-popular={s.popular}
   data-i18n-results={s.results}
   data-locale={locale || undefined}
+  data-redact-queries={data.config.search.analytics.queries ? undefined : ""}
   data-version={version ?? undefined}
   data-versioned={version === null ? undefined : ""}
 >
@@ -247,6 +248,7 @@ const kbd = "rounded border border-border bg-muted px-1 py-0.5 font-mono";
 
     import { track } from "./analytics-client.ts";
     import { createSearchTracker } from "./search/analytics.ts";
+    import type { SearchTracker } from "./search/analytics.ts";
     import { highlight, matchSnippet } from "./search/types.ts";
     import type { SearchFn, SearchHit } from "./search/types.ts";
 
@@ -333,7 +335,7 @@ const kbd = "rounded border border-border bg-muted px-1 py-0.5 font-mono";
       preview!: HTMLElement;
       searchFn: SearchFn | null = null;
       /** Records settled queries and picked results (search/analytics.ts). */
-      tracker = createSearchTracker(track);
+      tracker!: SearchTracker;
       loaded = false;
       loadFailed = false;
       /** First-open client/index load still in flight. */
@@ -427,6 +429,10 @@ const kbd = "rounded border border-border bg-muted px-1 py-0.5 font-mono";
         this.message = this.querySelector("[data-blume-search-message]")!;
         this.preview = this.querySelector("[data-blume-search-preview]")!;
         this.assistantEnabled = this.hasAttribute("data-ask");
+        // `search.analytics.queries: false` keeps query text off providers.
+        this.tracker = createSearchTracker(track, {
+          queries: !this.hasAttribute("data-redact-queries"),
+        });
 
         const popularScript = this.querySelector(
           "[data-blume-search-popular]"

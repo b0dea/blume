@@ -421,6 +421,7 @@ describe("buildRuntimeData", () => {
     expect(data.config.og.enabled).toBe(false);
     expect(data.config.search.provider).toBe("orama");
     expect(data.config.search.popular).toStrictEqual([]);
+    expect(data.config.search.analytics).toStrictEqual({ queries: true });
     expect(data.config.favicon.href.startsWith("data:image/png")).toBe(true);
     expect(data.navigationByLocale).toEqual({});
     expect(data.navigation.repoUrl).toBeNull();
