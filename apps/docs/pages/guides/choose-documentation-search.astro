@@ -22,8 +22,9 @@
 // merge, the Typesense alias swap and sort, the Mixedbread result links and
 // errors, the Algolia record split, and the per-locale Orama tokenizers;
 // reran the Typesense row with Blume's own sync and client (Typesense 30.2,
-// same index), and the Japanese, Hindi, and German titles on Orama. Not yet
-// run end to end.
+// same index), and the Japanese, Hindi, and German titles on Orama. Rechecked
+// 2026-09-30 against the failed-sync rule (search/sync/index.ts): with the
+// admin key set, a failed upload fails the build. Not yet run end to end.
 import CodeBlock from "blume/components/content/CodeBlock.astro";
 import GuidePage from "../_guides/GuidePage.astro";
 import { guideById } from "../_guides/guides.ts";
@@ -304,7 +305,8 @@ npx blume preview`}
   <p>
     The build log should say <code>Synced 100 record(s) to algolia</code>, with
     your page count. If it says <code>Search sync skipped:</code> instead,
-    nothing was uploaded and the results don't count.
+    nothing was uploaded and the results don't count. If the upload fails with
+    the key set, the build stops with <code>BLUME_SEARCH_SYNC_FAILED</code>.
   </p>
 
   <h3>A semantic candidate</h3>
@@ -368,8 +370,9 @@ npx blume preview`}
     </li>
     <li>
       <strong>Freshness.</strong> A local index is rebuilt with the site. A
-      hosted index holds whatever the last successful upload sent, and a
-      failed upload only warns. Typesense imports each build into a new
+      hosted index holds whatever the last successful upload sent. With the
+      admin key set, a failed upload fails the build; without the key, the
+      build skips the upload with a warning. Typesense imports each build into a new
       collection and moves an alias onto it once it's complete, so searches
       keep working while a sync runs. The Mixedbread store changes only when
       someone runs <code>mxbai store sync</code>, so it needs its own CI step.
@@ -527,11 +530,13 @@ npx blume preview`}
   <h3>The hosted index is missing new pages</h3>
   <p>
     Look for <code>Search sync skipped:</code> in the build log. It names the
-    cause: an unset admin key, an <code>oramaCloud()</code> without{" "}
-    <code>indexId</code>, or the provider rejecting the upload, such as a key
-    without write access. The build still succeeds, so the dialog keeps
+    cause: an unset admin key, or an <code>oramaCloud()</code> without{" "}
+    <code>indexId</code>. The build still succeeds, so the dialog keeps
     serving whatever the provider already holds, which on Typesense is the
-    last complete sync. Build again once the cause is fixed.
+    last complete sync. With the key set, the provider rejecting the upload,
+    such as a key without write access, fails the build with{" "}
+    <code>BLUME_SEARCH_SYNC_FAILED</code> instead, and the message says why.
+    Build again once the cause is fixed.
   </p>
   <h3>The build fails with BLUME_SERVER_FEATURE_REQUIRED</h3>
   <p>
