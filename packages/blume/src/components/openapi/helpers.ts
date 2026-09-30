@@ -135,13 +135,34 @@ export const mergeParameters = (
 export const refName = (ref: string): string =>
   REF_PATTERN.exec(ref)?.groups?.name ?? ref.split("/").at(-1) ?? ref;
 
-/** Resolve one level of `$ref` against the document's component schemas. */
+/**
+ * The one member of an `allOf` that only wraps it: `allOf: [{ $ref }]` beside
+ * a `description`, `readOnly`, or `default`, which is how drf-spectacular and
+ * other generators attach keywords a 3.0 `$ref` can't carry. `undefined` for
+ * a real composition: several members, or properties or branches of its own.
+ */
+export const soleAllOfMember = (schema: SchemaLike): SchemaLike | undefined =>
+  schema.allOf?.length === 1 &&
+  !(schema.properties || schema.oneOf || schema.anyOf)
+    ? schema.allOf[0]
+    : undefined;
+
+/**
+ * Resolve one level of `$ref` against the document's component schemas. A
+ * single-member `allOf` wrapper resolves like its member, with the wrapper's
+ * own keywords on top: its `description` is about this field.
+ */
 export const resolveSchema = (
   schemas: Record<string, SchemaLike>,
   schema?: SchemaLike
 ): SchemaLike => {
   if (!schema) {
     return {};
+  }
+  const member = soleAllOfMember(schema);
+  if (member) {
+    const { allOf: _wrapped, ...own } = schema;
+    return { ...resolveSchema(schemas, member), ...own };
   }
   if (isString(schema.$ref)) {
     const name = REF_PATTERN.exec(schema.$ref)?.groups?.name;
@@ -187,6 +208,8 @@ const isNullType = (schema: SchemaLike): boolean => {
  * (`Pet`, `Pet[]`) without resolving — which also means circular refs through
  * array items can't recurse forever. A `null` member stays out of a union's
  * label: rows mark it with {@link isNullable}, as they do `type: [T, "null"]`.
+ * A single-member `allOf` wrapper labels as its member; a real composition is
+ * an `object`.
  */
 export const typeLabel = (schema: SchemaLike): string => {
   if (isString(schema.$ref)) {
@@ -202,7 +225,8 @@ export const typeLabel = (schema: SchemaLike): string => {
     return [...new Set(labels)].join(" | ") || "any";
   }
   if (schema.allOf) {
-    return "object";
+    const member = soleAllOfMember(schema);
+    return member ? typeLabel(member) : "object";
   }
   const types = nonNullTypes(schema.type);
   const arrayLabel = (): string => `${typeLabel(schema.items ?? {})}[]`;

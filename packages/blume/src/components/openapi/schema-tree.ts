@@ -2,6 +2,7 @@ import {
   objectProperties,
   refName,
   resolveSchema,
+  soleAllOfMember,
   typeLabel,
 } from "./helpers.ts";
 import type { SchemaLike, SpecValue } from "./helpers.ts";
@@ -67,6 +68,15 @@ export type SchemaNode =
 const isString = (value: SpecValue): value is string =>
   typeof value === "string";
 
+/**
+ * The `$ref` a schema stands for: its own, or its member's when it is a
+ * single-member `allOf` wrapper, which plans (and stops at a circle) the same.
+ */
+const refOf = (schema: SchemaLike): string | undefined => {
+  const ref = schema.$ref ?? soleAllOfMember(schema)?.$ref;
+  return isString(ref) ? ref : undefined;
+};
+
 const typesOf = (schema: SchemaLike): (string | undefined)[] =>
   Array.isArray(schema.type) ? schema.type : [schema.type];
 
@@ -107,8 +117,9 @@ export const schemaTree = (
     ancestors: string[],
     resolved = false
   ): SchemaSlot => {
-    if (!resolved && isString(schema.$ref)) {
-      const name = refName(schema.$ref);
+    const ref = resolved ? undefined : refOf(schema);
+    if (ref) {
+      const name = refName(ref);
       if (ancestors.includes(name)) {
         return { node: { kind: "circular", name } };
       }
@@ -132,10 +143,8 @@ export const schemaTree = (
     }
     // A row discloses nested structure — never a model inside itself.
     const rowChildren = (property: SchemaLike): SchemaSlot | undefined => {
-      if (
-        isString(property.$ref) &&
-        ancestors.includes(refName(property.$ref))
-      ) {
+      const propertyRef = refOf(property);
+      if (propertyRef && ancestors.includes(refName(propertyRef))) {
         return undefined;
       }
       const target = resolveSchema(schemas, property);
