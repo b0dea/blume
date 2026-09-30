@@ -85,12 +85,14 @@ On a site with [`i18n`](/docs/content/i18n), results default to the language of 
 
 ## Tags
 
-Add `search.tags` to a page's frontmatter to group it under a filter in the search dialog — readers can narrow results to a tag with a click. Tags also become a facet on the hosted adapters.
+Add `search.tags` to a page's frontmatter to label it for a hosted adapter. The page's first tag is uploaded as a `tag` field on its record in Algolia, Orama Cloud, and Typesense, where you can filter on it in the provider's dashboard or your own search UI. Typesense declares `tag` as a facet; on Algolia, add it to the index's `attributesForFaceting` yourself, and the sync keeps it there.
 
 ```yaml
 search:
   tags: [api, reference]
 ```
+
+The search dialog doesn't read tags. Its filters group results by the sidebar section each page is in, and they show with Orama and FlexSearch, whose indexes carry each page's section.
 
 ## Ranking
 
