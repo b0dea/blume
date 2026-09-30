@@ -824,6 +824,7 @@ describe("buildRuntimeData", () => {
     );
     expect(JSON.parse(buildRuntimeData(plain)).ui.changelog).toStrictEqual({
       description: "Every Acme release.",
+      empty: "No changelog entries yet.",
       title: "Release notes",
     });
 

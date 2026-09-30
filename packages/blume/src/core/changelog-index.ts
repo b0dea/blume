@@ -43,6 +43,7 @@ export const withChangelogIndexText = (
   return {
     ...ui,
     changelog: {
+      ...ui.changelog,
       description: text(
         config.changelog?.description,
         ui.changelog.description

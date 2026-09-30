@@ -3010,14 +3010,15 @@ const canonical = base ? base + basedRoute : null;
 const ogPath = data.config.og.enabled ? withMountedBase("/og/changelog.png") : null;
 const ogImage = ogPath && base ? base + ogPath : ogPath;
 
-// The page chrome (h1, title, description) comes from the translatable
-// \`changelog\` group, which carries the \`changelog\` config's title and
+// The page chrome (h1, title, description, empty state) comes from the
+// translatable \`changelog\` group, which carries the \`changelog\` config's title and
 // description when it sets them; optional chaining tolerates a
 // not-yet-regenerated data snapshot from before these keys existed.
 const changelogTitle = data.ui.changelog?.title ?? "Changelog";
 const changelogDescription =
   data.ui.changelog?.description ??
   "Product updates, new features, and fixes from every release.";
+const changelogEmpty = data.ui.changelog?.empty ?? "No changelog entries yet.";
 // The layout suffixes "- {site title}" itself, so the page title is just the
 // changelog's own name — prefixing the site title too would double it
 // ("Acme Changelog - Acme").
@@ -3070,7 +3071,7 @@ const LayoutComponent = resolveSlot(layoutOverrides.Layout, RootLayout);
   <p class="text-lg text-muted-foreground">{changelogDescription}</p>
   {
     items.length === 0 ? (
-      <p>No changelog entries yet.</p>
+      <p>{changelogEmpty}</p>
     ) : (
       <div class="not-prose mt-10 divide-y divide-border border-border border-y">
         {groups.map((group) => (

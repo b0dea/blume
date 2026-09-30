@@ -729,6 +729,12 @@ describe("changelogIndexTemplate", () => {
     expect(out).toContain("<h1>{changelogTitle}</h1>");
     expect(out).toContain("description: changelogDescription,");
     expect(out).not.toContain("<h1>Changelog</h1>");
+    // So is the line an index with no entries shows.
+    expect(out).toContain(
+      'const changelogEmpty = data.ui.changelog?.empty ?? "No changelog entries yet.";'
+    );
+    expect(out).toContain("<p>{changelogEmpty}</p>");
+    expect(out).not.toContain("<p>No changelog entries yet.</p>");
     // The island-hooks snapshot reuses the same localized page title.
     const reactOut = changelogIndexTemplate({
       ...changelogOpts,
