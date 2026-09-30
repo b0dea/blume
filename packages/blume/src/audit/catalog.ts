@@ -570,7 +570,7 @@ export const CHECKS = [
   // Sitemap
   {
     category: "sitemap",
-    fix: "Remove `draft`/`hidden`/`noindex` from the page's frontmatter if it should be indexed.",
+    fix: "Remove `draft`/`hidden`/`noindex` from the page's frontmatter if it should be indexed. A `public/sitemap.xml` replaces the generated sitemap, so add the page there or delete that file.",
     id: "BLUME_AUDIT_INDEXABLE_PAGE_NOT_IN_SITEMAP",
     severity: "warning",
     tier: "static",

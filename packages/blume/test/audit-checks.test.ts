@@ -644,6 +644,32 @@ describe("link checks", () => {
     expect(run(linkChecks, ctx)).toContain("ORPHAN_PAGE");
   });
 
+  it("says when nothing links to an orphan, not even the sidebar", () => {
+    // A `sidebar.hidden` page is left out of every page's navigation.
+    const ctx = context({
+      pages: [
+        snapshot({ links: [link("/listed", false)], url: "/" }),
+        snapshot({ links: [], url: "/listed" }),
+        // Its own chrome linking back to it doesn't make it reachable.
+        snapshot({ links: [link("/hidden", false)], url: "/hidden" }),
+      ],
+    });
+    // SAFETY: the link checks run synchronously.
+    const found = linkChecks.run(ctx) as Diagnostic[];
+    expect(
+      found.map((diagnostic) => [diagnostic.url, diagnostic.message])
+    ).toStrictEqual([
+      [
+        "/listed",
+        "No other page's body links here — it is reachable only from the sidebar.",
+      ],
+      [
+        "/hidden",
+        "No page links here, from its body or from navigation, so readers and crawlers can't reach it.",
+      ],
+    ]);
+  });
+
   it("does not report a page linked from another page's body", () => {
     const ctx = context({
       pages: [
