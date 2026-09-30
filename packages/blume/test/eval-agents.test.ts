@@ -165,6 +165,8 @@ describe("agentArgs", () => {
       "--output-format",
       "json",
       "--strict-mcp-config",
+      "--tools",
+      "",
       "--mcp-config",
       "/work/mcp-config.json",
       "--allowedTools",
@@ -181,6 +183,18 @@ describe("agentArgs", () => {
     expect(args).toContain("--strict-mcp-config");
     expect(args).not.toContain("--mcp-config");
     expect(args).toEqual(expect.arrayContaining(["--max-turns", "1"]));
+  });
+
+  it("leaves a claude run no built-in tools, whatever Claude Code names them", () => {
+    // A deny list goes stale as Claude Code adds tools (`Monitor` runs shell
+    // commands, `Skill` loads the user's skills); `--tools ""` turns every
+    // built-in off, so the reader keeps only the docs MCP tools.
+    for (const args of [
+      agentArgs("claude", { lastMessagePath: "/work/answer.txt", mcp }),
+      agentArgs("claude", { lastMessagePath: "/work/verdict.txt" }),
+    ]) {
+      expect(args[args.indexOf("--tools") + 1]).toBe("");
+    }
   });
 
   it("builds the codex reader argv: TOML server overrides, stdin prompt", () => {

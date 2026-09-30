@@ -188,7 +188,18 @@ const CLAUDE_READER_MAX_TURNS = "25";
 const CLAUDE_JUDGE_MAX_TURNS = "1";
 
 const claudeArgs = (context: InvocationContext): string[] => {
-  const base = ["-p", "--output-format", "json", "--strict-mcp-config"];
+  // `--tools ""` turns off every Claude Code built-in, including ones the
+  // deny list below doesn't name (`Monitor` runs shell commands, `Skill`
+  // loads the user's skills), so a reader has only the docs MCP tools and the
+  // judge has no tools at all. The deny list stays as a second layer.
+  const base = [
+    "-p",
+    "--output-format",
+    "json",
+    "--strict-mcp-config",
+    "--tools",
+    "",
+  ];
   if (context.mcp) {
     const allowed = MCP_TOOL_NAMES.map(
       (tool) => `mcp__${MCP_SERVER_NAME}__${tool}`
