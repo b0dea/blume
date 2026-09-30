@@ -137,6 +137,15 @@ describe("deployStaticDir", () => {
     );
   });
 
+  it("serves the base's directory for a Cloudflare server build under a base", () => {
+    // The adapter writes the client output to `dist/client/<base>/`, so the
+    // budget and the audit read it there.
+    const ctx = context("/proj");
+    expect(deployStaticDir(config(cloudflare({ base: "/a/b/" })), ctx)).toBe(
+      "/proj/dist/client/a/b"
+    );
+  });
+
   it("serves dist/ for a Cloudflare static build", () => {
     // A static build has no server dir to split against, so the `outDir` root
     // is what ships — unchanged by the server-build fix above.

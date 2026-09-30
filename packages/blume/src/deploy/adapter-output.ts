@@ -30,9 +30,9 @@ export const deployOutputDir = (
  * artifacts (robots.txt, sitemap.xml, llms.txt, …) must be written here to be
  * served. A static build serves `dist/` wherever it lands; a server build
  * serves what its platform declares — the Build Output tree's `static/` half
- * on Vercel (its `<base>/` directory under `deployment.base`), Astro's
- * `build.client` dir (`dist/client/`) on Node and Cloudflare, `dist/` on
- * Netlify.
+ * on Vercel, Astro's `build.client` dir (`dist/client/`) on Node and
+ * Cloudflare, `dist/` on Netlify. On Vercel and Cloudflare that's its
+ * `<base>/` directory under `deployment.base`, where the files land.
  */
 export const deployStaticDir = (
   config: ResolvedConfig,

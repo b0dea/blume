@@ -126,8 +126,8 @@ export interface DeployPlatform {
   /**
    * Whether the adapter moves a server build's client output under
    * `deployment.base` (`dist/client/<base>/`, the directory Astro then hands
-   * `astro:build:done`) while the platform keeps serving `serverStaticDir`
-   * as the assets root. The files the platform reads there, like `_headers`,
+   * `astro:build:done`) while the platform keeps serving `dist/client` as
+   * the assets root. The files the platform reads there, like `_headers`,
    * belong above the directory Astro reports.
    */
   serverClientUnderBase: boolean;

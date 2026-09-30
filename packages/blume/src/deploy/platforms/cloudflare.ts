@@ -354,5 +354,5 @@ export const cloudflarePlatform: DeployPlatform = {
   // build, and hoists its own `_headers`/`_redirects` back up to `dist/client`.
   serverClientUnderBase: true,
   serverOutputDir: distDir,
-  serverStaticDir: clientDir,
+  serverStaticDir: (context, base) => join(clientDir(context), base),
 };
