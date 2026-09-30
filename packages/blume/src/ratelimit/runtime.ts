@@ -16,7 +16,7 @@ import type { ClientContext } from "../core/client-address.ts";
 import { RATE_LIMIT_BINDING } from "./cloudflare.ts";
 import { DEFAULT_REQUESTS, DEFAULT_WINDOW } from "./memory.ts";
 import type { RateLimitAdapter } from "./schema.ts";
-import { UPSTASH_SECRETS } from "./upstash.ts";
+import { upstashSecrets } from "./upstash.ts";
 
 /** What a limiter says about one request. */
 export interface RateLimitResult {
@@ -194,14 +194,13 @@ export const createLimiter = (
     );
   }
   if (adapter.kind === "upstash") {
-    const [endpoint, token] = UPSTASH_SECRETS.map((name) =>
-      runtime.secret?.(name)
-    );
+    const secrets = upstashSecrets(adapter.options);
+    const [endpoint, token] = secrets.map((name) => runtime.secret?.(name));
     if (endpoint && token) {
       return upstashLimiter(requests, window, endpoint, token, runtime.fetch);
     }
     console.warn(
-      `Rate limiting counts in memory: set ${UPSTASH_SECRETS.join(" and ")} to share the count through Upstash.`
+      `Rate limiting counts in memory: set ${secrets.join(" and ")} to share the count through Upstash.`
     );
   }
   return memoryLimiter(requests, window, runtime.now);

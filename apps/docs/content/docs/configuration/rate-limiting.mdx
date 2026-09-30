@@ -38,12 +38,18 @@ rateLimit: memory({ requests: 60, window: 600 }),
 
 ### Upstash
 
-`upstash()` keeps the count in Upstash Redis, which every instance shares. Create a database (on Vercel, add Upstash from the Marketplace), then set its REST endpoint and token as `UPSTASH_REDIS_REST_URL` and `UPSTASH_REDIS_REST_TOKEN`. Blume talks to Upstash's REST API, so there's nothing to install. Until both are set, the routes count in memory and `blume build` warns.
+`upstash()` keeps the count in Upstash Redis, which every instance shares. Create a database, then set its REST endpoint and token as `UPSTASH_REDIS_REST_URL` and `UPSTASH_REDIS_REST_TOKEN`. Blume talks to Upstash's REST API, so there's nothing to install. Until both are set, the routes count in memory and `blume build` warns.
 
 ```ts blume.config.ts lineNumbers
 import { upstash } from "blume/ratelimit";
 
 rateLimit: upstash(),
+```
+
+A database added from Vercel's Marketplace sets its endpoint and token as `KV_REST_API_URL` and `KV_REST_API_TOKEN` instead, with any prefix you chose when you connected it. Name the variables with `urlEnv` and `tokenEnv`:
+
+```ts blume.config.ts lineNumbers
+rateLimit: upstash({ urlEnv: "KV_REST_API_URL", tokenEnv: "KV_REST_API_TOKEN" }),
 ```
 
 ### Cloudflare

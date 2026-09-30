@@ -81,6 +81,11 @@ describe("rate limit adapters", () => {
       "UPSTASH_REDIS_REST_URL",
       "UPSTASH_REDIS_REST_TOKEN",
     ]);
+    // Vercel's Marketplace names them its own way.
+    expect(
+      upstash({ tokenEnv: "KV_REST_API_TOKEN", urlEnv: "KV_REST_API_URL" })
+        .requiredSecrets
+    ).toStrictEqual(["KV_REST_API_URL", "KV_REST_API_TOKEN"]);
     expect(cloudflare({ window: 10 }).options).toStrictEqual({ window: 10 });
   });
 
@@ -90,6 +95,14 @@ describe("rate limit adapters", () => {
     expect(
       blumeConfigSchema.parse({ rateLimit: upstash() }).rateLimit
     ).toStrictEqual(upstash());
+    const marketplace = upstash({ urlEnv: "KV_REST_API_URL" });
+    expect(
+      blumeConfigSchema.parse({ rateLimit: marketplace }).rateLimit
+    ).toStrictEqual(marketplace);
+    expect(
+      blumeConfigSchema.safeParse({ rateLimit: upstash({ tokenEnv: "" }) })
+        .error?.issues[0]?.path
+    ).toStrictEqual(["rateLimit", "options", "tokenEnv"]);
   });
 
   it("points anything else at blume/ratelimit, and keeps option errors", () => {
@@ -269,6 +282,28 @@ describe(createLimiter, () => {
     expect(warn).not.toHaveBeenCalled();
   });
 
+  it("reads Upstash's secrets from the env vars the adapter names", async () => {
+    const stub = upstashStub(1, 100);
+    const read: string[] = [];
+    const marketplace = createLimiter(
+      upstash({ tokenEnv: "KV_REST_API_TOKEN", urlEnv: "KV_REST_API_URL" }),
+      {
+        fetch: stub.fetch,
+        secret: (name) => {
+          read.push(name);
+          return name.startsWith("KV_") ? `${name}-value` : undefined;
+        },
+      }
+    );
+    expect(await marketplace?.("a")).toMatchObject({ allowed: true });
+    expect(read).toStrictEqual(["KV_REST_API_URL", "KV_REST_API_TOKEN"]);
+    expect(stub.calls[0]?.url).toBe("KV_REST_API_URL-value");
+    expect(stub.calls[0]?.headers).toMatchObject({
+      authorization: "Bearer KV_REST_API_TOKEN-value",
+    });
+    expect(warn).not.toHaveBeenCalled();
+  });
+
   it("counts in memory, and says so, when a shared store isn't set up", async () => {
     const time = clock();
     const noSecrets = createLimiter(upstash({ requests: 1 }), {
@@ -279,9 +314,11 @@ describe(createLimiter, () => {
     expect(await noSecrets?.("a")).toMatchObject({ allowed: false });
     const noBinding = createLimiter(cloudflare({ requests: 1, window: 10 }));
     expect(await noBinding?.("a")).toMatchObject({ retryAfter: 10 });
+    createLimiter(upstash({ urlEnv: "KV_REST_API_URL" }), { secret: () => {} });
     expect(warn.mock.calls.map(([message]) => String(message))).toStrictEqual([
       "Rate limiting counts in memory: set UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN to share the count through Upstash.",
       "Rate limiting counts in memory: the Worker has no BLUME_RATE_LIMIT binding.",
+      "Rate limiting counts in memory: set KV_REST_API_URL and UPSTASH_REDIS_REST_TOKEN to share the count through Upstash.",
     ]);
   });
 });
