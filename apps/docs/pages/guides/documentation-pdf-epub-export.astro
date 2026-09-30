@@ -17,6 +17,11 @@
 // the print block in theme/entry.ts, the beforeprint switch in
 // head-scripts.ts, and the EPUB metadata, link, and image handling in
 // PageActions.astro. Read in the source; not rerun in a browser.
+// Updated for the page actions in the mobile On this page menu (2c113598):
+// RootLayout.astro, TableOfContents.astro, and PageActions.astro. Opened the
+// menu on a probe site in Chrome at 390, 768, and 1,100 pixels, and ran
+// Export to PDF and Export to EPUB from it before and after a client-side
+// navigation.
 import Callout from "blume/components/content/Callout.astro";
 import CodeBlock from "blume/components/content/CodeBlock.astro";
 import GuidePage from "../_guides/GuidePage.astro";
@@ -68,24 +73,25 @@ export default defineConfig({
   </p>
   <CodeBlock code={`export: { pdf: true },`} lang="ts" title="blume.config.ts" />
   <p>
-    The action lives in the right-hand rail, below the table of contents, and
-    that rail doesn't show everywhere:
+    The action sits below the table of contents. Where that is depends on the
+    window and the page:
   </p>
   <ul>
     <li>
-      It appears only in windows at least 1,280 pixels wide. On a phone there's
-      no Export action, but printing from the browser's own menu still applies
-      the same print stylesheet.
+      In a window at least 1,280 pixels wide, it's in the right-hand rail. In
+      a narrower window or on a phone, it's at the bottom of the{" "}
+      <strong>On this page</strong> menu above the content, and its PDF and
+      EPUB entries open right under it.
     </li>
     <li>
       Pages whose <a href="/docs/content/frontmatter#layout">layout mode</a>{" "}
       drops the table of contents (<code>wide</code>, <code>center</code>,{" "}
-      <code>frame</code>, and <code>custom</code>) have no rail, and neither do
-      API operation pages.
+      <code>frame</code>, and <code>custom</code>) have no rail and no menu,
+      and API operation pages have neither.
     </li>
     <li>
-      Turning the outline off with <code>toc: false</code> keeps the rail, so
-      the action stays.
+      Turning the outline off with <code>toc: false</code> keeps both, so the
+      action stays. The menu then holds only the page actions.
     </li>
   </ul>
 
@@ -213,9 +219,8 @@ Test keys only send to phone numbers you've verified in the dashboard.
     title="docs/export-test.mdx"
   />
   <p>
-    Run <code>npx blume dev</code> and open <code>/export-test</code> in a
-    window at least 1,280 pixels wide. Wait for the diagram to draw before you
-    export. Mermaid renders in the browser after the page loads, and a diagram
+    Run <code>npx blume dev</code> and open <code>/export-test</code>. Wait
+    for the diagram to draw before you export. Mermaid renders in the browser after the page loads, and a diagram
     that hasn't finished prints as a blank space.
   </p>
 
@@ -463,9 +468,11 @@ Test keys only send to phone numbers you've verified in the dashboard.
   <h2>Troubleshooting</h2>
   <h3>There's no Export action</h3>
   <p>
-    Check that <code>export</code> is set in <code>blume.config.ts</code>, that
-    the window is at least 1,280 pixels wide, and that the page uses the
-    default layout mode. API operation pages never show it.
+    Check that <code>export</code> is set in <code>blume.config.ts</code> and
+    that the page uses the default layout mode. In a window narrower than
+    1,280 pixels, open the <strong>On this page</strong> menu above the
+    content: the action is at the bottom of it. API operation pages never show
+    it.
   </p>
   <h3>An image from another host is missing from the EPUB</h3>
   <p>
