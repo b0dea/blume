@@ -1,3 +1,5 @@
+import { isAbsolute, join } from "pathe";
+
 import { normalizeRoute, withBasePath } from "../core/base-path.ts";
 import type { ResolvedConfig } from "../core/schema.ts";
 import { trimChar } from "../core/trim.ts";
@@ -356,6 +358,27 @@ export const blumeReferences = (
   }
   return result;
 };
+
+/** A spec or overlay the parser fetches rather than reads from disk. */
+const REMOTE_SPEC = /^https?:\/\//u;
+
+/**
+ * The local files every reference reads, as absolute paths: each spec and
+ * overlay that isn't an `http(s)` URL, resolved from the project root the way
+ * the parser resolves them. `blume dev` watches these, so an edit to a spec
+ * regenerates its reference like an edit to a page does.
+ */
+export const referenceSpecFiles = (
+  config: ResolvedConfig,
+  root: string
+): string[] => [
+  ...new Set(
+    resolveReferences(config)
+      .flatMap((ref) => [ref.spec, ...(ref.overlays ?? [])])
+      .filter((path) => !REMOTE_SPEC.test(path))
+      .map((path) => (isAbsolute(path) ? path : join(root, path)))
+  ),
+];
 
 /** Whether any reference is Scalar-rendered (gates the Scalar pages). */
 export const hasScalarReferences = (config: ResolvedConfig): boolean =>

@@ -36,7 +36,7 @@ Operations are indexed for search by their **summary, description, tag, and endp
 
 ## A local spec
 
-A relative path is resolved from your project root and read at build time. Both JSON and YAML work:
+A relative path is resolved from your project root and read at build time. Both JSON and YAML work, and `blume dev` watches the file, along with any local [overlays](#overlays), so the reference updates when you save the spec:
 
 ```ts blume.config.ts lineNumbers
 reference: [openapi({ spec: "./openapi.yaml" })],

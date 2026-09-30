@@ -52,6 +52,7 @@ import { InvalidSpecError, parseSpec } from "../src/openapi/parse.ts";
 import {
   blumeReferences,
   hasScalarReferences,
+  referenceSpecFiles,
   resolveReferences,
 } from "../src/openapi/references.ts";
 import { operationMdx, overviewMdx } from "../src/openapi/render-mdx.ts";
@@ -253,6 +254,33 @@ describe("references", () => {
     });
     expect(hasScalarReferences(config)).toBe(false);
     expect(blumeReferences(config)).toHaveLength(1);
+  });
+
+  it("lists the local spec and overlay files references read, for the dev watcher", () => {
+    const config = blumeConfigSchema.parse({
+      reference: [
+        openapi({
+          sources: [
+            { overlays: ["./overlays/public.yaml"], spec: "./openapi.yaml" },
+            { spec: "https://api.test/openapi.json" },
+            {
+              overlays: ["https://api.test/overlay.yaml"],
+              route: "/admin",
+              spec: "/abs/admin.json",
+            },
+          ],
+        }),
+        asyncapi({ spec: "async.yaml" }),
+        // The same file twice is watched once.
+        scalar({ route: "/embed", spec: "./openapi.yaml" }),
+      ],
+    });
+    expect(referenceSpecFiles(config, "/project")).toStrictEqual([
+      "/project/openapi.yaml",
+      "/project/overlays/public.yaml",
+      "/abs/admin.json",
+      "/project/async.yaml",
+    ]);
   });
 
   it("resolves a Blume-rendered AsyncAPI reference by default", () => {

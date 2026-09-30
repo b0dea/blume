@@ -11,6 +11,7 @@ import {
 import { BlumeError } from "../../core/diagnostics.ts";
 import { scanProject } from "../../core/project-graph.ts";
 import { resolveRuntimeDir } from "../../core/project.ts";
+import { referenceSpecFiles } from "../../openapi/references.ts";
 import { parsePort } from "../args.ts";
 import { commandMeta } from "../command-meta.ts";
 import {
@@ -229,7 +230,8 @@ export const devCommand = defineCommand({
 
     // Content is watched per source (filesystem uses fs.watch; remote sources
     // are frozen for the session). The remaining project inputs — user pages,
-    // config, theme, and component overrides — are watched directly.
+    // config, theme, component overrides, and the local specs and overlays API
+    // references read — are watched directly.
     const dirTargets = [project.context.pagesRoot].filter(
       (target) => target !== null
     );
@@ -237,6 +239,7 @@ export const devCommand = defineCommand({
       project.context.configFile,
       project.context.themeFile,
       project.context.componentsFile,
+      ...referenceSpecFiles(project.config, root),
     ].filter((target) => target !== null);
 
     // chokidar handles what raw fs.watch made us hand-roll: recursive
