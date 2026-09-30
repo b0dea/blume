@@ -15,6 +15,7 @@ import { MCP_TOOLS } from "../src/ai/mcp/tools.ts";
 import { scanProject } from "../src/core/project-graph.ts";
 import type { BlumeProject } from "../src/core/project-graph.ts";
 import { buildOramaIndex, queryOramaIndex } from "../src/search/orama-index.ts";
+import type { OramaQueryFilters } from "../src/search/orama-index.ts";
 
 const DATA: McpData = {
   base: "",
@@ -765,7 +766,10 @@ describe("orama index helpers", () => {
   it("matches unspaced-script content when the locale selects a segmenting tokenizer", async () => {
     // Without a locale, Orama's default English tokenizer collapses Japanese
     // text to zero tokens — the silent all-queries-miss failure this guards.
-    const unsegmented = await buildOramaIndex(JA_DOCS);
+    // A site that never declared its language tags every page `en`.
+    const unsegmented = await buildOramaIndex(
+      JA_DOCS.map((doc) => ({ ...doc, locale: "en" }))
+    );
     expect(await queryOramaIndex(unsegmented, "ポイント", 5)).toEqual([]);
 
     const db = await buildOramaIndex(JA_DOCS, "ja");
@@ -818,7 +822,7 @@ describe("orama index helpers", () => {
           route: "/x",
           title: "X",
         };
-        const unsegmented = await buildOramaIndex([doc]);
+        const unsegmented = await buildOramaIndex([{ ...doc, locale: "en" }]);
         const segmented = await buildOramaIndex([doc], locale);
         const before = await queryOramaIndex(unsegmented, term, 5);
         const after = await queryOramaIndex(segmented, term, 5);
@@ -1014,6 +1018,119 @@ describe("orama index helpers", () => {
       })
     );
     expect(hits.map((found) => found.length)).toEqual([1, 1, 1]);
+  });
+
+  // An English-default site with Japanese and Hindi translations, whose
+  // scripts Orama's own tokenizer reduces to zero tokens.
+  const TRANSLATED_DOCS = [
+    {
+      content: "Install the CLI and run the dev server. GDPR applies.",
+      description: "",
+      locale: "en",
+      route: "/start",
+      title: "Getting started",
+      version: "",
+    },
+    {
+      content: "退会とポイントの扱いについて説明します。GDPRにも触れます。",
+      description: "個人情報の取り扱い",
+      locale: "ja",
+      route: "/ja/start",
+      title: "法務に相談するときの準備リスト",
+      version: "",
+    },
+    {
+      content: "退会とポイントの扱いについて説明します。",
+      description: "",
+      locale: "ja",
+      route: "/v1/ja/start",
+      title: "X",
+      version: "v1",
+    },
+    {
+      content: "एजेंट प्राधिकरण अनुबंध",
+      description: "",
+      locale: "hi",
+      route: "/hi/start",
+      title: "X",
+      version: "",
+    },
+  ];
+
+  it("indexes non-Latin translations on a Latin-default site with their own tokenizers", async () => {
+    const db = await buildOramaIndex(TRANSLATED_DOCS, "en");
+    // The Latin-script pages keep Orama's own tokenizer.
+    expect(db.tokenizer?.language).toBe("english");
+    const routes = async (term: string, filters?: OramaQueryFilters) => {
+      const hits = await queryOramaIndex(db, term, 5, filters);
+      return hits.map((doc) => doc.route).toSorted();
+    };
+    // Scoped to one locale, as the search dialog asks...
+    expect(await routes("ポイント", { locale: "ja", version: "" })).toEqual([
+      "/ja/start",
+    ]);
+    expect(await routes("प्राधिकरण", { locale: "hi" })).toEqual(["/hi/start"]);
+    expect(await routes("install", { locale: "en" })).toEqual(["/start"]);
+    // ...and unscoped, as MCP search_docs and the assistant ask by default,
+    // with the other filters still applied.
+    expect(await routes("ポイント", { version: "" })).toEqual(["/ja/start"]);
+    expect(await routes("ポイント")).toEqual(["/ja/start", "/v1/ja/start"]);
+    expect(await routes("प्राधिकरण")).toEqual(["/hi/start"]);
+    // A Latin term matches the English page and the translation quoting it.
+    expect(await routes("gdpr", { version: "" })).toEqual([
+      "/ja/start",
+      "/start",
+    ]);
+  });
+
+  it("keeps the strict bigram pass for a Japanese translation of a Latin-default site", async () => {
+    // The fragments page shares the compound's parts but not its bigram
+    // windows, so the strict pass keeps it out, scoped or not.
+    const docs = [
+      {
+        content: "Payment services law",
+        description: "",
+        locale: "en",
+        route: "/law",
+        title: "X",
+      },
+      {
+        content: "資金 決済 法",
+        description: "",
+        locale: "ja",
+        route: "/ja/fragments",
+        title: "X",
+      },
+      {
+        content: "資金決済法の適用範囲",
+        description: "",
+        locale: "ja",
+        route: "/ja/compound",
+        title: "X",
+      },
+    ];
+    const db = await buildOramaIndex(docs, "en");
+    const scoped = await queryOramaIndex(db, "資金決済法", 5, { locale: "ja" });
+    expect(scoped.map((doc) => doc.route)).toEqual(["/ja/compound"]);
+    const unscoped = await queryOramaIndex(db, "資金決済法", 5);
+    expect(unscoped.map((doc) => doc.route)).toEqual(["/ja/compound"]);
+  });
+
+  it("merges an unscoped query's matches across locales by boosted score", async () => {
+    // The English page and its current Japanese translation.
+    const pair = TRANSLATED_DOCS.slice(0, 2);
+    const first = async (boosted: "en" | "ja") => {
+      const db = await buildOramaIndex(
+        pair.map((doc) =>
+          doc.locale === boosted ? { ...doc, boost: 5 } : doc
+        ),
+        "en"
+      );
+      const hits = await queryOramaIndex(db, "gdpr", 1);
+      return hits.map((doc) => doc.route);
+    };
+    expect(await first("en")).toEqual(["/start"]);
+    expect(await first("ja")).toEqual(["/ja/start"]);
   });
 
   // A hub page naming every law shallowly, plus the pages each law belongs to.

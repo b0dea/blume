@@ -1552,8 +1552,12 @@ describe("createAskContext", () => {
         title: "ポイントの扱い",
       },
     ];
-    // Without the locale, the default tokenizer finds nothing to ground on.
-    const unsegmented = createAskContext({ documents, site: null });
+    // Without a locale, the default tokenizer finds nothing to ground on: a
+    // site that never declared its language tags every page `en`.
+    const unsegmented = createAskContext({
+      documents: documents.map((page) => ({ ...page, locale: "en" })),
+      site: null,
+    });
     expect(
       await unsegmented([{ content: "ポイント", role: "user" }])
     ).toBeUndefined();
@@ -1565,6 +1569,15 @@ describe("createAskContext", () => {
     });
     const system = await ground([{ content: "ポイント", role: "user" }]);
     expect(system).toContain("ポイントの扱い (/ja/points)");
+
+    // A Japanese translation of an English-default site grounds it too.
+    const translated = createAskContext({
+      defaultLocale: "en",
+      documents,
+      site: null,
+    });
+    const answer = await translated([{ content: "ポイント", role: "user" }]);
+    expect(answer).toContain("ポイントの扱い (/ja/points)");
   });
 
   it("truncates long excerpts and returns undefined for an empty corpus", async () => {
