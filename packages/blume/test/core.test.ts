@@ -1421,6 +1421,45 @@ describe("sitemap", () => {
     expect(xml).not.toContain("/d<");
   });
 
+  it("lists canonical URLs only, leaving out a page whose canonical points elsewhere", () => {
+    const canonical = (id: string, url: string) =>
+      makePage({
+        id,
+        meta: pageMetaSchema.parse({ seo: { canonical: url } }),
+        route: `/${id}`,
+        title: id,
+      });
+    const pages = [
+      canonical("copy", "https://example.com/original"),
+      makePage({ id: "original", route: "/original", title: "Original" }),
+      // Naming itself, with or without a trailing slash, keeps it listed.
+      canonical("self", "https://example.com/self/"),
+      // Unicode routes compare decoded, as the audit reads them.
+      canonical("größe", "https://example.com/gr%C3%B6%C3%9Fe"),
+      // A malformed escape can't be decoded, so it names some other path.
+      canonical("bad", "https://example.com/bad%E0%A4%A"),
+    ];
+    const xml = buildSitemap(makeProject(pages)) ?? "";
+    expect(xml).not.toContain("/copy<");
+    expect(xml).not.toContain("/bad");
+    expect(xml).toContain("https://example.com/original<");
+    expect(xml).toContain("https://example.com/self<");
+    expect(xml).toContain("https://example.com/gr%C3%B6%C3%9Fe<");
+
+    // Under a deployment base the canonical carries it, like the <loc>.
+    const based = buildSitemap(
+      makeProject(
+        [
+          canonical("copy", "https://example.com/sub/original"),
+          canonical("self", "https://example.com/sub/self"),
+        ],
+        { deployment: { base: "/sub", site: "https://example.com" } }
+      )
+    );
+    expect(based).not.toContain("/copy<");
+    expect(based).toContain("https://example.com/sub/self<");
+  });
+
   it("returns null without a site or when disabled", () => {
     const pages = [makePage({ id: "a", route: "/a", title: "A" })];
     expect(buildSitemap(makeProject(pages, { deployment: {} }))).toBeNull();

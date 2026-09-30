@@ -161,7 +161,7 @@ export const CHECKS = [
   },
   {
     category: "duplicates",
-    fix: "Merge the pages, or set `seo.canonical` on all but one.",
+    fix: "Merge the pages, or point `seo.canonical` on all but one at the page to index.",
     id: "BLUME_AUDIT_DUPLICATE_CONTENT",
     severity: "warning",
     tier: "static",

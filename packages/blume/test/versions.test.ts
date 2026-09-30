@@ -904,6 +904,22 @@ describe("agent surfaces with versions", () => {
     expect(sitemap).toContain("https://example.com/v1.0/old-only");
   });
 
+  it("keeps an archived page whose own seo.canonical names itself", async () => {
+    const project = await versionedProject();
+    const archived = project.graph.pages.find(
+      (entry) => entry.route === "/v1.0/guides/x"
+    );
+    if (!archived) {
+      throw new Error("expected the archived guide");
+    }
+    // The page head prefers `seo.canonical` over the version default, so the
+    // sitemap follows it.
+    archived.meta.seo.canonical = "https://example.com/v1.0/guides/x";
+    expect(buildSitemap(project)).toContain(
+      "https://example.com/v1.0/guides/x"
+    );
+  });
+
   it("scopes the MCP tools to the current docs by default", async () => {
     const project = await versionedProject();
     const data = await buildMcpData(project);
