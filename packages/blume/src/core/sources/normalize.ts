@@ -1,6 +1,7 @@
 import { existsSync, readFileSync } from "node:fs";
 
 import GithubSlugger from "github-slugger";
+import type { YAMLException } from "js-yaml";
 import type { Nodes } from "mdast";
 import { extname } from "pathe";
 import { markdownToMdast } from "satteri";
@@ -126,6 +127,29 @@ export const unloadablePathDiagnostic = (
           'Rename the file (or its folder) without "#" or "?". Both are dropped from the page\'s URL anyway, so the page keeps its route.',
       }
     : undefined;
+
+/**
+ * The error for a content file whose front matter isn't valid YAML — most
+ * often an unquoted value holding `: `, which YAML reads as a nested mapping.
+ * Thrown out of a source's scan, it would fail every command with
+ * BLUME_INTERNAL; a source leaves the file out and reports this instead, like
+ * a page whose front matter fails the schema. js-yaml counts lines from the
+ * text after the opening `---`, which starts with the rest of that fence
+ * line, so its 0-based line is already the file's line minus one.
+ */
+export const frontmatterYamlDiagnostic = (
+  error: YAMLException,
+  file: string
+): Diagnostic => ({
+  code: "BLUME_FRONTMATTER_INVALID",
+  column: error.mark ? error.mark.column + 1 : undefined,
+  file,
+  line: error.mark ? error.mark.line + 1 : undefined,
+  message: `Front matter isn't valid YAML (${error.reason}), so the page was left out of the site.`,
+  severity: "error",
+  suggestion:
+    'Wrap the value at that line in double quotes, e.g. description: "Setup: the easy way".',
+});
 
 /**
  * Fold one raw path part into the accumulating route segments/groups.

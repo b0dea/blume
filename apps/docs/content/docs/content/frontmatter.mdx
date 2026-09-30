@@ -5,6 +5,8 @@ description: Every frontmatter field a page accepts, all optional — title, des
 
 Every page accepts the following frontmatter. All fields are optional.
 
+Frontmatter is YAML, so quote a value that holds a colon followed by a space, like `description: "Setup: the easy way"`. Unquoted, YAML reads the second colon as the start of a nested key, and Blume reports the file and line as `BLUME_FRONTMATTER_INVALID`.
+
 <TypeTable
   type={{
     title: { type: "string", description: "Page title." },

@@ -13,6 +13,7 @@ import { scanProject } from "../../core/project-graph.ts";
 import { resolveRuntimeDir } from "../../core/project.ts";
 import { referenceSpecFiles } from "../../openapi/references.ts";
 import { parsePort } from "../args.ts";
+import { astroBuildDiagnostics } from "../build-failure.ts";
 import { commandMeta } from "../command-meta.ts";
 import {
   acquireDevLock,
@@ -141,7 +142,19 @@ export const devCommand = defineCommand({
         server: { host: normalizeHost(args.host), open, port: listenPort },
       });
 
-    let server = await createServer(explicitPort, args.open ?? false);
+    let server: Awaited<ReturnType<typeof createServer>>;
+    try {
+      server = await createServer(explicitPort, args.open ?? false);
+    } catch (error) {
+      // Astro's first content sync rejects on a page it can't load (front
+      // matter that isn't valid YAML): report it at the file it names, as
+      // `blume build` does, not as an internal error blaming Blume.
+      if (error instanceof BlumeError || !(error instanceof Error)) {
+        throw error;
+      }
+      reportDiagnostics(astroBuildDiagnostics(error), root);
+      process.exit(1);
+    }
 
     // Vite bumps to the next free port when the default is taken, so record
     // the port the server actually bound — the lock's URL is what a refused
