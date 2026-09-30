@@ -152,6 +152,16 @@ export const resolveSchema = (
   return schema;
 };
 
+/**
+ * A parameter's description: its own, else its schema's (resolved one `$ref`
+ * level), which is where generators like Elysia and oRPC write it.
+ */
+export const parameterDescription = (
+  param: { description?: string; schema?: SchemaLike },
+  schemas: Record<string, SchemaLike>
+): string | undefined =>
+  param.description ?? resolveSchema(schemas, param.schema).description;
+
 const declaredTypeList = (type: string | string[] | undefined): string[] => {
   if (!type) {
     return [];

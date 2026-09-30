@@ -2,6 +2,7 @@
 import Description from "./Description.astro";
 import {
   constraints,
+  parameterDescription,
   resolveSchema,
   type SchemaLike,
   typeLabel,
@@ -54,6 +55,7 @@ const groups = SECTIONS.map((section) => ({
           const type = param.schema ? typeLabel(param.schema) : "string";
           const limits = constraints(resolved);
           const enumValues = Array.isArray(resolved.enum) ? resolved.enum : null;
+          const description = parameterDescription(param, schemas);
           return (
             <div class="border-border border-t py-4 first:border-t-0">
               <div class="flex flex-wrap items-baseline gap-x-2 gap-y-1">
@@ -70,8 +72,8 @@ const groups = SECTIONS.map((section) => ({
                   </span>
                 )}
               </div>
-              {param.description && (
-                <Description class="mt-2 text-muted-foreground text-sm" text={param.description} />
+              {description && (
+                <Description class="mt-2 text-muted-foreground text-sm" text={description} />
               )}
               {limits.length > 0 && (
                 <div class="mt-2 text-muted-foreground text-xs">

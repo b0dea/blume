@@ -3,6 +3,7 @@ import {
   declaredExample,
   exampleValue,
   objectProperties,
+  parameterDescription,
   resolveSchema,
   toJson,
 } from "./helpers.ts";
@@ -142,7 +143,7 @@ const modelParams = (
     const required = where === "path" ? true : param.required === true;
     const schema = resolveSchema(schemas, param.schema);
     params.push({
-      description: param.description,
+      description: parameterDescription(param, schemas),
       enum: schema.enum?.map(String),
       in: where,
       name: param.name,
