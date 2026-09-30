@@ -2429,6 +2429,7 @@ import type { CollectionKey } from "astro:content";
 import RootLayout from "blume/components/layout/RootLayout.astro";
 import { withBase, withMountedBase } from "blume/components/islands/base-path.ts";
 import { mountBasePath, stripBasePath } from "blume/core/base-path.ts";
+import { routeSetFor, servesRoute } from "blume/core/locale-links.ts";
 import { resolveSlot } from "blume/components/layout/overrides.ts";
 ${componentImports}
 import data from "blume:data";
@@ -2632,18 +2633,24 @@ const logicalRoute = i18n
   ? stripLocale(stripBasePath(data.config.basePath, route), locale)
   : route;
 // A page from a one-language source (GitHub Releases) gets no switcher: every
-// other locale would only repeat the same text.
+// other locale would only repeat the same text. A locale with no real
+// translation links the page's fallback copy, which exists only while
+// fallbacks are on; where nothing is served at that URL (\`fallbackLocale:
+// null\`), the locale is left out rather than linked to a 404.
 const localeSwitch = i18n && !monolingual
-  ? i18n.locales.map((l) => {
+  ? i18n.locales.flatMap((l) => {
       const alt = (alternates ?? []).find((x) => x.locale === l.code);
-      return {
-        code: l.code,
-        current: l.code === locale,
-        dir: l.dir,
-        href: alt ? alt.path : mountLocalized(logicalRoute, l.code),
-        label: l.label,
-        untranslated: !alt,
-      };
+      const href = alt ? alt.path : mountLocalized(logicalRoute, l.code);
+      return alt || servesRoute(routeSetFor(data.routes), href)
+        ? [{
+            code: l.code,
+            current: l.code === locale,
+            dir: l.dir,
+            href,
+            label: l.label,
+            untranslated: !alt,
+          }]
+        : [];
     })
   : [];
 

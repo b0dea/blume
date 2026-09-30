@@ -61,6 +61,7 @@ import { hcaptcha, turnstile } from "../src/captcha/index.ts";
 import { mountBasePath, stripBasePath } from "../src/core/base-path.ts";
 import type { BlumeConfig } from "../src/core/config-input.ts";
 import { TOC_HIDDEN_KEY } from "../src/core/heading-markers.ts";
+import { routeSetFor, servesRoute } from "../src/core/locale-links.ts";
 import { blumeConfigSchema } from "../src/core/schema.ts";
 import type { ProjectContext } from "../src/core/types.ts";
 import { cloudflare, node, vercel } from "../src/deploy/adapters/index.ts";
@@ -205,7 +206,7 @@ describe("catchAllPageTemplate", () => {
       'import { mountBasePath, stripBasePath } from "blume/core/base-path.ts"'
     );
     expect(out).toContain(
-      "href: alt ? alt.path : mountLocalized(logicalRoute, l.code)"
+      "const href = alt ? alt.path : mountLocalized(logicalRoute, l.code);"
     );
     // Run the generated locale helpers and the fallback composition to pin
     // their behavior. The two slices are the locale prefix helpers and the
@@ -291,6 +292,82 @@ return i18n.locales.map((l) => mountLocalized(logicalRoute, l.code));
       "/reference",
       "/ja/reference",
       "/ko/reference",
+    ]);
+  });
+
+  it("leaves a locale out of the switcher when no page is served for it", () => {
+    const out = catchAllPageTemplate({ ...exportOpts, mathEnabled: false });
+    expect(out).toContain(
+      'import { routeSetFor, servesRoute } from "blume/core/locale-links.ts"'
+    );
+    // Run the locale helpers and the switcher block, as above.
+    const localeStart = out.indexOf("const localePrefix");
+    const localeEnd = out.indexOf("// Version resolution");
+    const switchStart = out.indexOf("const mountLocalized");
+    const switchEnd = out.indexOf("// Version switcher");
+    expect(switchEnd).toBeGreaterThan(switchStart);
+    const snippet = new Bun.Transpiler({ loader: "ts" }).transformSync(
+      `const switchFor = (i18n, data, route, locale, alternates, monolingual, mountBasePath, stripBasePath, routeSetFor, servesRoute) => {
+${out.slice(localeStart, localeEnd)}
+${out.slice(switchStart, switchEnd)}
+return localeSwitch.map((option) => [option.code, option.href, option.untranslated]);
+};`
+    );
+    type Switch = (
+      i18n: {
+        defaultLocale: string;
+        hideDefaultLocalePrefix: boolean;
+        locales: { code: string; dir: string; label: string }[];
+      },
+      data: { config: { basePath: string }; routes: { path: string }[] },
+      route: string,
+      locale: string,
+      alternates: { locale: string; path: string }[],
+      monolingual: boolean,
+      mount: typeof mountBasePath,
+      strip: typeof stripBasePath,
+      routeSet: typeof routeSetFor,
+      serves: typeof servesRoute
+    ) => [string, string, boolean][];
+    // SAFETY: the generated snippet wrapped above declares `switchFor` with
+    // exactly the parameter list and return asserted by `Switch`.
+    // oxlint-disable-next-line no-new-func -- evaluating our own generated output
+    const switchFor = new Function(`${snippet}\nreturn switchFor;`)() as Switch;
+    const i18n = {
+      defaultLocale: "en",
+      hideDefaultLocalePrefix: true,
+      locales: [
+        { code: "en", dir: "ltr", label: "English" },
+        { code: "fr", dir: "ltr", label: "Français" },
+        { code: "ja", dir: "ltr", label: "日本語" },
+      ],
+    };
+    const on = (routes: string[]) =>
+      switchFor(
+        i18n,
+        { config: { basePath: "" }, routes: routes.map((path) => ({ path })) },
+        "/guide",
+        "en",
+        [
+          { locale: "en", path: "/guide" },
+          { locale: "fr", path: "/fr/guide" },
+        ],
+        false,
+        mountBasePath,
+        stripBasePath,
+        routeSetFor,
+        servesRoute
+      );
+    // With fallbacks on, the missing Japanese page has a fallback copy to link.
+    expect(on(["/guide", "/fr/guide", "/ja/guide"])).toEqual([
+      ["en", "/guide", false],
+      ["fr", "/fr/guide", false],
+      ["ja", "/ja/guide", true],
+    ]);
+    // With `fallbackLocale: null` nothing is served there, so it's left out.
+    expect(on(["/guide", "/fr/guide"])).toEqual([
+      ["en", "/guide", false],
+      ["fr", "/fr/guide", false],
     ]);
   });
 
