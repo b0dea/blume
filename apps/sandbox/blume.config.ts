@@ -157,6 +157,7 @@ export default defineConfig({
       sources: [{ label: "Commerce events", spec: "./specs/asyncapi.yaml" }],
     }),
     graphql({
+      auth: { method: "bearer" },
       endpoint: "https://petstore.example.com/graphql",
       spec: "./specs/schema.graphql",
     }),

@@ -1,5 +1,6 @@
 import type { Document, OperationObject } from "@scalar/openapi-types/3.2";
 
+import type { GraphqlAuthOptions } from "../reference/options.ts";
 import type {
   AsyncApiAction,
   AsyncApiDocument,
@@ -149,6 +150,8 @@ export interface ApiSpecData {
    * (GraphQL only; OpenAPI documents carry their servers in the document).
    */
   endpoint?: string;
+  /** How the GraphQL endpoint authenticates (GraphQL only). */
+  auth?: GraphqlAuthOptions;
   /** Operations keyed by {@link ApiOperationRef.key}. */
   operations: Record<string, ApiOperationRef>;
   tags: ApiTagRef[];

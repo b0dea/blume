@@ -333,10 +333,14 @@ export const openApiSource = (
         title: info.title ?? reference.label,
         version: info.version ?? "",
       };
-      // Only GraphQL references carry a live endpoint (a schema names no
-      // server); assigned separately so the key stays absent otherwise.
+      // Only GraphQL references carry a live endpoint and its auth (a schema
+      // names no server); assigned separately so the keys stay absent
+      // otherwise.
       if (reference.endpoint !== undefined) {
         spec.endpoint = reference.endpoint;
+      }
+      if (reference.auth !== undefined) {
+        spec.auth = reference.auth;
       }
       return {
         diagnostics: [
