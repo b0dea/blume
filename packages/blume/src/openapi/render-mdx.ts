@@ -225,8 +225,12 @@ const listProse = (list: List): string =>
       if (!paragraph) {
         return "";
       }
-      // A nested list's lead-in ("Modes:") closes like any other.
       const text = flatten(paragraph);
+      // A closing mark in inline code (`SELECT 1;`) is part of the literal.
+      if (lastLeaf(paragraph).type !== "text") {
+        return text;
+      }
+      // A nested list's lead-in ("Modes:") closes like any other.
       return (leadsIn(paragraph) ? asSentence(text) : text).replace(
         ITEM_END,
         ""

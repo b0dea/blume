@@ -1589,13 +1589,17 @@ describe("render-mdx", () => {
       });
     });
 
-    it("keeps a colon that closes inline code", () => {
+    it("keeps punctuation that closes inline code", () => {
       expect(
         describeOperation("Keys are prefixed with `tenant:`")
       ).toStrictEqual({
         description:
           "Keys are prefixed with tenant:. Reference for the DELETE /pets/bulk endpoint in the Example API.",
       });
+      // A list item's closing mark is dropped only when it's prose.
+      expect(
+        describeOperation("Runs:\n\n- `SELECT 1;`\n- A ping.", false)
+      ).toStrictEqual({ description: "Runs: SELECT 1;; A ping" });
     });
 
     it("resolves the lead-in with the suffix off and on the overview", () => {
