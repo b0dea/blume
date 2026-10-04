@@ -63,6 +63,7 @@ import {
   rssEndpointTemplate,
   runtimeDependencies,
   runtimeTsconfigTemplate,
+  consentClientTemplate,
   searchClientTemplate,
   searchEndpointTemplate,
   staticJsonEndpointTemplate,
@@ -87,6 +88,7 @@ import {
 import { buildReferenceFiles } from "../openapi/scalar.ts";
 import { isOpenApiSource } from "../openapi/source.ts";
 import { buildSearchDocuments } from "../search/documents.ts";
+import { sourcePages } from "../search/source-pages.ts";
 import {
   examplesEntryTemplate,
   tailwindEntryTemplate,
@@ -162,9 +164,12 @@ const askFiles = async (
   const files = [
     {
       content: askEndpointTemplate(backend, {
+        captcha: assistant.captcha,
         cors: assistant.cors,
         instructions: assistant.instructions,
+        rateLimit: project.config.rateLimit,
         retrieval: assistant.retrieval,
+        tools: assistant.tools ?? backend.toolsByDefault,
       }),
       path: join(srcDir, "pages", "api", "ask.ts"),
     },
@@ -243,7 +248,10 @@ const playgroundProxyFiles = (
   needsPlaygroundProxy(config)
     ? [
         {
-          content: playgroundProxyTemplate(specOrigins(openApiData)),
+          content: playgroundProxyTemplate(
+            specOrigins(openApiData),
+            config.rateLimit
+          ),
           path: join(srcDir, PLAYGROUND_PROXY_ENTRY),
         },
       ]
@@ -667,6 +675,7 @@ export const eject = async (
       content: astroConfigTemplate({
         askPath: "./src/generated/Ask.astro",
         config,
+        consentClientPath: "./src/generated/consent-client.ts",
         contentRoot: relContext.contentRoot,
         contentRoutes: project.manifest.routes.map((route) => route.path),
         context: relContext,
@@ -747,7 +756,7 @@ export const eject = async (
         // the package is hoisted out of the project's own node_modules.
         sources: [
           blumeSourceGlob(root, genDir),
-          "../../**/*.{astro,mdx,ts,tsx}",
+          "../../**/*.{astro,jsx,mdx,ts,tsx}",
         ],
         twoslashCss: twoslashCss(),
         userTheme,
@@ -869,8 +878,9 @@ export const eject = async (
     );
   }
 
-  // The client-feature loaders behind the `blume:features` alias, and the
-  // provider-specific client loader behind `blume:search-client`.
+  // The client-feature loaders behind the `blume:features` alias, the
+  // provider-specific client loader behind `blume:search-client`, and the
+  // consent adapter's browser module behind `blume:consent-client`.
   files.push(
     {
       content: featuresTemplate(features),
@@ -879,6 +889,10 @@ export const eject = async (
     {
       content: searchClientTemplate(config),
       path: join(genDir, "search-client.ts"),
+    },
+    {
+      content: consentClientTemplate(config.consent),
+      path: join(genDir, "consent-client.ts"),
     }
   );
 
@@ -899,7 +913,11 @@ export const eject = async (
 
   if (searchAdapter.kind === "mixedbread") {
     files.push({
-      content: mixedbreadSearchEndpointTemplate(searchAdapter.options),
+      content: mixedbreadSearchEndpointTemplate(
+        searchAdapter.options,
+        sourcePages(project),
+        config.rateLimit
+      ),
       path: join(srcDir, "pages", "api", "search.ts"),
     });
   }

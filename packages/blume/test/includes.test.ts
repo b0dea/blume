@@ -79,10 +79,15 @@ describe("parseIncludeStatement", () => {
     });
   });
 
-  it("tolerates bare and unknown attributes", () => {
+  it("reads other valued attributes as props, and ignores bare ones", () => {
     expect(
-      parseIncludeStatement('<include cwd other="1">./a.md</include>')
-    ).toEqual({ attributes: {}, target: "./a.md" });
+      parseIncludeStatement(
+        "<include cwd other=\"1\" plan='Pro'>./a.md</include>"
+      )
+    ).toEqual({
+      attributes: { props: { other: "1", plan: "Pro" } },
+      target: "./a.md",
+    });
   });
 
   it("trims whitespace around the target and close tag", () => {
@@ -227,6 +232,35 @@ describe("expandIncludes — wrapped and malformed statements", () => {
       }),
     ]);
     expect(result.text).toContain("<include>");
+  });
+
+  it("says props are read when an unquoted attribute breaks a statement", async () => {
+    const root = await fixture({ "p.md": "u", "s.md": "{{plan}}\n" });
+    const result = await expandIncludes(
+      "<include plan=Pro>./s.md</include>\n",
+      {
+        contentRoot: root,
+        sourcePath: join(root, "p.md"),
+      }
+    );
+    expect(result.errors[0]?.code).toBe("BLUME_INCLUDE_MALFORMED");
+    // Include props exist, so "only lang and meta are read" would mislead.
+    expect(result.errors[0]?.suggestion).toContain(
+      "any other is a prop the included file reads as {{name}}"
+    );
+  });
+
+  it("leaves a code include's {{name}} alone: props reach .md and .mdx only", async () => {
+    const root = await fixture({
+      "p.md": "u",
+      "plan.ts": 'export const plan = "{{plan}}";\n',
+    });
+    const result = await expandIncludes(
+      '<include plan="Pro">./plan.ts</include>\n',
+      { contentRoot: root, sourcePath: join(root, "p.md") }
+    );
+    expect(result.errors).toEqual([]);
+    expect(result.text).toContain('export const plan = "{{plan}}";');
   });
 
   it("leaves a wrapped statement folded into a setext heading alone", async () => {
@@ -1385,5 +1419,45 @@ describe("includes through the project scan", () => {
     );
     expect(missing?.severity).toBe("error");
     expect(missing?.file).toBe(join(root, "docs", "index.md"));
+  });
+});
+
+describe("include props", () => {
+  it("fill the included file's {{name}}, nested includes too", async () => {
+    const root = await fixture({
+      "_inner.mdx": "Inner sees {{feature}}.\n",
+      "_note.mdx":
+        "Upgrade to {{plan}} for {{feature}} and {{other}}.\n\n<include>./_inner.mdx</include>\n",
+      "page.mdx": '<include plan="Pro" feature="SSO">./_note.mdx</include>\n',
+    });
+    const expanded = await expandIncludes(
+      '<include plan="Pro" feature="SSO">./_note.mdx</include>\n',
+      { contentRoot: root, sourcePath: join(root, "page.mdx") }
+    );
+    expect(expanded.text).toContain("Upgrade to Pro for SSO and {{other}}.");
+    expect(expanded.text).toContain("Inner sees SSO.");
+  });
+
+  it("come from an MDX element's string attributes when rendering", async () => {
+    const root = await fixture({
+      "_note.mdx": "Upgrade to {{plan}}.\n",
+      "p.mdx": "",
+    });
+    const { ctx, replaced } = fakeCtx({
+      fileURL: pathToFileURL(join(root, "p.mdx")),
+      text: "./_note.mdx",
+    });
+    await includePlugin({ contentRoot: root }).mdxJsxFlowElement(
+      {
+        attributes: [
+          { name: "plan", type: "mdxJsxAttribute", value: "Pro" },
+          { name: "cwd", type: "mdxJsxExpressionAttribute", value: "x" },
+        ],
+        name: "include",
+        type: "mdxJsxFlowElement",
+      },
+      ctx
+    );
+    expect(replaced[0]?.raw).toContain("Upgrade to Pro.");
   });
 });

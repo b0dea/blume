@@ -1,9 +1,16 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
+import {
+  ASK_MAX_MESSAGES,
+  ASK_MAX_MESSAGES_CHARS,
+} from "../../ai/ask-limits.ts";
+import { captchaToken } from "../../captcha/client.ts";
+import type { CaptchaSettings } from "../../captcha/schema.ts";
 import type { BlumeClientData } from "../../core/data.ts";
 import { track } from "../layout/analytics-client.ts";
 import type { SearchFn, SearchResult } from "../layout/search/types.ts";
 import { joinBase, stripBase } from "./base-path.ts";
+import { newThreadId } from "./support-link.ts";
 
 /**
  * React hooks for Blume islands.
@@ -159,11 +166,22 @@ export interface UseAssistant {
   loading: boolean;
   messages: AskMessage[];
   reset: () => void;
+  /**
+   * The conversation's id, new after every `reset()`. The `ask` analytics
+   * events carry it as `thread`, and the support link passes it along.
+   */
+  thread: string;
 }
 
 const DEFAULT_ASK_ENDPOINT = joinBase(import.meta.env.BASE_URL, "api/ask");
 
 export interface UseAssistantOptions {
+  /**
+   * The site's bot check (`ai.assistant.captcha`), as `useBlume().config
+   * .assistant.captcha` holds it: each question gets a fresh token, sent as
+   * `captcha` in the request body.
+   */
+  captcha?: CaptchaSettings | null;
   /** Existing assistant endpoint; defaults to Blume's generated `/api/ask`. */
   endpoint?: string;
   /**
@@ -172,10 +190,37 @@ export interface UseAssistantOptions {
    * dictionary string.
    */
   errorMessage?: string;
+  /**
+   * Shown as the assistant's answer when the route's rate limit turns the
+   * question away (`429`). Defaults to an English notice; the built-in
+   * island passes its localized dictionary string.
+   */
+  rateLimitMessage?: string;
+  /**
+   * Shown as the assistant's answer when the bot check fails, in the browser
+   * or at the route (`403`). Defaults to an English notice; the built-in
+   * island passes its localized dictionary string.
+   */
+  verifyMessage?: string;
 }
 
 /** Shown as the assistant's answer when the request fails or throws. */
 const ASK_ERROR = "Something went wrong answering that. Please try again.";
+
+/** Shown as the assistant's answer when the rate limit turns a question away. */
+const ASK_RATE_LIMITED =
+  "You've asked a lot of questions. Try again in a few minutes.";
+
+/** Shown as the assistant's answer when the bot check fails. */
+const ASK_VERIFY_FAILED = "We couldn't check that you're human. Try again.";
+
+/** What the assistant sends the route. */
+interface AskPayload {
+  /** The bot check's token, when the site has one. */
+  captcha?: string;
+  messages: AskMessage[];
+  page: { path: string };
+}
 
 /** How the assistant's generated route opens its missing-credential notice. */
 const NOT_CONFIGURED = /^The assistant is not configured/u;
@@ -199,9 +244,51 @@ const unavailableNotice = async (
   return NOT_CONFIGURED.test(text) && text.length <= 200 ? text : null;
 };
 
+/** The notices the route's refusals map to. */
+interface RefusalNotices {
+  rateLimitMessage: string;
+  verifyMessage: string;
+}
+
+/**
+ * The reader-facing notice for the route turning a question away: the rate
+ * limit (`429`) or the bot check (`403`), or `null` for any other status.
+ */
+const refusalNotice = (
+  status: number,
+  notices: RefusalNotices
+): string | null => {
+  if (status === 429) {
+    return notices.rateLimitMessage;
+  }
+  return status === 403 ? notices.verifyMessage : null;
+};
+
 /** The current route with the deployment base stripped, for page grounding. */
 const currentPath = (): string =>
   stripBase(import.meta.env.BASE_URL, window.location.pathname);
+
+/**
+ * The conversation as the route is sent it: all of it while it fits the
+ * route's limits (`ai/ask-limits.ts`), else the latest turns that do, the
+ * oldest dropped first, so a long chat keeps working instead of answering
+ * `400`. The kept turns open with a question, not an answer cut from its
+ * own, and the question being asked always goes, even alone over the limit.
+ */
+const withinAskLimits = (history: AskMessage[]): AskMessage[] => {
+  const last = history.length - 1;
+  let start = Math.max(0, history.length - ASK_MAX_MESSAGES);
+  while (
+    start < last &&
+    JSON.stringify(history.slice(start)).length > ASK_MAX_MESSAGES_CHARS
+  ) {
+    start += 1;
+  }
+  while (start < last && history[start]?.role !== "user") {
+    start += 1;
+  }
+  return history.slice(start);
+};
 
 /**
  * Stream answers from the assistant endpoint. Mirrors the built-in assistant island so
@@ -212,8 +299,12 @@ export const useAssistant = (
 ): UseAssistant => {
   const endpoint = options.endpoint ?? DEFAULT_ASK_ENDPOINT;
   const errorMessage = options.errorMessage ?? ASK_ERROR;
+  const rateLimitMessage = options.rateLimitMessage ?? ASK_RATE_LIMITED;
+  const verifyMessage = options.verifyMessage ?? ASK_VERIFY_FAILED;
+  const { captcha } = options;
   const [messages, setMessages] = useState<AskMessage[]>([]);
   const [loading, setLoading] = useState(false);
+  const [thread, setThread] = useState(newThreadId);
   // The stream writes into the conversation via state updates, so `reset()`
   // mid-answer must revoke the in-flight request's right to write — otherwise
   // its next chunk re-appends the assistant bubble onto the emptied list, and
@@ -255,7 +346,7 @@ export const useAssistant = (
       ) =>
         track(
           event,
-          { ...props, path: pathname, questionChars: trimmed.length },
+          { ...props, path: pathname, questionChars: trimmed.length, thread },
           { question: trimmed }
         );
       report("ask", {});
@@ -280,12 +371,32 @@ export const useAssistant = (
       const assistant: AskMessage = { content: "", role: "assistant" };
       setMessages([...history, assistant]);
       setLoading(true);
+      // Answer with a notice instead: an error, or the route turning the
+      // question away. Silent once a reset has revoked the question.
+      const fail = (notice: string) => {
+        if (live()) {
+          outcome("ask_error", { status });
+          assistant.content = notice;
+          setMessages([...history, { ...assistant }]);
+        }
+      };
       try {
+        // A fresh bot-check token per question, when the site has a check;
+        // `null` when the check didn't pass in the browser.
+        const token = captcha
+          ? await captchaToken(captcha).catch(() => null)
+          : undefined;
+        if (token === null) {
+          fail(verifyMessage);
+          return;
+        }
+        const payload: AskPayload = {
+          captcha: token,
+          messages: withinAskLimits(history),
+          page: { path },
+        };
         const response = await fetch(endpoint, {
-          body: JSON.stringify({
-            messages: history,
-            page: { path },
-          }),
+          body: JSON.stringify(payload),
           headers: { "content-type": "application/json" },
           method: "POST",
           signal: controller.signal,
@@ -294,12 +405,12 @@ export const useAssistant = (
         if (!response.ok) {
           // An error body (JSON, HTML error page) must not stream in as the
           // assistant's answer — only the route's own not-configured notice.
-          const notice = await unavailableNotice(response).catch(() => null);
-          if (live()) {
-            outcome("ask_error", { status });
-            assistant.content = notice ?? errorMessage;
-            setMessages([...history, { ...assistant }]);
-          }
+          const notice =
+            refusalNotice(status, {
+              rateLimitMessage,
+              verifyMessage,
+            }) ?? (await unavailableNotice(response).catch(() => null));
+          fail(notice ?? errorMessage);
           return;
         }
         const reader = response.body?.getReader();
@@ -332,20 +443,14 @@ export const useAssistant = (
           if (assistant.content) {
             outcome("ask_answer", { chars: assistant.content.length });
           } else {
-            outcome("ask_error", { status });
-            assistant.content = errorMessage;
-            setMessages([...history, { ...assistant }]);
+            fail(errorMessage);
           }
         }
       } catch {
         // A thrown fetch (offline, DNS failure, CORS) must not strand the
         // pre-appended empty assistant message as a stuck placeholder. A
         // reset's abort lands here too — the guard keeps it silent.
-        if (live()) {
-          outcome("ask_error", { status });
-          assistant.content = errorMessage;
-          setMessages([...history, { ...assistant }]);
-        }
+        fail(errorMessage);
         // oxlint-disable-next-line react/todo -- React Compiler cannot lower try/finally; the hook stays manually memoized above
       } finally {
         if (live()) {
@@ -353,7 +458,16 @@ export const useAssistant = (
         }
       }
     },
-    [endpoint, errorMessage, loading, messages]
+    [
+      captcha,
+      endpoint,
+      errorMessage,
+      loading,
+      messages,
+      rateLimitMessage,
+      thread,
+      verifyMessage,
+    ]
   );
 
   // Retained for the compiler-off opt-out path (`react: { compiler: false }`):
@@ -364,9 +478,10 @@ export const useAssistant = (
     abortRef.current?.abort();
     abortRef.current = null;
     setMessages([]);
+    setThread(newThreadId());
     // The in-flight `ask`'s finally is now stale and won't clear this.
     setLoading(false);
   }, []);
 
-  return { ask, loading, messages, reset };
+  return { ask, loading, messages, reset, thread };
 };

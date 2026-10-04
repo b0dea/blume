@@ -15,6 +15,8 @@ const uiStringsObject = z.object({
     .object({
       addToCursor: z.string().default("Add to Cursor"),
       addToVscode: z.string().default("Add to VS Code"),
+      // A code block's button that opens the assistant with the code attached.
+      askAboutCode: z.string().default("Ask about this code"),
       connectMcp: z.string().default("Connect to MCP"),
       copied: z.string().default("Copied!"),
       copyClaudeCode: z.string().default("Copy Claude Code command"),
@@ -47,11 +49,32 @@ const uiStringsObject = z.object({
       copy: z.string().default("Copy conversation"),
       empty: z.string().default("Ask a question about the docs."),
       error: z.string().default("Sorry, something went wrong."),
+      // The question sent about an attached code block when the reader
+      // writes none.
+      explainCode: z.string().default("Explain this code."),
       label: z.string().default("Ask a question"),
+      // The header trigger's tooltip.
+      open: z.string().default("Open assistant"),
       placeholder: z.string().default("Ask a question…"),
+      // The answer when the rate limit (`rateLimit`) turns a question away.
+      rateLimited: z
+        .string()
+        .default(
+          "You've asked a lot of questions. Try again in a few minutes."
+        ),
+      // The attached code block's dismiss button.
+      removeCode: z.string().default("Remove code"),
       send: z.string().default("Send"),
+      // The link to your support channel (`ai.assistant.support`), and the
+      // subject of an email it starts.
+      support: z.string().default("Contact support"),
+      supportSubject: z.string().default("Question from the docs"),
       tip: z.string().default("Tip: You can open and close chat with"),
       title: z.string().default("Assistant"),
+      // The answer when the bot check (`ai.assistant.captcha`) fails.
+      verifyFailed: z
+        .string()
+        .default("We couldn't check that you're human. Try again."),
       you: z.string().default("You"),
     })
     .prefault({}),
@@ -67,7 +90,26 @@ const uiStringsObject = z.object({
         .default(
           "Product updates, new features, and fixes from every release."
         ),
+      // What the index says when it has no entries to list.
+      empty: z.string().default("No changelog entries yet."),
       title: z.string().default("Changelog"),
+    })
+    .prefault({}),
+  // The built-in cookie consent banner (`consent: native()`) and the footer
+  // link that reopens a consent manager's preferences.
+  consent: z
+    .object({
+      accept: z.string().default("Accept"),
+      decline: z.string().default("Decline"),
+      // The banner's accessible name.
+      label: z.string().default("Cookie consent"),
+      message: z
+        .string()
+        .default(
+          "We'd like to use cookies to understand how these docs are used."
+        ),
+      policy: z.string().default("Privacy policy"),
+      settings: z.string().default("Cookie settings"),
     })
     .prefault({}),
   content: z
@@ -89,7 +131,12 @@ const uiStringsObject = z.object({
       prop: z.string().default("Prop"),
       // `<Tabs dropdown>`: the accessible name of the tab picker.
       selectTab: z.string().default("Select tab"),
-      // `<Expandable>`'s toggle when it sets no `title`.
+      // `<View>`: the accessible name of the page's view picker.
+      selectView: z.string().default("Select view"),
+      // An expanded `expandable` code block's toggle.
+      showLess: z.string().default("Show less"),
+      // `<Expandable>`'s toggle when it sets no `title`, and a collapsed
+      // `expandable` code block's.
       showMore: z.string().default("Show more"),
       stars: z.string().default("Stars"),
       // An untitled tab's label; `{n}` is replaced with its position.
@@ -102,8 +149,11 @@ const uiStringsObject = z.object({
     .prefault({}),
   feedback: z
     .object({
+      // The written comment box after the rating (`feedback.comments`).
+      comment: z.string().default("Tell us more (optional)"),
       no: z.string().default("No"),
       question: z.string().default("Was this page helpful?"),
+      send: z.string().default("Send"),
       thanks: z.string().default("Thanks for your feedback!"),
       yes: z.string().default("Yes"),
     })
@@ -112,6 +162,36 @@ const uiStringsObject = z.object({
     .object({
       label: z.string().default("Language"),
       untranslated: z.string().default("Not translated"),
+    })
+    .prefault({}),
+  narration: z
+    .object({
+      // Spoken, not shown: the cues that introduce a callout of each type, a
+      // step (`{n}` is its number), a tab (`{title}` is its label), and a
+      // collapsible section. End each with a full stop so it reads as its own
+      // sentence.
+      cueDanger: z.string().default("Danger."),
+      cueInfo: z.string().default("Info."),
+      cueNote: z.string().default("Note."),
+      cueSection: z.string().default("Expandable section."),
+      cueStep: z.string().default("Step {n}."),
+      cueSuccess: z.string().default("Success."),
+      cueTab: z.string().default("{title} tab."),
+      cueTip: z.string().default("Tip."),
+      cueWarning: z.string().default("Warning."),
+      error: z.string().default("The narration couldn't load."),
+      // Resumes following the sentence being read after the reader scrolls away.
+      follow: z.string().default("Follow along"),
+      label: z.string().default("Listen to this page"),
+      // The estimated listening time; `{n}` is whole minutes.
+      minutes: z.string().default("{n} min"),
+      next: z.string().default("Next sentence"),
+      pause: z.string().default("Pause"),
+      play: z.string().default("Play"),
+      previous: z.string().default("Previous sentence"),
+      progress: z.string().default("Narration progress"),
+      speed: z.string().default("Playback speed"),
+      stop: z.string().default("Stop listening"),
     })
     .prefault({}),
   nav: z
@@ -128,7 +208,7 @@ const uiStringsObject = z.object({
       primary: z.string().default("Primary"),
       sections: z.string().default("Sections"),
       toggleNavigation: z.string().default("Toggle navigation"),
-      toggleTheme: z.string().default("Toggle color theme"),
+      toggleTheme: z.string().default("Toggle theme"),
     })
     .prefault({}),
   notFound: z
@@ -154,6 +234,8 @@ const uiStringsObject = z.object({
       next: z.string().default("Next"),
       pagination: z.string().default("Pagination"),
       previous: z.string().default("Previous"),
+      // The heading over a page's `related` links.
+      related: z.string().default("Related pages"),
       skipToContent: z.string().default("Skip to content"),
     })
     .prefault({}),

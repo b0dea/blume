@@ -68,6 +68,8 @@ export default defineConfig({
     llmsTxt: true,
     // AI Catalog / ARD manifest at /.well-known/ai-catalog.json (needs deployment.site)
     catalog: true,
+    // Your site's agent skill at /skill.md (needs deployment.site)
+    skillMd: true,
     // MCP server (needs server output)
     mcp: {
       enabled: false,
@@ -99,6 +101,7 @@ export default defineConfig({
 | `description` | — | Default meta description, used for SEO and OG. |
 | `logo` | — | Brand mark and/or wordmark shown in the header. |
 | `banner` | — | Site-wide announcement bar above the header. |
+| `footer` | — | A row of links and social profile icons below the content. |
 
 ### Logo
 
@@ -184,6 +187,42 @@ banner: {
 ```
 
 When `dismissible` is on, the bar shows a close button and stays hidden for that visitor afterward. The dismissal key defaults to the content text, so editing the message brings the banner back; set a stable `id` to keep it dismissed across edits.
+
+On a [multilingual](/docs/content/i18n) site, `content` and the link's `text` also take a map of locale code to text. Each page shows its own locale's entry, falling back to the default locale's, and the link moves into the reader's locale whenever that locale serves the page:
+
+```ts blume.config.ts lineNumbers
+banner: {
+  content: { en: "Version 2.0 is here!", fr: "La version 2.0 est là !" },
+  link: {
+    text: { en: "Read the release notes", fr: "Lire les notes de version" },
+    href: "/changelog",
+  },
+},
+```
+
+A translated banner keys dismissal on the default locale's text, so one dismissal hides it in every language.
+
+### Footer
+
+Every page ends with a footer: one row, as tall as the header, with your links on one side and social profile icons on the other. The footer is the only place Blume links your social profiles and repository, so the [`github`](#github) repository comes first among the icons whenever it's set. `footer` adds the rest:
+
+```ts blume.config.ts lineNumbers
+footer: {
+  links: [
+    { label: "Pricing", href: "https://acme.dev/pricing" },
+    { label: "Changelog", href: "/changelog" },
+    { label: "Blog", href: "https://acme.dev/blog" },
+  ],
+  socials: {
+    x: "https://x.com/acme",
+    discord: "https://discord.gg/acme",
+  },
+},
+```
+
+`links` appear in the order you write them. Write internal links as if mounted at root; an external link opens in a new tab. On a [multilingual](/docs/content/i18n#per-locale-navigation) site, a `label` can be a map of locale code to text, and an internal link moves into the reader's locale whenever that locale serves the page. `socials` maps a platform to its profile URL, and the icons appear in the order you write them. The platforms are `bluesky`, `discord`, `facebook`, `github`, `hacker-news`, `instagram`, `linkedin`, `medium`, `podcast`, `reddit`, `slack`, `telegram`, `threads`, `website`, `x`, and `youtube`. A `github` social replaces the repository link; hide that link with [`navigation.repo`](/docs/content/navigation#repository-link).
+
+A site with no links, profiles, or repository has no footer. Custom pages built on `PageLayout` show it too, unless they fill the layout's own `footer` slot. To replace it entirely, override the [`Footer` layout slot](/docs/configuration/customization#layout-slots).
 
 ## Content
 
@@ -272,7 +311,7 @@ A key can be declared site-wide or per-type, not both. See [Per-type keys](/docs
 
 ## GitHub
 
-Point Blume at your repository with `github`. It powers the header [repository link](/docs/content/navigation#repository-link) and the **Edit on GitHub** [page action](/docs/content/navigation#page-actions):
+Point Blume at your repository with `github`. It powers the footer's [repository link](/docs/content/navigation#repository-link) and the **Edit on GitHub** [page action](/docs/content/navigation#page-actions):
 
 ```ts blume.config.ts lineNumbers
 github: {
@@ -420,7 +459,21 @@ export default defineConfig({
 });
 ```
 
-A reader's answer is sent as a `feedback` [custom event](/docs/configuration/analytics#custom-events) — with `helpful` (`"yes"` or `"no"`), `path`, and `title` — through every configured analytics adapter that has an event API, and as a `blume:track` event on `window`. Without an analytics adapter, the answer isn't recorded anywhere. The question and thank-you text are UI strings you can translate with [`i18n.ui`](/docs/content/i18n#translated-ui).
+A reader's answer is sent as a `feedback` [custom event](/docs/configuration/analytics#custom-events) — with `helpful` (`"yes"` or `"no"`), `path`, and `title` — through every configured analytics adapter that has an event API, and as a `blume:track` event on `window`. Fathom, Microsoft Clarity, and Hotjar take an event's name alone, without its properties, so they count ratings but can't tell a yes from a no. Without an analytics adapter, the answer isn't recorded anywhere, and with [cookie consent](/docs/configuration/consent) on, the rating only shows for readers who allowed analytics, since from anyone else an answer would go nowhere. The question and thank-you text are UI strings you can translate with [`i18n.ui`](/docs/content/i18n#translated-ui).
+
+### Written feedback
+
+To hear more than yes or no, turn on comments. After rating a page, the reader gets a box to say what worked or what's missing:
+
+```ts blume.config.ts
+export default defineConfig({
+  feedback: { comments: true },
+});
+```
+
+A comment is sent as a `feedback_comment` event with the same `helpful`, `path`, and `title` as the rating, plus the reader's `comment` (up to 1,000 characters). It goes through the same adapters as the rating, so read comments where you read events. Providers cap how long a property value can be, so a long comment may not arrive whole: Google Analytics keeps 100 characters, Mixpanel 255 bytes (fewer characters in a script that takes several bytes a character, like Japanese), and Vercel Web Analytics takes values up to 255 characters, while PostHog and Segment pass comments whole. Fathom, Clarity, and Hotjar get no comment text at all. Plausible groups identical values rather than listing each comment, so it suits ratings better than comments. Readers can write anything in the box, so treat comments as they might contain personal details.
+
+The box's label and button are UI strings too (`feedback.comment` and `feedback.send`).
 
 ## Feature options
 
@@ -432,11 +485,15 @@ Each of these has its own guide. The config field is the entry point:
 | `navigation` | Explicit sidebar and header tabs | [Navigation](/docs/content/navigation) |
 | `search` | Provider (Orama, Pagefind, Algolia, and more) and indexing | [Search](/docs/configuration/search) |
 | `markdown` | Markdown rendering options — code blocks, heading anchors, image zoom | [Syntax](/docs/content/syntax) |
-| `agents` | `llms.txt`, Markdown mirrors, the JSON API, the hosted MCP server, skills, and discovery manifests for coding agents | [SEO and AEO](/docs/discoverability) |
+| `agents` | `llms.txt`, Markdown mirrors, the JSON API, the hosted MCP server, skills, and discovery manifests for coding agents | [SEO and GEO](/docs/discoverability) |
 | `ai` | The in-page assistant and the Open in chat action | [Assistant](/docs/configuration/assistant) |
+| `rateLimit` | How often one reader can call the assistant, the playground proxy, and server-side search, with an adapter from `blume/ratelimit` (on by default) | [Rate limiting](/docs/configuration/rate-limiting) |
+| `narration` | The "Listen to this page" player, with browser voices or voices generated at build | [Narration](/docs/configuration/narration) |
 | `reference` | API references: `openapi()`, `asyncapi()`, `graphql()`, and `scalar()` adapters from `blume/reference` | [OpenAPI](/docs/references/openapi), [AsyncAPI](/docs/references/asyncapi), [GraphQL](/docs/references/graphql), [Scalar](/docs/references/scalar) |
+| `api` | The server, auth, and Try it panel of hand-written endpoint pages | [Hand-written API pages](/docs/references/api-pages) |
 | `analytics` | Adapters from `blume/analytics` — PostHog, Google Analytics, Plausible, Mixpanel, Segment, and more — plus custom scripts | [Analytics](/docs/configuration/analytics) |
-| `seo` | Metadata, OG images, feeds, structured data, sitemap, robots | [SEO and AEO](/docs/discoverability) |
+| `consent` | A cookie consent adapter from `blume/consent` — Blume's own banner, Osano, or Ethyca — that holds analytics until the reader allows it | [Cookie consent](/docs/configuration/consent) |
+| `seo` | Metadata, OG images, feeds, structured data, sitemap, robots | [SEO and GEO](/docs/discoverability) |
 | `deployment` | A host adapter from `blume/deploy`, or `{ site, base }` for a static build | [Deployment](/docs/deployment) |
 | `redirects` | Permanent and temporary redirects | [Deployment](/docs/deployment#redirects) |
 | `integrations` | Astro integrations appended after Blume's built-ins | [Customization](/docs/configuration/customization#astro-integrations) |
@@ -446,7 +503,9 @@ Each of these has its own guide. The config field is the entry point:
 | `export` | Reader-facing PDF and EPUB downloads | [Export](/docs/configuration/export) |
 | `examples` | Where `<Component path>` example previews live, and the CSS injected into their frames | [Component](/docs/content/components#component) |
 | `react` | React island behavior — the React Compiler's auto-memoization | [Islands](/docs/content/islands#frameworks) |
-| `feedback` | The "Was this page helpful?" rating at the foot of each page (default `true`) | [Page feedback](#page-feedback) |
+| `variables` | Values `{{name}}` reads in any page | [Variables](/docs/content/variables) |
+| `feedback` | The "Was this page helpful?" rating at the foot of each page (default `true`), and optional written comments after it | [Page feedback](#page-feedback) |
+| `changelog` | The title and description of the generated `/changelog` index, each a string or a per-locale map | [Changelogs](/docs/advanced/changelog#the-index-page) |
 
 ## Precedence
 

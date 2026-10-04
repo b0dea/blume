@@ -8,9 +8,19 @@ import {
 } from "../ai/ask.ts";
 import type { ComponentMarkdown } from "../ai/component-markdown.ts";
 import { analyticsConfigSchema } from "../analytics/schema.ts";
+import { captchaAdapterSchema } from "../captcha/schema.ts";
+import {
+  API_ENDPOINT,
+  AUTH_METHODS,
+  PLAYGROUND_MODES,
+} from "../components/content/api-page.ts";
+import { consentConfigSchema } from "../consent/schema.ts";
 import { resolvedDeploymentSchema } from "../deploy/adapters/registry.ts";
 import type { CodeTheme } from "../markdown/themes.ts";
+import { narrationProviderSchema } from "../narration/provider.ts";
 import { normalizeRoute } from "../openapi/references.ts";
+import { rateLimitConfigSchema } from "../ratelimit/schema.ts";
+import { playgroundSchema } from "../reference/options.ts";
 import {
   referenceConfigSchema,
   removedReferenceKeysHint,
@@ -21,6 +31,7 @@ import {
   resolvedSearchAdapterSchema,
 } from "../search/adapters/registry.ts";
 import type { SearchAdapterInput } from "../search/adapters/registry.ts";
+import { ownedMetatag } from "../seo/metatags.ts";
 import { normalizeXHandle } from "../seo/x-handle.ts";
 import { filesystem } from "../sources/filesystem.ts";
 import {
@@ -28,14 +39,19 @@ import {
   resolvedSourceAdapterSchema,
 } from "../sources/registry.ts";
 import { FONT_SLUGS, isFontSlug } from "../theme/fonts.ts";
-import { normalizeBasePath } from "./base-path.ts";
+import { isExternalUrl, normalizeBasePath } from "./base-path.ts";
+import { FOOTER_SOCIALS } from "./footer.ts";
 import { PUBLIC_HOST_URL } from "./github.ts";
 import { uiLocaleOverridesSchema } from "./i18n-ui.ts";
 import { openInChatProviders } from "./open-in-chat.ts";
+import { PAGE_MODES } from "./page-modes.ts";
+import { redirectPatternError } from "./redirect-patterns.ts";
+import { MAX_RELATED } from "./related.ts";
 import { isStandardSchema } from "./standard-schema.ts";
 import type { StandardSchema } from "./standard-schema.ts";
 import { trimEnd } from "./trim.ts";
 import { unrecognizedKeysMessage } from "./unrecognized-keys.ts";
+import { VARIABLE_NAME } from "./variables.ts";
 
 /**
  * An absolute HTTP(S) URL, for any field that lands verbatim in an `href` —
@@ -119,6 +135,15 @@ const dateSchema = z
 const sidebarDisplaySchema = z.enum(["flat", "group", "page"]);
 export type SidebarDisplay = z.infer<typeof sidebarDisplaySchema>;
 
+/**
+ * How a group's own page lists the group's other pages below its content:
+ * `card` a grid of cards, `accordion` a list with each subgroup collapsible,
+ * `none` no listing (the default). A group without its own page has nowhere
+ * to show one. Nested groups inherit the nearest setting above them.
+ */
+const directoryModeSchema = z.enum(["accordion", "card", "none"]);
+export type DirectoryMode = z.infer<typeof directoryModeSchema>;
+
 // ---------------------------------------------------------------------------
 // Page frontmatter
 // ---------------------------------------------------------------------------
@@ -155,16 +180,18 @@ const seoMetaSchema = z.strictObject({
   x: z.strictObject({ creator: xHandleSchema }).optional(),
 });
 
-const searchMetaSchema = z.strictObject(
-  {
-    exclude: z.boolean().default(false),
-    tags: z.array(z.string()).optional(),
-  },
-  removedKeysHint({
-    boost:
-      "search.boost was removed: search never read it, so the page ranked the same without it. Delete the field.",
-  })
-);
+const searchMetaSchema = z.strictObject({
+  /**
+   * Multiply the page's search relevance: above 1 ranks it higher, below 1
+   * lower. Keep it to a few key pages, and under 10: a large boost floats a
+   * page over better matches.
+   */
+  boost: z.number().positive().optional(),
+  exclude: z.boolean().default(false),
+  /** Extra terms the page is found by, beyond its own text. */
+  keywords: z.array(z.string()).optional(),
+  tags: z.array(z.string()).optional(),
+});
 
 const aiMetaSchema = z.strictObject({
   /** Exclude this page from llms.txt and llms-full.txt. */
@@ -201,9 +228,31 @@ const authorSchema = z.union([
 // `.default({})` on an object with inner defaults (or a transform) would
 // resolve to a bare `{}` instead of the fully-defaulted shape.
 
+/** A `related` link: a root-relative page path or an absolute URL. */
+const relatedLinkSchema = z
+  .string()
+  .refine((link) => link.startsWith("/") || isExternalUrl(link), {
+    message:
+      'A related link is a root-relative path ("/guides/setup") or an absolute URL.',
+  });
+
 /** Frontmatter accepted on any content page. */
 const pageMetaBaseSchema = z.strictObject({
   ai: aiMetaSchema.prefault({}),
+  /**
+   * A hand-written endpoint: an HTTP method and a path or full URL
+   * (`POST /v1/users`). The page's `<ParamField>`s build its playground and
+   * request samples.
+   */
+  api: z
+    .string()
+    .refine((value) => API_ENDPOINT.test(value.trim()), {
+      message:
+        'api takes an HTTP method and a path or URL, like "POST /v1/users" or "GET https://api.acme.com/v1/users/{id}".',
+    })
+    .optional(),
+  /** How this page's endpoint authenticates, over the site's `api.auth`. */
+  authMethod: z.enum(AUTH_METHODS).optional(),
   /** Post author(s) for blog/changelog content; preserved, not yet rendered. */
   authors: z.union([authorSchema, z.array(authorSchema)]).optional(),
   changelog: changelogMetaSchema.optional(),
@@ -216,7 +265,37 @@ const pageMetaBaseSchema = z.strictObject({
   icon: iconName.optional(),
   /** Overrides the git-derived last-modified date when `lastModified` is on. */
   lastModified: dateSchema.optional(),
+  /** What the page shows around its content (see `core/page-modes.ts`). */
+  mode: z.enum(PAGE_MODES).optional(),
+  /** `false` keeps the "Listen to this page" player off this page. */
+  narration: z.boolean().default(true),
   noindex: z.boolean().default(false),
+  /** `false` drops the previous/next links at the foot of this page. */
+  pagination: z.boolean().default(true),
+  /** What an `api` page's playground shows: `interactive`, `simple` (samples only), or `none`. */
+  playground: z.enum(PLAYGROUND_MODES).optional(),
+  /**
+   * Pages to suggest at the foot of this one: root-relative paths, absolute
+   * URLs, or `{ Title: link }` to name a link. `false` lists none.
+   */
+  related: z
+    .union([
+      z.literal(false),
+      z
+        .array(
+          z.union([
+            relatedLinkSchema,
+            z
+              .record(z.string().min(1), relatedLinkSchema)
+              .refine((entry) => Object.keys(entry).length === 1, {
+                message:
+                  'A titled related entry has one title and one link: { "Title": "/path" }.',
+              }),
+          ])
+        )
+        .max(MAX_RELATED),
+    ])
+    .optional(),
   search: searchMetaSchema.prefault({}),
   seo: seoMetaSchema.prefault({}),
   sidebar: sidebarMetaSchema.prefault({}),
@@ -292,6 +371,8 @@ const customKeySchemaRecord = (where: string) =>
 
 export const folderMetaSchema = z.strictObject({
   collapsed: z.boolean().optional(),
+  /** List the group's pages on its index page; inherited by nested folders. */
+  directory: directoryModeSchema.optional(),
   /** Render mode for this group; overrides `navigation.sidebar.display`. */
   display: sidebarDisplaySchema.optional(),
   icon: iconName.optional(),
@@ -333,18 +414,86 @@ const logoConfigSchema = z.union([
   }),
 ]);
 
-/** Site-wide announcement banner: a string, or text with an optional link. */
+/**
+ * A label that may localize (header tabs and links, the banner, the footer):
+ * a plain string, or a map of locale code to label (`{ en: "Docs", ja: "ドキュメント" }`).
+ * Resolved per locale by `core/localizable.ts` — the active locale's entry
+ * wins, then the default locale's, then the map's first entry — so a
+ * single-locale site can keep plain strings and an i18n site can translate
+ * its labels without forking the config.
+ */
+const localizableLabelSchema = z.union([
+  z.string(),
+  z
+    .record(z.string(), z.string())
+    .refine((value) => Object.keys(value).length > 0, {
+      message: "Provide at least one locale's label.",
+    }),
+]);
+
+export type LocalizableLabel = z.infer<typeof localizableLabelSchema>;
+
+/**
+ * Site-wide announcement banner: a string, or text with an optional link. The
+ * object form's `content` and link `text` may be per-locale maps.
+ */
 const bannerConfigSchema = z.union([
   z.string(),
   z.strictObject({
-    content: z.string(),
+    content: localizableLabelSchema,
     /** Show a dismiss button; the choice is remembered per visitor. */
     dismissible: z.boolean().default(false),
-    /** Stable key for remembering dismissal; defaults to the content. */
+    /**
+     * Stable key for remembering dismissal; defaults to the content (the
+     * default locale's, for a per-locale map).
+     */
     id: z.string().optional(),
-    link: z.strictObject({ href: z.string(), text: z.string() }).optional(),
+    link: z
+      .strictObject({ href: z.string(), text: localizableLabelSchema })
+      .optional(),
   }),
 ]);
+
+/**
+ * Defaults for hand-written endpoint pages (`api` frontmatter): the server a
+ * path joins, how requests authenticate, and the playground, which takes an
+ * OpenAPI reference's `playground` option.
+ */
+const apiConfigSchema = z.strictObject({
+  auth: z
+    .strictObject({
+      method: z.enum(AUTH_METHODS),
+      /** The header an API key goes in. Defaults to `x-api-key`. */
+      name: z.string().optional(),
+    })
+    .optional(),
+  playground: playgroundSchema,
+  /** The base URL an `api` path joins (`https://api.acme.com/v1`). */
+  server: z.string().optional(),
+});
+
+/**
+ * The site footer: a row of links, and social profile icons. Unset, the site
+ * has no footer (a `components.ts` `Footer` still renders).
+ */
+const footerConfigSchema = z.strictObject({
+  /** Links in one row, in the order written. */
+  links: z
+    .array(z.strictObject({ href: z.string(), label: localizableLabelSchema }))
+    .default([]),
+  /** Social profiles, platform to URL, shown as icons in the order written. */
+  socials: z.partialRecord(z.enum(FOOTER_SOCIALS), z.string()).default({}),
+});
+
+/**
+ * The generated `/changelog` index. Its title and description may be
+ * per-locale maps; unset, they're the `changelog` UI strings `i18n.ui`
+ * translates.
+ */
+const changelogConfigSchema = z.strictObject({
+  description: localizableLabelSchema.optional(),
+  title: localizableLabelSchema.optional(),
+});
 
 /** A validated `content.sources` entry: an adapter descriptor from `blume/sources`. */
 export type { ContentSourceAdapter } from "../sources/registry.ts";
@@ -426,25 +575,6 @@ const contentConfigSchema = z
     ],
   }));
 
-/**
- * A header label that may localize: a plain string, or a map of locale code to
- * label (`{ en: "Docs", ja: "ドキュメント" }`). Resolved when each locale's
- * navigation is built — the active locale's entry wins, then the default
- * locale's, then the map's first entry — so a single-locale site can keep
- * plain strings and an i18n site can translate its header without forking the
- * config.
- */
-const localizableLabelSchema = z.union([
-  z.string(),
-  z
-    .record(z.string(), z.string())
-    .refine((value) => Object.keys(value).length > 0, {
-      message: "Provide at least one locale's label.",
-    }),
-]);
-
-export type LocalizableLabel = z.infer<typeof localizableLabelSchema>;
-
 const navTabSchema = z.strictObject({
   // Rejected empty rather than accepted: an empty `href` would render a link to
   // nowhere, and it can't mean "resolve it for me" either — that's what
@@ -483,9 +613,6 @@ const navSelectorSchema = z.strictObject({
   kind: z.enum(["dropdown", "language", "product", "version"]),
   label: z.string(),
 });
-
-const directoryModeSchema = z.enum(["accordion", "card", "none"]);
-export type DirectoryMode = z.infer<typeof directoryModeSchema>;
 
 /** A node in an explicit sidebar config: a page reference or a group/link. */
 export type SidebarItemConfig =
@@ -661,9 +788,17 @@ const searchIndexingSchema = z
   })
   .prefault({});
 
+/** What the search dialog's analytics events carry. */
+const searchAnalyticsSchema = z
+  .strictObject({
+    queries: z.boolean().default(true),
+  })
+  .prefault({});
+
 /** The object form of `search`: the adapter plus its adapter-independent settings. */
 const searchOptionsSchema = z.strictObject(
   {
+    analytics: searchAnalyticsSchema,
     indexing: searchIndexingSchema,
     /** Curated links for the Cmd+K empty state; defaults to the first sidebar pages. */
     popular: z.array(searchPopularLinkSchema).default([]),
@@ -842,6 +977,9 @@ const aiConfigFields = {
         // origin. Each URL is reduced to its origin so a trailing slash or path
         // can't defeat the exact match the route performs. Read by the
         // generated route only; an external `endpoint` owns its own CORS.
+        // A bot check from `blume/captcha`: the panel sends a token with each
+        // question and the generated route verifies it before the model runs.
+        captcha: captchaAdapterSchema.optional(),
         cors: z
           .array(
             z.union([
@@ -890,6 +1028,27 @@ const aiConfigFields = {
             })
           )
           .default([]),
+        // Where the panel's Contact support link goes: an email address
+        // (`mailto:`, which starts an email with the conversation), a URL,
+        // or a root-relative page (which get the conversation's `thread` id).
+        support: z
+          .string()
+          .refine(
+            (link) =>
+              link.startsWith("mailto:") ||
+              link.startsWith("/") ||
+              isExternalUrl(link),
+            {
+              message:
+                'ai.assistant.support is a mailto: address, a URL, or a root-relative path, like "mailto:help@example.com".',
+            }
+          )
+          .optional(),
+        // Search and read-page tools the model can call over several steps.
+        // No default here: unset follows the adapter (`toolsByDefault` in
+        // `ai/ask.ts`), on for the hosted catalogs and off for an
+        // OpenAI-compatible backend that may not speak tool calling.
+        tools: z.boolean().optional(),
       },
       assistantMovedFieldsHint
     )
@@ -946,7 +1105,7 @@ const aiConfigSchema = z.strictObject(
 const featuredLinkSchema = z.strictObject({
   href: z.string(),
   icon: iconName.optional(),
-  label: z.string(),
+  label: localizableLabelSchema,
 });
 
 /**
@@ -956,7 +1115,7 @@ const featuredLinkSchema = z.strictObject({
  */
 const headerActionSchema = z.strictObject({
   href: z.string(),
-  label: z.string(),
+  label: localizableLabelSchema,
 });
 
 const navigationConfigSchema = z.strictObject({
@@ -973,7 +1132,7 @@ const navigationConfigSchema = z.strictObject({
   /** Pinned links shown above the generated sidebar sections. */
   featured: z.array(featuredLinkSchema).default([]),
   /**
-   * The GitHub link in the header. `true` derives it from `github`, `false`
+   * The GitHub link in the footer. `true` derives it from `github`, `false`
    * hides it, and an absolute URL points it anywhere on GitHub — an
    * organization, say, when the docs repo itself is private and `github` has
    * to stay unset. The mark stays the GitHub one, so a URL elsewhere belongs in
@@ -1026,6 +1185,45 @@ const exportConfigSchema = z
     isBoolean(value) ? { epub: value, pdf: value } : value
   );
 
+// The "Was this page helpful?" rating, on by default. `comments: true` adds a
+// box after the rating where the reader can say more, sent through the
+// analytics adapters as a `feedback_comment` event. Both forms normalize to
+// `{ enabled, comments }`.
+const feedbackConfigSchema = z
+  .union([
+    z.boolean(),
+    z.strictObject({
+      comments: z.boolean().default(false),
+      enabled: z.boolean().default(true),
+    }),
+  ])
+  // With the rating off there is nothing to comment on.
+  .transform((value) =>
+    isBoolean(value)
+      ? { comments: false, enabled: value }
+      : { comments: value.enabled && value.comments, enabled: value.enabled }
+  );
+
+// "Listen to this page". Off by default. `true` reads pages aloud with the
+// reader's browser voices, which needs no key and works on any host; an object
+// with a `provider` (`gateway()` from `blume/ai`) generates neural audio at
+// build instead, one cached clip per sentence, and falls back to the browser's
+// voices where no clips exist (`blume dev`, a build without the key). Both
+// normalize to `{ enabled, provider }`.
+const narrationConfigSchema = z
+  .union([
+    z.boolean(),
+    z.strictObject({
+      enabled: z.boolean().default(true),
+      provider: narrationProviderSchema.optional(),
+    }),
+  ])
+  .transform((value) =>
+    isBoolean(value)
+      ? { enabled: value, provider: null }
+      : { enabled: value.enabled, provider: value.provider ?? null }
+  );
+
 /** A configured locale: ISO-ish code plus display metadata for the switcher. */
 const localeSchema = z.strictObject({
   code: z.string().min(1),
@@ -1055,6 +1253,12 @@ const i18nConfigSchema = z
     locales: z.array(localeSchema).min(1),
     /** `"dir"`: locale directories (`fr/page.mdx`). `"dot"`: filename suffix (`page.fr.mdx`). */
     parser: z.enum(["dir", "dot"]).default("dir"),
+    /**
+     * Send a visitor who lands on the default language's home page to the
+     * home page in their browser's preferred language, until they pick a
+     * language with the switcher. Off by default.
+     */
+    routeByBrowserLanguage: z.boolean().default(false),
     /** Per-locale UI string overrides: `{ fr: { search: { button: "…" } } }`. */
     ui: uiLocaleOverridesSchema.optional(),
   })
@@ -1156,13 +1360,6 @@ const versionsConfigSchema = z
     }
   });
 
-/**
- * A pattern segment in a redirect path: a named `:param` segment or a `*`
- * splat. `from` is matched as an exact path, and hosts disagree on patterns —
- * a static build would even write a literal `:slug` folder — so both ends are
- * checked. An absolute `to` URL's own scheme and host are skipped.
- */
-const REDIRECT_PATTERN = /(?:^|\/):[A-Za-z_]|\*/u;
 const URL_ORIGIN = /^[a-z][\d+.a-z-]*:\/\/[^/]*/iu;
 
 /**
@@ -1183,23 +1380,33 @@ const REDIRECT_START = {
   },
 };
 
-const exactRedirectPath = (end: "from" | "to") =>
-  z
-    .string()
-    .refine(REDIRECT_START[end].allows, {
-      message: REDIRECT_START[end].message,
-    })
-    .refine((path) => !REDIRECT_PATTERN.test(path.replace(URL_ORIGIN, "")), {
-      message: `redirects take exact paths: \`${end}\` can't hold a \`:param\` segment or a \`*\` wildcard. Add one redirect per path, or put pattern rules in your host's redirect config (vercel.json, _redirects).`,
-    });
+const redirectPath = (end: "from" | "to") =>
+  z.string().refine(REDIRECT_START[end].allows, {
+    message: REDIRECT_START[end].message,
+  });
 
-const redirectSchema = z.strictObject({
-  from: exactRedirectPath("from"),
-  status: z
-    .union([z.literal(301), z.literal(302), z.literal(307), z.literal(308)])
-    .default(301),
-  to: exactRedirectPath("to"),
-});
+/**
+ * A redirect: an exact path, or a pattern (`/beta/:slug*`, `/old/*`) whose
+ * captures `to` may read (see `core/redirect-patterns.ts`).
+ */
+const redirectSchema = z
+  .strictObject({
+    from: redirectPath("from"),
+    status: z
+      .union([z.literal(301), z.literal(302), z.literal(307), z.literal(308)])
+      .default(301),
+    to: redirectPath("to"),
+  })
+  .superRefine((redirect, ctx) => {
+    const error = redirectPatternError(redirect.from, redirect.to);
+    if (error) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: error.message,
+        path: [error.end],
+      });
+    }
+  });
 
 /**
  * One authorized remote image source, passed through to Astro's
@@ -1417,6 +1624,26 @@ type SoftwareResolved = z.output<typeof softwareConfigSchema>;
 
 /** Discoverability features: OG images, feeds, sitemap, structured data. */
 const seoConfigFields = {
+  /**
+   * Meta tags written into every page's head, name to content: site
+   * verification, `theme-color`, and anything else Blume has no setting for.
+   * A tag Blume writes itself is refused with the setting that controls it.
+   */
+  metatags: z
+    .record(z.string().min(1), z.string())
+    .optional()
+    .superRefine((tags, ctx) => {
+      for (const name of Object.keys(tags ?? {})) {
+        const owner = ownedMetatag(name);
+        if (owner) {
+          ctx.addIssue({
+            code: "custom",
+            message: `seo.metatags can't set "${name}": Blume writes that tag. Set it with ${owner}.`,
+            path: [name],
+          });
+        }
+      }
+    }),
   og: ogConfigSchema.default({}),
   /** The organization behind the site, as an `Organization` JSON-LD node. */
   organization: organizationConfigSchema.optional(),
@@ -1519,6 +1746,14 @@ const agentsConfigSchema = z.strictObject({
     .default({}),
   /** Expose the docs as an MCP server for connecting agents. */
   mcp: mcpConfigSchema.prefault({}),
+  /**
+   * Generate the site's own agent skill: a `SKILL.md` named after the site,
+   * built from its navigation, page descriptions, and agent surfaces, served
+   * at `/skill.md` and in the skills discovery index. Needs a
+   * `deployment.site`. A skill in `agents.skills` with the same name replaces
+   * it. On by default.
+   */
+  skillMd: z.boolean().default(true),
   /**
    * Publish Agent Skills for discovery: a directory (resolved against the
    * project root) whose subdirectories each hold a `SKILL.md`. The build
@@ -1805,9 +2040,9 @@ const markdownConfigSchema = z.strictObject(
 const reactConfigSchema = z.strictObject({
   /**
    * Auto-memoize React components/hooks with the React Compiler
-   * (`babel-plugin-react-compiler`). On by default whenever React is enabled
+   * (`oxc-transform-react`). On by default whenever React is enabled
    * (a project `.tsx`/`.jsx`, a React island/example/override, or the assistant); set
-   * to `false` to skip the compiler's babel pass.
+   * to `false` to skip the compiler pass.
    */
   compiler: z.boolean().default(true),
 });
@@ -1867,6 +2102,7 @@ export const blumeConfigSchema = z
       ai: aiConfigSchema.prefault({}),
       // Adapters from `blume/analytics`, each a serializable descriptor.
       analytics: analyticsConfigSchema,
+      api: apiConfigSchema.prefault({}),
       banner: bannerConfigSchema.optional(),
       /**
        * Site-wide mount point prepended to every generated route (e.g. `/docs`),
@@ -1884,6 +2120,9 @@ export const blumeConfigSchema = z
         })
         .optional()
         .transform((value) => normalizeBasePath(value)),
+      changelog: changelogConfigSchema.optional(),
+      // An adapter from `blume/consent`; analytics waits for the reader.
+      consent: consentConfigSchema,
       content: contentConfigSchema.prefault({}),
       /**
        * Date presentation for the "last updated" stamp and the changelog timeline.
@@ -1907,7 +2146,8 @@ export const blumeConfigSchema = z
        */
       examples: examplesConfigSchema.prefault("examples"),
       export: exportConfigSchema.prefault(false),
-      feedback: z.boolean().default(true),
+      feedback: feedbackConfigSchema.prefault(true),
+      footer: footerConfigSchema.optional(),
       /** Opt-in custom frontmatter keys, validated by user-supplied schemas. */
       frontmatter: frontmatterConfigSchema.prefault({}),
       github: githubConfigSchema.optional(),
@@ -1917,7 +2157,10 @@ export const blumeConfigSchema = z
       lastModified: lastModifiedConfigSchema.default(false),
       logo: logoConfigSchema.optional(),
       markdown: markdownConfigSchema.prefault({}),
+      narration: narrationConfigSchema.prefault(false),
       navigation: navigationConfigSchema.prefault({}),
+      // An adapter from `blume/ratelimit`, `memory()` by default; `false` is off.
+      rateLimit: rateLimitConfigSchema,
       react: reactConfigSchema.prefault({}),
       redirects: z.array(redirectSchema).default([]),
       /** API references: adapters from `blume/reference`, each a serializable descriptor. */
@@ -1927,6 +2170,23 @@ export const blumeConfigSchema = z
       theme: themeConfigSchema.prefault({}),
       title: z.string().default("Documentation"),
       toc: tocConfigSchema,
+      /**
+       * Content variables: `{{name}}` in a page body reads the value (see
+       * `core/variables.ts`). Names take letters, digits, `_`, and `-`;
+       * values are one line, so a substitution never moves the lines a
+       * diagnostic points at.
+       */
+      variables: z
+        .record(
+          z.string().regex(VARIABLE_NAME, {
+            message:
+              "Variable names take letters, digits, `_`, and `-`, like `version` or `api-url`.",
+          }),
+          z.string().refine((value) => !/[\r\n]/u.test(value), {
+            message: "A variable's value must fit on one line.",
+          })
+        )
+        .default({}),
       versions: versionsConfigSchema.optional(),
     },
     {
@@ -1986,6 +2246,19 @@ export const blumeConfigSchema = z
           });
         }
       }
+    }
+    // Cloudflare's rate limiting is a Worker binding, which only a Cloudflare
+    // deployment has.
+    if (
+      config.rateLimit?.kind === "cloudflare" &&
+      config.deployment.kind !== "cloudflare"
+    ) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message:
+          'rateLimit: cloudflare() counts with a Workers binding, so it needs `deployment: cloudflare()` from "blume/deploy". On another host, use upstash() or memory() from "blume/ratelimit".',
+        path: ["rateLimit"],
+      });
     }
   });
 

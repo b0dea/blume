@@ -34,7 +34,10 @@ import {
   schemeLabel,
 } from "../src/components/openapi/security.ts";
 import type { SecurityRequirementLike } from "../src/components/openapi/security.ts";
-import { sampleLanguages } from "../src/components/openapi/snippets.ts";
+import {
+  DEFAULT_SAMPLE_LANGUAGES,
+  sampleLanguages,
+} from "../src/components/openapi/snippets.ts";
 import { scanProject } from "../src/core/project-graph.ts";
 import { blumeConfigSchema } from "../src/core/schema.ts";
 import { resolveSources } from "../src/core/sources/resolve.ts";
@@ -49,12 +52,14 @@ import { InvalidSpecError, parseSpec } from "../src/openapi/parse.ts";
 import {
   blumeReferences,
   hasScalarReferences,
+  referenceSpecFiles,
   resolveReferences,
 } from "../src/openapi/references.ts";
 import { operationMdx, overviewMdx } from "../src/openapi/render-mdx.ts";
 import { buildReferenceFiles } from "../src/openapi/scalar.ts";
 import { isOpenApiSource, openApiSource } from "../src/openapi/source.ts";
 import { asyncapi, openapi, scalar } from "../src/reference/index.ts";
+import { openapiOptionsSchema } from "../src/reference/openapi.ts";
 
 const ctx = (projectRoot: string) => ({
   cacheDir: join(projectRoot, ".blume/cache/openapi"),
@@ -229,6 +234,10 @@ const queued = (responses: Response[]) => {
   };
 };
 
+/** The groups among a sidebar level's nodes, in order. */
+const groups = (nodes: NavNode[]): NavNode[] =>
+  nodes.filter((node) => node.kind === "group");
+
 describe("references", () => {
   it("resolves a Blume-rendered OpenAPI reference by default", () => {
     const config = blumeConfigSchema.parse({
@@ -245,6 +254,33 @@ describe("references", () => {
     });
     expect(hasScalarReferences(config)).toBe(false);
     expect(blumeReferences(config)).toHaveLength(1);
+  });
+
+  it("lists the local spec and overlay files references read, for the dev watcher", () => {
+    const config = blumeConfigSchema.parse({
+      reference: [
+        openapi({
+          sources: [
+            { overlays: ["./overlays/public.yaml"], spec: "./openapi.yaml" },
+            { spec: "https://api.test/openapi.json" },
+            {
+              overlays: ["https://api.test/overlay.yaml"],
+              route: "/admin",
+              spec: "/abs/admin.json",
+            },
+          ],
+        }),
+        asyncapi({ spec: "async.yaml" }),
+        // The same file twice is watched once.
+        scalar({ route: "/embed", spec: "./openapi.yaml" }),
+      ],
+    });
+    expect(referenceSpecFiles(config, "/project")).toStrictEqual([
+      "/project/openapi.yaml",
+      "/project/overlays/public.yaml",
+      "/abs/admin.json",
+      "/project/async.yaml",
+    ]);
   });
 
   it("resolves a Blume-rendered AsyncAPI reference by default", () => {
@@ -1680,10 +1716,12 @@ describe("source.openApiSource", () => {
     expect(refs).toContain("api/pet/add-pet.mdx");
     expect(refs.at(-1)).toBe("api/index.mdx");
     // Each tag directory is labeled with the spec's own tag name, so the
-    // sidebar group renders the authored casing instead of a re-humanized slug.
+    // sidebar group renders the authored casing instead of a re-humanized slug,
+    // and ranked in the overview's order. The source names no `label`, so its
+    // own group keeps the name its route gives it.
     expect(folderMeta).toStrictEqual({
-      "api/operations": { title: "Operations" },
-      "api/pet": { title: "pet" },
+      "api/operations": { order: 1, title: "Operations" },
+      "api/pet": { order: 0, title: "pet" },
     });
 
     const data = source.openApiData();
@@ -1965,6 +2003,82 @@ describe("source.openApiSource", () => {
     } finally {
       await rm(root, { force: true, recursive: true });
     }
+  });
+
+  it("names each source's group by its label and orders tags as the spec does", async () => {
+    const root = await mkdtemp(join(tmpdir(), "blume-openapi-nav-"));
+    try {
+      await mkdir(join(root, "docs"), { recursive: true });
+      await writeFile(
+        join(root, "blume.config.ts"),
+        'export default {\n  reference: [{ kind: "openapi", options: { sources: [{ label: "GitHub OAuth (v2)", spec: "./a.json" }, { route: "/reference/partner-apis", spec: "./b.json" }] }, requiredSecrets: [], runtimeDeps: [] }],\n};\n'
+      );
+      await writeFile(join(root, "docs/index.md"), "# Home\n");
+      const spec = JSON.stringify({
+        info: { title: "API", version: "1" },
+        openapi: "3.1.0",
+        paths: {
+          "/a": { get: { operationId: "a", summary: "A", tags: ["Zebras"] } },
+          "/b": { get: { operationId: "b", summary: "B", tags: ["Apples"] } },
+          "/c": { get: { operationId: "c", summary: "C", tags: ["Mangos"] } },
+        },
+        tags: [{ name: "Zebras" }, { name: "Mangos" }, { name: "Apples" }],
+      });
+      await writeFile(join(root, "a.json"), spec);
+      await writeFile(join(root, "b.json"), spec);
+      const project = await scanProject(root);
+      const reference = groups(project.graph.navigation.sidebar).find(
+        (node) => node.label === "Reference"
+      );
+      const sources =
+        reference?.kind === "group" ? groups(reference.children) : [];
+      // A labeled source's group carries its label as written; an unlabeled
+      // one keeps the name its route gives it.
+      expect(sources.map((node) => node.label)).toStrictEqual([
+        "GitHub OAuth (v2)",
+        "Partner APIs",
+      ]);
+      // Both list their tags in the spec's declared order, as the overview
+      // does, not alphabetically.
+      for (const source of sources) {
+        expect(
+          source.kind === "group"
+            ? groups(source.children).map((node) => node.label)
+            : []
+        ).toStrictEqual(["Zebras", "Mangos", "Apples"]);
+      }
+    } finally {
+      await rm(root, { force: true, recursive: true });
+    }
+  });
+
+  it("leaves a root-mounted source's label off the root group", async () => {
+    const dir = await tempSpec(SPEC_3_1);
+    const { folderMeta } = await openApiSource(
+      [
+        {
+          ...indexedReference,
+          basePath: "",
+          display: {
+            codeSamples: [],
+            expandSchemas: false,
+            playground: { enabled: true, proxy: false },
+          },
+          groupLabel: "Petstore",
+          kind: "openapi",
+          label: "Petstore",
+          route: "/",
+          slug: "reference",
+          spec: "spec.json",
+        },
+      ],
+      ctx(dir)
+    ).load();
+    expect(Object.keys(folderMeta ?? {}).toSorted()).toStrictEqual([
+      "operations",
+      "pet",
+    ]);
+    await rm(dir, { force: true, recursive: true });
   });
 });
 
@@ -2307,16 +2421,22 @@ describe("snippets", () => {
   });
 
   it("resolves language ids through aliases and drops unknowns", () => {
-    const ids = sampleLanguages(["shell", "typescript", "nope"]).map(
+    const ids = sampleLanguages(["shell", "javascript", "c#", "nope"]).map(
       (language) => language.id
     );
-    expect(ids).toStrictEqual(["curl", "js"]);
-    // Empty falls back to the default trio.
-    expect(sampleLanguages([]).map((language) => language.id)).toStrictEqual([
-      "curl",
-      "js",
-      "python",
-    ]);
+    expect(ids).toStrictEqual(["curl", "js", "csharp"]);
+    // `false` generates none, and so does an empty list: it names no language.
+    expect(sampleLanguages(false)).toStrictEqual([]);
+    expect(sampleLanguages([])).toStrictEqual([]);
+  });
+
+  it("keeps the hand-written pages' languages in step with openapi()'s default", () => {
+    expect(
+      openapiOptionsSchema.parse({ spec: "./openapi.yaml" }).codeSamples
+    ).toStrictEqual(DEFAULT_SAMPLE_LANGUAGES);
+    expect(
+      sampleLanguages(DEFAULT_SAMPLE_LANGUAGES).map((language) => language.id)
+    ).toStrictEqual(["curl", "js", "python"]);
   });
 });
 
@@ -2345,6 +2465,14 @@ describe("security", () => {
       { apiHeader: [] },
     ]);
     expect(effectiveSecurity()).toStrictEqual([]);
+  });
+
+  it("gives a webhook only the security it declares, never the root's", () => {
+    const root = [{ bearerAuth: [] }];
+    expect(effectiveSecurity(undefined, root, true)).toStrictEqual([]);
+    expect(effectiveSecurity([{ apiHeader: [] }], root, true)).toStrictEqual([
+      { apiHeader: [] },
+    ]);
   });
 
   it("resolves requirement names against the component schemes", () => {

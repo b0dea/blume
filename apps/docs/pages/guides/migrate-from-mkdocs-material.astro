@@ -1,0 +1,927 @@
+---
+// Migrate from MkDocs Material: checked against the migration docs, the
+// blume-migrate skill (SKILL.md; it has no MkDocs reference) and
+// src/migrate/migrate.ts, and the syntax, navigation, meta, includes,
+// variables, frontmatter, and deployment docs and source on main. Ran: built
+// the "before" project below with mkdocs-material 9.7.7 and mkdocs-redirects
+// 1.2.3 (uv) for its sitemap, redirect page, and heading ids; `blume migrate`
+// with no agent in it (source not detected); `blume validate --strict` on the
+// "after" project; compiled its .mdx pages with Blume's MDX processor and
+// scanned it with scanProject for routes, titles, anchors, and diagnostics;
+// probed unconverted MkDocs syntax the same way. Reviewer: checked inline
+// `$$` math (syntax docs, markdown/features.ts) and that the search dialog's
+// filter pills come from sidebar sections, not `search.tags`
+// (components/layout/Search.astro). Not yet run end to end: no `blume build`,
+// `blume dev`, or deploy of the converted project.
+import CodeBlock from "blume/components/content/CodeBlock.astro";
+import GuidePage from "../_guides/GuidePage.astro";
+import { guideById } from "../_guides/guides.ts";
+---
+
+<GuidePage guide={guideById("migrate-from-mkdocs-material")}>
+  <p>
+    Yes. An MkDocs project is already Markdown in a <code>docs/</code> folder,
+    which is where Blume looks by default, so plain pages move over unchanged.
+    The work is in what MkDocs adds on top: <code>mkdocs.yml</code> becomes a{" "}
+    <code>blume.config.ts</code> plus folders, and Python-Markdown extension
+    syntax like admonitions, content tabs, and snippets becomes Blume
+    directives and components.
+  </p>
+  <p>
+    Blume has no MkDocs importer: <code>blume migrate</code> has no MkDocs
+    mappings, so this is a partly manual migration. This guide moves a small
+    Material project, before and after, and ends with a script that checks
+    every old URL.
+  </p>
+  <p>
+    Nothing in Blume replaces mkdocstrings, Jinja template overrides, or
+    macros logic beyond plain variables. Material for MkDocs is{" "}
+    <a href="https://squidfunk.github.io/mkdocs-material/blog/2025/11/05/zensical/">in maintenance mode</a>,
+    and its team{" "}
+    <a href="https://squidfunk.github.io/mkdocs-material/blog/2026/02/18/mkdocs-2.0/">designed Zensical</a>{" "}
+    to build existing MkDocs projects without changes, which is the smaller
+    move if you want to keep your setup.
+  </p>
+
+  <h2>What carries over</h2>
+  <h3>Kept as is</h3>
+  <table>
+    <thead>
+      <tr>
+        <th scope="col">In MkDocs Material</th>
+        <th scope="col">In Blume</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>Markdown pages in <code>docs/</code></td>
+        <td>The same folder, Blume's default content root</td>
+      </tr>
+      <tr>
+        <td>Links to <code>.md</code> files, with anchors</td>
+        <td>Resolved to the page's URL, even after a rename to <code>.mdx</code></td>
+      </tr>
+      <tr>
+        <td>
+          Tables, footnotes, task lists, <code>H~2~O</code>, and a code block's{" "}
+          <code>title="send.py"</code>
+        </td>
+        <td>The same syntax</td>
+      </tr>
+      <tr>
+        <td><code>search.exclude</code> and <code>search.boost</code> frontmatter</td>
+        <td>The same keys</td>
+      </tr>
+      <tr>
+        <td><code>{"{#id}"}</code> after a heading</td>
+        <td>The same in <code>.md</code>; <code>[#id]</code> in <code>.mdx</code></td>
+      </tr>
+      <tr>
+        <td>Images next to pages</td>
+        <td>The same relative paths, now optimized at build time</td>
+      </tr>
+    </tbody>
+  </table>
+  <h3>Rewritten</h3>
+  <table>
+    <thead>
+      <tr>
+        <th scope="col">In MkDocs Material</th>
+        <th scope="col">In Blume</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><code>nav</code></td>
+        <td>Folders, <code>meta.ts</code>, and <code>sidebar.label</code></td>
+      </tr>
+      <tr>
+        <td>The <code>navigation.tabs</code> feature</td>
+        <td><code>navigation.tabs</code></td>
+      </tr>
+      <tr>
+        <td><code>!!! note "Title"</code></td>
+        <td><code>:::note[Title]</code></td>
+      </tr>
+      <tr>
+        <td><code>??? note "Title"</code> and <code>???+</code></td>
+        <td><code>&lt;Expandable title="Title"&gt;</code>, with <code>defaultOpen</code></td>
+      </tr>
+      <tr>
+        <td><code>=== "Tab"</code></td>
+        <td>
+          <code>&lt;Tabs&gt;</code> of <code>&lt;Tab title="Tab"&gt;</code>, or{" "}
+          <code>&lt;CodeGroup&gt;</code> when every tab is code
+        </td>
+      </tr>
+      <tr>
+        <td><code>--8&lt;-- "file.md"</code></td>
+        <td><code>&lt;include&gt;</code> of a file under <code>docs/</code></td>
+      </tr>
+      <tr>
+        <td><code>linenums="1"</code>, <code>hl_lines="2 3"</code></td>
+        <td><code>lineNumbers</code>, <code>{"{2-3}"}</code></td>
+      </tr>
+      <tr>
+        <td><code>`#!python print()`</code></td>
+        <td><code>`print(){"{:python}"}`</code></td>
+      </tr>
+      <tr>
+        <td>
+          <code>pymdownx.arithmatex</code> math: <code>$x$</code> or{" "}
+          <code>\(x\)</code> inline, <code>$$</code> or <code>\[</code> blocks
+        </td>
+        <td>
+          <code>$$x$$</code> inside the sentence, and <code>$$</code> on lines of
+          their own for a block, in <code>.mdx</code>
+        </td>
+      </tr>
+      <tr>
+        <td><code>++ctrl+c++</code></td>
+        <td><code>&lt;kbd&gt;Ctrl&lt;/kbd&gt;+&lt;kbd&gt;C&lt;/kbd&gt;</code></td>
+      </tr>
+      <tr>
+        <td><code>:material-check:</code> and other icon shortcodes</td>
+        <td><code>&lt;Icon icon="check" /&gt;</code>, with a Lucide name</td>
+      </tr>
+      <tr>
+        <td><code>{"{ .md-button }"}</code> links</td>
+        <td>Plain links, or <code>&lt;Card&gt;</code>s</td>
+      </tr>
+      <tr>
+        <td><code>hide: [navigation, toc]</code></td>
+        <td><code>mode: center</code> (<code>hide: [toc]</code> is <code>mode: wide</code>)</td>
+      </tr>
+      <tr>
+        <td><code>tags</code></td>
+        <td><code>search.tags</code>, a facet on hosted search, with no tag pages</td>
+      </tr>
+      <tr>
+        <td>Other files in <code>docs/</code>, like downloads</td>
+        <td><code>public/</code>, at the same URLs, linked from the root</td>
+      </tr>
+      <tr>
+        <td><code>extra_css</code> and <code>extra_javascript</code></td>
+        <td>
+          A <code>theme.css</code> file, and{" "}
+          <a href="/docs/configuration/analytics#custom-scripts"><code>script()</code></a>{" "}
+          in <code>analytics</code>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+  <h3>No equivalent</h3>
+  <table>
+    <thead>
+      <tr>
+        <th scope="col">In MkDocs Material</th>
+        <th scope="col">In Blume</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>Definition lists, abbreviations, <code>==mark==</code></td>
+        <td>Render as plain text</td>
+      </tr>
+      <tr>
+        <td><code>^^insert^^</code></td>
+        <td>Renders as superscript</td>
+      </tr>
+      <tr>
+        <td>Emoji shortcodes like <code>:smile:</code></td>
+        <td>Render as text, so paste the emoji itself</td>
+      </tr>
+      <tr>
+        <td>Code annotations and inline admonitions</td>
+        <td>Rewrite as prose or a callout</td>
+      </tr>
+      <tr>
+        <td><code>copyright</code></td>
+        <td>
+          No footer text field; override the{" "}
+          <a href="/docs/configuration/customization#layout-slots">Footer slot</a>
+        </td>
+      </tr>
+      <tr>
+        <td>Template <code>overrides/</code></td>
+        <td>Layout slots, or <code>blume eject</code> for the whole Astro app</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h2>Before you start</h2>
+  <p>
+    Work on a new branch with a clean working tree, so the migration is one
+    diff you can review or throw away:
+  </p>
+  <CodeBlock code="git switch -c migrate-to-blume" lang="bash" />
+  <p>
+    Then save the URLs your site serves today. MkDocs writes a{" "}
+    <code>sitemap.xml</code> from your <code>site_url</code>, so pull the paths
+    out of the live one and keep the list outside the repository:
+  </p>
+  <CodeBlock
+    code={`curl -s https://docs.acme.example/sitemap.xml \\
+  | grep -o '<loc>[^<]*' \\
+  | sed -e 's#<loc>https://docs.acme.example##' -e 's#\\(.\\)/$#\\1#' \\
+  > ../old-urls.txt`}
+    lang="bash"
+  />
+  <p>
+    Replace <code>docs.acme.example</code> with your domain in both places.
+    MkDocs URLs end in a slash and Blume's don't, so the last expression drops
+    it. The sitemap leaves out the pages the redirects plugin writes, so add
+    each <code>redirect_maps</code> key as a URL. In this guide's project,{" "}
+    <code>setup.md</code> is <code>/setup</code>:
+  </p>
+  <CodeBlock code="echo /setup >> ../old-urls.txt" lang="bash" />
+  <p>
+    You also need Node.js 22.12 or later, and Claude Code or Codex installed
+    and signed in if an agent drafts the first pass. Keep the Python setup
+    until you switch, so you can still build the old site.
+  </p>
+
+  <h2>Run the migration</h2>
+  <p>
+    This step is optional: you can do everything below by hand, or let an
+    agent draft it. From the root of your MkDocs project, run:
+  </p>
+  <CodeBlock code="npx blume migrate --claude" lang="bash" />
+  <p>
+    To use Codex, swap <code>--claude</code> for <code>--codex</code>. On pnpm
+    12, run it with <code>pnpm dlx --allow-build=esbuild</code> instead of{" "}
+    <code>npx</code>, since pnpm 12 won't run esbuild's install script until you
+    approve it. There's no <code>mkdocs</code> source to name, so Blume reports
+    that it couldn't detect the framework.
+  </p>
+  <p>
+    <code>blume migrate</code> converts nothing itself. It opens the agent in
+    your terminal on the <code>blume-migrate</code> skill that ships inside the
+    package. The skill has no MkDocs reference, so the agent inventories the
+    repository and follows the skill's general workflow through{" "}
+    <code>blume build</code> and <code>blume validate</code>, with its edits
+    going through its usual permission prompts. Tell it to use the tables on
+    this page, then review its diff and closing summary against the sections
+    below. Check math too: each inline <code>$x$</code> or{" "}
+    <code>\(x\)</code> should read <code>$$x$$</code>, still inside its
+    sentence.
+  </p>
+
+  <h2>The example project</h2>
+  <p>
+    The rest of this guide moves this Material site: an explicit{" "}
+    <code>nav</code> with a nested section, tabs, admonitions, content tabs, a
+    snippet, and a redirect.
+  </p>
+  <CodeBlock
+    code={`site_name: Acme Docs
+site_url: https://docs.acme.example/
+site_description: Send transactional email and SMS with Acme.
+repo_url: https://github.com/acme/docs
+edit_uri: edit/main/docs/
+copyright: Copyright &copy; 2026 Acme
+
+theme:
+  name: material
+  logo: assets/logo.svg
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: teal
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: teal
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+  features:
+    - navigation.tabs
+    - content.code.copy
+
+nav:
+  - Home: index.md
+  - Getting started:
+      - getting-started/install.md
+      - getting-started/quickstart.md
+  - Guides:
+      - guides/configure.md
+      - Deploy: guides/deploy.md
+      - Advanced:
+          - guides/webhooks.md
+  - Reference:
+      - reference/cli.md
+
+plugins:
+  - search
+  - redirects:
+      redirect_maps:
+        setup.md: getting-started/install.md
+
+markdown_extensions:
+  - admonition
+  - attr_list
+  - md_in_html
+  - pymdownx.details
+  - pymdownx.highlight
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
+  - pymdownx.tabbed:
+      alternate_style: true
+  - pymdownx.emoji:
+      emoji_index: !!python/name:material.extensions.emoji.twemoji
+      emoji_generator: !!python/name:material.extensions.emoji.to_svg
+  - toc:
+      permalink: true
+
+extra_css:
+  - stylesheets/extra.css`}
+    lang="yaml"
+    title="mkdocs.yml"
+  />
+  <p>Its files before the migration:</p>
+  <CodeBlock
+    code={`mkdocs.yml
+requirements.txt
+includes/support.md
+docs/
+  index.md
+  assets/logo.svg
+  stylesheets/extra.css
+  getting-started/install.md
+  getting-started/quickstart.md
+  guides/configure.md
+  guides/deploy.md
+  guides/webhooks.md
+  reference/cli.md`}
+    lang="text"
+  />
+  <p>And after:</p>
+  <CodeBlock
+    code={`blume.config.ts
+package.json
+public/logo.svg
+docs/
+  index.mdx
+  _snippets/support.mdx
+  getting-started/meta.ts
+  getting-started/install.mdx
+  getting-started/quickstart.mdx
+  guides/configure.md
+  guides/deploy.mdx
+  guides/advanced/webhooks.md
+  reference/cli.md`}
+    lang="text"
+  />
+
+  <h2>Write the Blume config</h2>
+  <p>Add a <code>package.json</code> beside <code>mkdocs.yml</code>:</p>
+  <CodeBlock
+    code={`{
+  "name": "acme-docs",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "blume dev",
+    "build": "blume build"
+  }
+}`}
+    lang="json"
+    title="package.json"
+  />
+  <p>Install Blume, and keep its generated files out of Git:</p>
+  <CodeBlock
+    code={`npm install blume
+printf '\\nnode_modules/\\n.blume/\\ndist/\\n' >> .gitignore`}
+    lang="bash"
+  />
+  <p>
+    Then translate <code>mkdocs.yml</code>. Map only what it sets, since every
+    Blume option has a default:
+  </p>
+  <CodeBlock
+    code={`import { defineConfig } from "blume";
+
+export default defineConfig({
+  title: "Acme Docs",
+  description: "Send transactional email and SMS with Acme.",
+  logo: "/logo.svg",
+  theme: { accent: "teal" },
+  github: { owner: "acme", repo: "docs" },
+  deployment: { site: "https://docs.acme.example" },
+  navigation: {
+    tabs: [
+      { label: "Getting started", path: "/getting-started" },
+      { label: "Guides", path: "/guides" },
+      { label: "Reference", path: "/reference" },
+    ],
+  },
+  redirects: [
+    { from: "/setup", to: "/getting-started/install" },
+    { from: "/guides/webhooks", to: "/guides/advanced/webhooks" },
+  ],
+});`}
+    lang="ts"
+    title="blume.config.ts"
+  />
+  <ul>
+    <li>
+      <code>site_name</code> and <code>site_description</code> become{" "}
+      <code>title</code> and <code>description</code>. A{" "}
+      <code>docs_dir</code> other than <code>docs</code> becomes{" "}
+      <code>content.root</code>.
+    </li>
+    <li>
+      <code>site_url</code> becomes <code>deployment.site</code>. Blume detects
+      it on Vercel, Netlify, and Cloudflare Pages; anywhere else, keep it, or
+      the sitemap and social cards go missing.
+    </li>
+    <li>
+      <code>repo_url</code> and <code>edit_uri</code> become <code>github</code>,
+      for edit links on <code>main</code>.
+    </li>
+    <li>
+      Move the logo from <code>docs/assets/</code> to <code>public/</code>. A
+      favicon named <code>favicon.png</code> (or <code>.svg</code>,{" "}
+      <code>.ico</code>) in <code>public/</code> is picked up with no config.
+    </li>
+    <li>
+      <code>primary: teal</code> becomes <code>theme.accent</code>, a preset
+      or any CSS color. Blume follows the system color scheme and always shows
+      a toggle. This project's <code>extra.css</code> only set a Material
+      variable, so it goes.
+    </li>
+    <li>
+      <code>content.code.copy</code> and the <code>markdown_extensions</code>{" "}
+      features need no config, <code>arithmatex</code> included: math renders
+      in <code>.mdx</code> pages on its own.
+    </li>
+    <li>
+      <code>copyright</code> has nowhere to go. Links in{" "}
+      <code>extra.social</code> would move to{" "}
+      <a href="/docs/configuration#footer"><code>footer.socials</code></a>.
+    </li>
+  </ul>
+
+  <h2>Rebuild the navigation</h2>
+  <p>
+    Blume builds the sidebar from folders, not a <code>nav</code> list.
+    Folders become groups, files become pages labeled by their{" "}
+    <code>title</code>, and pages sort <code>index</code> first, then by
+    numeric filename prefix, then alphabetically. Handle each place your{" "}
+    <code>nav</code> differs.
+  </p>
+  <p>
+    A section title or order the folder doesn't give you goes in a{" "}
+    <code>meta.ts</code>. Without one, <code>getting-started</code> would read
+    "Getting Started":
+  </p>
+  <CodeBlock
+    code={`import { defineMeta } from "blume";
+
+export default defineMeta({
+  title: "Getting started",
+  pages: ["install", "quickstart"],
+});`}
+    lang="ts"
+    title="docs/getting-started/meta.ts"
+  />
+  <p>
+    A title that <code>nav</code> gives a page, like{" "}
+    <code>Deploy: guides/deploy.md</code>, becomes <code>sidebar.label</code>.
+    This page also has a Mermaid diagram, so it becomes <code>.mdx</code>:
+  </p>
+  <CodeBlock
+    code={`---
+title: Deploy to production
+sidebar:
+  label: Deploy
+---
+
+\`\`\`mermaid
+flowchart LR
+  App --> API[Acme API] --> Carrier
+\`\`\`
+
+Set \`ACME_API_KEY\` on your server before you deploy.`}
+    lang="mdx"
+    title="docs/guides/deploy.mdx"
+  />
+  <p>
+    A nested section with no folder, like Advanced, would flatten into
+    Guides. Move its pages into a folder named after it, with a redirect for
+    each moved URL (it's in the config above):
+  </p>
+  <CodeBlock
+    code={`mkdir -p docs/guides/advanced
+git mv docs/guides/webhooks.md docs/guides/advanced/webhooks.md`}
+    lang="bash"
+  />
+  <p>
+    The moved page's link to <code>../reference/cli.md</code> becomes{" "}
+    <code>../../reference/cli.md</code>. To avoid moving files, an{" "}
+    <a href="/docs/content/navigation#explicit-sidebar">explicit sidebar</a> can
+    nest them in place, but it replaces the whole generated sidebar.
+  </p>
+  <p>Also check:</p>
+  <ul>
+    <li>
+      MkDocs serves a <code>README.md</code> as its folder's index. Blume serves
+      it at <code>/README</code>, so rename it to <code>index.md</code>.
+    </li>
+    <li>
+      MkDocs keeps a numeric prefix like <code>01-</code> in the URL. Blume
+      reads it as sort order and drops it, so add a redirect, or set a{" "}
+      <code>slug</code> that keeps the old path.
+    </li>
+    <li>
+      Blume lists pages you left out of <code>nav</code>. Set{" "}
+      <code>sidebar: {"{ hidden: true }"}</code> on any that should stay out.
+    </li>
+    <li>
+      Each tab in <code>navigation.tabs</code> scopes the sidebar to its
+      folder, like Material's tabs.
+    </li>
+  </ul>
+
+  <h2>Convert the pages</h2>
+  <h3>Titles and frontmatter</h3>
+  <p>
+    Move each page's <code># Heading</code> into a <code>title</code>. Blume
+    renders the title as the page's h1, so a heading left in the body is a
+    second h1.
+  </p>
+  <p>
+    Blume's frontmatter is strict: a key it doesn't know fails the build. Map{" "}
+    <code>hide</code> to <code>mode</code>, <code>tags</code> to{" "}
+    <code>search.tags</code>, and <code>status: new</code> to{" "}
+    <code>sidebar.badge</code>. Rename a Material <code>icon</code> to a Lucide
+    name, and remove <code>template</code> and other theme keys.
+  </p>
+
+  <h3>Rename pages that use extensions</h3>
+  <p>
+    Callouts, tabs, diagrams, and components only work in <code>.mdx</code>;
+    in a <code>.md</code> page they stay literal text, and the build stays
+    green. This renames every page that uses admonitions, content tabs, or
+    Mermaid:
+  </p>
+  <CodeBlock
+    code={`for f in $(grep -rlE '^ *(!!!|\\?\\?\\?\\+?|===) |^ *\`\`\`mermaid' docs); do
+  git mv "$f" "\${f%.md}.mdx"
+done`}
+    lang="bash"
+  />
+  <p>
+    Rename pages with math the same way. Keep the rest as <code>.md</code>,
+    since MDX treats <code>{"{"}</code>, <code>&lt;</code>, and HTML comments
+    as syntax. Links that still name <code>install.md</code> resolve to the
+    renamed page.
+  </p>
+
+  <h3>Rewrite the syntax</h3>
+  <p>Here's the install page before:</p>
+  <CodeBlock
+    code={`# Install Acme
+
+Install the CLI, then sign in.
+
+=== "macOS"
+
+    \`\`\`bash
+    brew install acme
+    \`\`\`
+
+=== "Linux"
+
+    \`\`\`bash
+    curl -fsSL https://acme.example/install.sh | sh
+    \`\`\`
+
+!!! note
+    The installer adds \`acme\` to your \`PATH\`.
+
+## Sign in { #sign-in }
+
+\`\`\`bash title="Terminal"
+acme login
+\`\`\`
+
+--8<-- "includes/support.md"`}
+    lang="md"
+    title="docs/getting-started/install.md"
+  />
+  <p>
+    And after. Content tabs become <code>&lt;Tabs&gt;</code>, with blank lines
+    around each code fence. Admonitions become directives. The spaced anchor
+    becomes <code>[#sign-in]</code>, and the snippet becomes an include:
+  </p>
+  <CodeBlock
+    code={`---
+title: Install Acme
+---
+
+Install the CLI, then sign in.
+
+<Tabs>
+  <Tab title="macOS">
+
+\`\`\`bash
+brew install acme
+\`\`\`
+
+  </Tab>
+  <Tab title="Linux">
+
+\`\`\`bash
+curl -fsSL https://acme.example/install.sh | sh
+\`\`\`
+
+  </Tab>
+</Tabs>
+
+:::note
+The installer adds \`acme\` to your \`PATH\`.
+:::
+
+## Sign in [#sign-in]
+
+\`\`\`bash title="Terminal"
+acme login
+\`\`\`
+
+<include>../_snippets/support.mdx</include>`}
+    lang="mdx"
+    title="docs/getting-started/install.mdx"
+  />
+  <p>
+    Includes must sit inside the content root, so snippets move from{" "}
+    <code>includes/</code> to <code>docs/_snippets/</code>, where the
+    underscore keeps them from becoming pages. Convert their syntax too:
+  </p>
+  <CodeBlock
+    code={`:::tip[Need help?]
+Email support@acme.example.
+:::`}
+    lang="mdx"
+    title="docs/_snippets/support.mdx"
+  />
+  <p>The quickstart before:</p>
+  <CodeBlock
+    code={`# Quickstart
+
+Send your first message.
+
+\`\`\`python title="send.py" linenums="1" hl_lines="4"
+import acme
+
+client = acme.Client()
+client.messages.send(to="+15555550100", body="Hello")
+\`\`\`
+
+??? tip "Use a test number"
+    Numbers that start with \`+1555555\` never leave the sandbox.
+
+!!! warning "Rate limits"
+    The sandbox accepts 10 messages a minute. :material-timer-sand:
+
+Next, [configure Acme](../guides/configure.md#environment-variables).`}
+    lang="md"
+    title="docs/getting-started/quickstart.md"
+  />
+  <p>
+    And after. Callouts don't collapse, so the tip loses its color:
+  </p>
+  <CodeBlock
+    code={`---
+title: Quickstart
+---
+
+Send your first message.
+
+\`\`\`python title="send.py" lineNumbers {4}
+import acme
+
+client = acme.Client()
+client.messages.send(to="+15555550100", body="Hello")
+\`\`\`
+
+<Expandable title="Use a test number">
+  Numbers that start with \`+1555555\` never leave the sandbox.
+</Expandable>
+
+:::warning[Rate limits]
+The sandbox accepts 10 messages a minute. <Icon icon="hourglass" />
+:::
+
+Next, [configure Acme](../guides/configure.md#environment-variables).`}
+    lang="mdx"
+    title="docs/getting-started/quickstart.mdx"
+  />
+  <p>
+    The home page's buttons become cards, and <code>hide</code> becomes{" "}
+    <code>mode: center</code>:
+  </p>
+  <CodeBlock
+    code={`---
+title: Acme Docs
+mode: center
+---
+
+Acme sends transactional email and SMS from one API.
+
+<CardGroup cols={2}>
+  <Card title="Install Acme" href="/getting-started/install" icon="download" />
+  <Card title="CLI reference" href="/reference/cli" icon="terminal" />
+</CardGroup>`}
+    lang="mdx"
+    title="docs/index.mdx"
+  />
+  <p>
+    Plain Markdown pages like <code>cli.md</code> only trade their heading for
+    a <code>title</code>.
+  </p>
+
+  <h3>Check for leftovers</h3>
+  <p>
+    This lists any MkDocs syntax left in the content. Rerun it until it prints
+    only what you mean to keep:
+  </p>
+  <CodeBlock
+    code={`grep -rnE '^ *(!!!|\\?\\?\\?\\+?|===) |--8<--|\\{ *[.#][^}]*\\}|<!--|:(material|octicons|fontawesome|simple)-[a-z0-9-]+:' docs`}
+    lang="bash"
+  />
+  <p>
+    A <code>{"{#id}"}</code> it finds in a <code>.md</code> page is fine to
+    keep. A spaced <code>{"{ #id }"}</code> or <code>{"{: #id }"}</code> is
+    not: Blume doesn't read either as an anchor, in any page.
+  </p>
+
+  <h2>Replace the plugins</h2>
+  <p>Take each entry under <code>plugins</code> in turn:</p>
+  <ul>
+    <li>
+      <strong>search</strong> is built in, so delete it.{" "}
+      <code>search.exclude</code> and <code>search.boost</code> keep working.
+    </li>
+    <li>
+      <strong>redirects</strong> becomes <code>redirects</code>, one per{" "}
+      <code>redirect_maps</code> entry, written as URLs.
+    </li>
+    <li>
+      <strong>blog</strong> posts become <a href="/docs/advanced/blog">pages
+      with <code>type: blog</code></a> and a flat <code>date</code> (a nested{" "}
+      <code>date.created</code> fails the build). Blume
+      generates no index, archive, or category pages, so write a{" "}
+      <code>blog/index.mdx</code>, drop <code>categories</code>, and redirect
+      dated URLs like <code>/blog/2024/01/31/hello/</code>.
+    </li>
+    <li>
+      <strong>tags</strong> becomes <code>search.tags</code>, a facet on
+      hosted search providers, with no tag index pages.
+    </li>
+    <li>
+      <strong>social</strong> cards are built in as{" "}
+      <a href="/docs/discoverability/open-graph">Open Graph images</a>.
+    </li>
+    <li>
+      <strong>git-revision-date-localized</strong> becomes{" "}
+      <code>lastModified: "git"</code>. Git committers have no equivalent.
+    </li>
+    <li>
+      <strong>macros</strong>: plain values from <code>extra</code> move to{" "}
+      <a href="/docs/content/variables"><code>variables</code></a>, which use the
+      same <code>{"{{ name }}"}</code> syntax (names can't contain dots). Jinja
+      logic, filters, and macro functions have no equivalent.
+    </li>
+    <li>
+      <strong>awesome-pages</strong> <code>.pages</code> files become{" "}
+      <code>meta.ts</code> files, and <strong>glightbox</strong> goes, since
+      images zoom on click by default.
+    </li>
+    <li>
+      <strong>mike</strong> versions move to{" "}
+      <a href="/guides/version-markdown-documentation">Blume's versioning</a>,
+      and <strong>i18n</strong> to <a href="/docs/content/i18n">i18n</a>.
+    </li>
+    <li>
+      <strong>mkdocstrings</strong> has no replacement. Keep publishing that
+      reference separately and link to it. For an HTTP API, an OpenAPI spec can
+      replace it: see{" "}
+      <a href="/guides/fastapi-documentation-website">the FastAPI guide</a>.
+    </li>
+  </ul>
+
+  <h2>Check every old URL</h2>
+  <p>
+    Start <code>npx blume dev</code>, then walk the list you saved and print
+    every old URL that doesn't reach a page:
+  </p>
+  <CodeBlock
+    code={`while read -r path; do
+  code=$(curl -sL -o /dev/null -w "%{http_code}" "http://localhost:4321$path")
+  [ "$code" = "200" ] || echo "$code $path"
+done < ../old-urls.txt`}
+    lang="bash"
+  />
+  <p>
+    Redirects count as passing, since <code>-L</code> follows them. Add a
+    redirect for each path it prints, and rerun it until it prints nothing.
+    Here, that's the two redirects already in the config. After you deploy,
+    run it once more with your site's URL in place of{" "}
+    <code>http://localhost:4321</code>. For status codes, patterns, and
+    what each host does with them, see{" "}
+    <a href="/guides/documentation-url-migration-redirects">Move documentation URLs while preserving old links</a>.
+  </p>
+  <p>
+    The dev server answers a slashed URL with a 404, which is why the list has
+    no trailing slashes. Links around the web still carry MkDocs' slash, so
+    check a few on the deployed site: the <code>vercel()</code> adapter
+    redirects them to the page, and a static build serves them from the page's
+    folder.
+  </p>
+
+  <h2>Build and validate</h2>
+  <p>Stop the dev server, then build the site and check every link in it:</p>
+  <CodeBlock
+    code={`npx blume build
+npx blume validate --strict`}
+    lang="bash"
+  />
+  <p>
+    <code>blume build</code> fails on invalid frontmatter, pages that don't
+    compile, and bad config. <code>blume validate --strict</code> checks every
+    link, anchor, and asset, so a relative link you missed in a moved page
+    shows up as <code>BLUME_BROKEN_LINK</code>. Fix what they report rather
+    than passing <code>--no-strict</code>, which drops the pages that fail.
+  </p>
+
+  <h2>Deploy and switch over</h2>
+  <p>
+    Many MkDocs sites publish to GitHub Pages with <code>mkdocs gh-deploy</code>,
+    and a Blume site can stay there.{" "}
+    <a href="/guides/markdown-docs-github-pages">Deploy Markdown docs to GitHub Pages</a>{" "}
+    has the workflow. A <code>site_url</code> with a path, like a project site,
+    splits into a <code>site</code> and a <code>base</code>:
+  </p>
+  <CodeBlock
+    code={`deployment: { site: "https://acme.github.io", base: "/widget-sdk" },`}
+    lang="ts"
+    title="blume.config.ts"
+  />
+  <p>
+    GitHub Pages serves Blume's redirect pages for exact redirects and
+    ignores patterns. For other hosts, see{" "}
+    <a href="/docs/deployment#redirects">Redirects</a>.
+  </p>
+  <p>
+    Your last MkDocs build stays on the <code>gh-pages</code> branch, so
+    rolling back means switching the Pages source back to it. Once the URL
+    check passes against production, delete <code>mkdocs.yml</code>,{" "}
+    <code>requirements.txt</code>, and <code>includes/</code>, and submit the
+    new <code>sitemap.xml</code> in Google Search Console.
+  </p>
+
+  <h2>Troubleshooting</h2>
+  <h3>A page fails with "Could not parse expression"</h3>
+  <p>
+    An attribute list is still in an <code>.mdx</code> page:{" "}
+    <code>{"{ .md-button }"}</code>, <code>{"{ #id }"}</code>, or{" "}
+    <code>{"{ width=\"300\" }"}</code>. MDX reads braces as JavaScript. Remove
+    it, or write an anchor as <code>[#id]</code>. Blume flags an anchor
+    written as <code>{"{#id}"}</code>, <code>{"{ #id }"}</code>, or{" "}
+    <code>{"{: #id }"}</code> as <code>BLUME_MDX_CURLY_ANCHOR</code> before
+    the compile, but other attribute lists go straight to the compiler.
+  </p>
+  <h3>A page fails with "to create a comment in MDX"</h3>
+  <p>
+    An HTML comment is in an <code>.mdx</code> page. Write it as{" "}
+    <code>{"{/* comment */}"}</code>, or delete it.
+  </p>
+  <h3>The build fails on a page's frontmatter</h3>
+  <p>
+    <code>BLUME_FRONTMATTER_INVALID</code> with a message like{" "}
+    <code>Unrecognized keys: "hide", "tags"</code> means a Material key is
+    left. Map it or remove it, as in{" "}
+    <a href="#convert-the-pages">Convert the pages</a>.
+  </p>
+  <h3>An include fails the build</h3>
+  <p>
+    <code>BLUME_INCLUDE_OUTSIDE_ROOT</code> means the file sits outside{" "}
+    <code>docs/</code>. Move it into <code>docs/_snippets/</code> and update
+    the path.
+  </p>
+  <h3>Links from other sites land at the top of a page</h3>
+  <p>
+    MkDocs numbers a repeated heading <code>example_1</code> where Blume
+    writes <code>example-1</code>, and strips accents Blume keeps. Pin the old
+    anchor, like <code>## Example [#example_1]</code>.
+  </p>
+</GuidePage>

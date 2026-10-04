@@ -13,6 +13,7 @@ import type {
 export type AuditTier = "static" | "network" | "external";
 
 export type AuditCategory =
+  | "accessibility"
   | "content"
   | "duplicates"
   | "indexability"
@@ -110,7 +111,7 @@ export interface RedirectResolution {
   status: number;
   /** Every hop from `from` to the final target, inclusive. */
   chain: string[];
-  outcome: "ok" | "loop" | "broken" | "chain";
+  outcome: "ok" | "loop" | "broken" | "chain" | "pattern";
 }
 
 /** One urlset file behind a sitemap, for the per-file size limits. */
@@ -248,6 +249,8 @@ export interface AuditContext {
   robots: RobotsDoc | null;
   llms: LlmsDoc | null;
   thresholds: AuditThresholds;
+  /** Outbound URLs the external tier doesn't probe (`--ignore`). */
+  ignore: (url: string) => boolean;
 }
 
 /** One category's checks. Modules, not per-check closures — see catalog.ts. */

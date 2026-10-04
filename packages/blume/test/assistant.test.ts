@@ -29,6 +29,10 @@ const isUpdater = <T>(
   next: T | ((current: T) => T)
 ): next is (current: T) => T => typeof next === "function";
 
+/** A lazy initial state: `useState(() => value)`. */
+const isLazyInitial = <T>(initial: T | (() => T)): initial is () => T =>
+  typeof initial === "function";
+
 mock.module("react", () => ({
   // Not used by assistant.tsx, but module mocks leak across test files and the
   // "react" namespace keeps the export names of whichever mock instantiates
@@ -47,11 +51,12 @@ mock.module("react", () => ({
     }
     return cells[index];
   },
-  useState: <T>(initial: T) => {
+  // Like React, a function initial state is called once, for the first value.
+  useState: <T>(initial: T | (() => T)) => {
     const index = cursor;
     cursor += 1;
     if (!(index in cells)) {
-      cells[index] = initial;
+      cells[index] = isLazyInitial(initial) ? initial() : initial;
     }
     const set = (nextState: T | ((current: T) => T)) => {
       // SAFETY: this cell was seeded by this same useState slot, so it holds
@@ -86,11 +91,13 @@ interface StubProps {
   className?: string;
   dangerouslySetInnerHTML?: { __html: string };
   disabled: boolean;
+  href?: string;
   inert: boolean;
   onChange: (event: { target: { value: string } }) => void;
   onClick: () => void;
   onKeyDown: (event: ComposerKeyEvent) => void;
   onSubmit: (event: { preventDefault: () => void }) => void;
+  target?: string;
   value: string;
 }
 
@@ -178,7 +185,10 @@ browserGlobals.HTMLElement = FakeElement;
 /** The window/media event shapes the island's listeners read. */
 interface FakeEventInit {
   ctrlKey?: boolean;
-  detail?: { query?: string };
+  detail?: {
+    code?: { language: string; source: string; title?: string };
+    query?: string;
+  };
   key?: string;
   metaKey?: boolean;
   /** The incoming page an `astro:before-swap` carries. */
@@ -565,11 +575,18 @@ describe("Assistant empty state", () => {
         copy: "Yank",
         empty: "Nothing yet.",
         error: "Broke.",
+        explainCode: "Explain.",
         label: "Type here",
+        open: "Open it",
         placeholder: "Go on…",
+        rateLimited: "Slow down.",
+        removeCode: "Drop code",
         send: "Fire",
+        support: "Help!",
+        supportSubject: "Docs",
         tip: "Toggle with",
         title: "Robot",
+        verifyFailed: "Beep?",
         you: "Me",
       },
     });
@@ -887,6 +904,92 @@ describe("Assistant conversation", () => {
     expect(answer).toBeDefined();
     expect(answerHtml(answer)).toContain('href="/guide"');
     expect(answerHtml(answer)).toContain("for more.");
+  });
+
+  it("asks about an attached code block, and shows the code apart", async () => {
+    const bodies: string[] = [];
+    setFetch((_url, init) => {
+      bodies.push(String(init?.body));
+      return Promise.resolve(streamResponse(["It starts a server."]));
+    });
+    let tree = fresh();
+    dispatch("blume:open-assistant", {
+      detail: {
+        code: { language: "ts", source: "listen(3000);", title: "server.ts" },
+      },
+    });
+    tree = render();
+    expect(aside(tree).props.inert).toBe(false);
+    // The chip names the block, and removing it clears the attachment.
+    expect(
+      findAll(tree, (el) => el.props.children === "server.ts")
+    ).toHaveLength(1);
+    byLabel(tree, "Remove code").props.onClick();
+    tree = render();
+    expect(
+      findAll(tree, (el) => el.props.children === "server.ts")
+    ).toHaveLength(0);
+
+    dispatch("blume:open-assistant", {
+      detail: { code: { language: "", source: "x = 1" } },
+    });
+    tree = render();
+    // With no title or language, the chip falls back to the default question.
+    expect(
+      findAll(tree, (el) => el.props.children === "Explain this code.")
+    ).toHaveLength(1);
+    // An empty question is enough when code is attached.
+    submit(tree);
+    await settle();
+    const [body] = bodies;
+    expect(JSON.parse(body ?? "{}").messages[0].content).toBe(
+      "Explain this code.\n\n```\nx = 1\n```"
+    );
+    tree = render();
+    const [bubble] = userBubbles(tree);
+    expect(
+      findAll(bubble ?? tree, (el) => el.type === "pre")[0]?.props.children
+    ).toBe("x = 1");
+  });
+
+  it("links to support with the conversation once there is one", async () => {
+    setFetch(() => Promise.resolve(streamResponse(["Try again."])));
+    let tree = fresh({ support: "mailto:help@example.com" });
+    expect(
+      findAll(tree, (el) => el.props.children === "Contact support")
+    ).toHaveLength(0);
+    setComposer(tree, "It broke");
+    tree = render();
+    submit(tree);
+    await settle();
+    tree = render();
+    const [link] = findAll(
+      tree,
+      (el) => el.props.children === "Contact support"
+    );
+    const href = String(link?.props.href);
+    expect(href).toStartWith(
+      "mailto:help@example.com?subject=Question%20from%20the%20docs&body="
+    );
+    expect(decodeURIComponent(href)).toContain(
+      "You: It broke\n\nAI: Try again."
+    );
+    expect(link?.props.target).toBeUndefined();
+
+    tree = fresh({ support: "https://example.com/support" });
+    setComposer(tree, "It broke");
+    tree = render();
+    submit(tree);
+    await settle();
+    tree = render();
+    const [web] = findAll(
+      tree,
+      (el) => el.props.children === "Contact support"
+    );
+    expect(String(web?.props.href)).toMatch(
+      /^https:\/\/example\.com\/support\?thread=[\da-f]{16}$/u
+    );
+    expect(web?.props.target).toBe("_blank");
   });
 
   it("submits on Enter but not Shift+Enter, mid-composition, or when empty", async () => {

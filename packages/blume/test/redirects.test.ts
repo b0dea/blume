@@ -2,6 +2,7 @@ import { describe, expect, it } from "bun:test";
 
 import { blumeConfigSchema } from "../src/core/schema.ts";
 import type { ResolvedConfig } from "../src/core/schema.ts";
+import type { RouteManifestEntry } from "../src/core/types.ts";
 import {
   applyBaseToAstroRedirects,
   applyBaseToPlatformRedirects,
@@ -9,6 +10,7 @@ import {
   buildRedirectManifest,
   buildVercelConfig,
   platformRedirects,
+  withMirrorRedirects,
 } from "../src/deploy/redirects.ts";
 
 const redirects = [
@@ -100,7 +102,7 @@ describe("redirect emitters", () => {
     } as ResolvedConfig;
     expect(
       platformRedirects({ config: unbased, manifest: { routes: [] } })
-    ).toBe(redirects);
+    ).toStrictEqual(redirects);
   });
 
   it("bases only `to` for Astro, which applies `base` to `from` itself", () => {
@@ -185,6 +187,88 @@ describe("redirect emitters", () => {
   });
 });
 
+describe("a moved page's Markdown copies", () => {
+  const pages = new Set(["/", "/new", "/docs", "/docs/new"]);
+  const unbased = { from: "", to: "" };
+
+  it("follow an exact redirect from a path no page serves to a page", () => {
+    expect(
+      withMirrorRedirects(
+        [{ from: "/old/", status: 302, to: "/new" }],
+        pages,
+        unbased
+      )
+    ).toStrictEqual([
+      { from: "/old/", status: 302, to: "/new" },
+      { from: "/old.md", status: 302, to: "/new.md" },
+      { from: "/old.mdx", status: 302, to: "/new.mdx" },
+    ]);
+    // The root's copies are served as `/index.md`, under any deployment base.
+    expect(
+      withMirrorRedirects(
+        [{ from: "/base/start", status: 301, to: "/base" }],
+        pages,
+        { from: "/base", to: "/base" }
+      )
+    ).toStrictEqual([
+      { from: "/base/start", status: 301, to: "/base" },
+      { from: "/base/start.md", status: 301, to: "/base/index.md" },
+      { from: "/base/start.mdx", status: 301, to: "/base/index.mdx" },
+    ]);
+    // Astro's config leaves the deployment base off `from` alone, and a
+    // `basePath` root is an ordinary route (`/docs.md`).
+    expect(
+      withMirrorRedirects(
+        [{ from: "/docs/old", status: 308, to: "/base/docs" }],
+        pages,
+        { from: "", to: "/base" }
+      ).slice(1)
+    ).toStrictEqual([
+      { from: "/docs/old.md", status: 308, to: "/base/docs.md" },
+      { from: "/docs/old.mdx", status: 308, to: "/base/docs.mdx" },
+    ]);
+  });
+
+  it("stay out of every redirect that doesn't move one page to another", () => {
+    const kept = [
+      // A pattern carries the extension along in its capture.
+      { from: "/beta/:slug*", status: 301 as const, to: "/v2/:slug*" },
+      // The destination isn't a page with copies of its own.
+      { from: "/a", status: 301 as const, to: "https://example.com/new" },
+      { from: "/b", status: 301 as const, to: "/files/guide.pdf" },
+      { from: "/c", status: 301 as const, to: "/new#setup" },
+      // The page at `from` still serves its own copies.
+      { from: "/docs", status: 301 as const, to: "/new" },
+    ];
+    expect(withMirrorRedirects(kept, pages, unbased)).toStrictEqual(kept);
+  });
+
+  it("reach the platform redirects, exact paths still first", () => {
+    // SAFETY: platformRedirects reads only basePath, deployment.base, and
+    // redirects; the rest of ResolvedConfig is irrelevant to this test.
+    const config = {
+      basePath: "/docs",
+      deployment: { options: { base: "/base/" } },
+      redirects: [
+        { from: "/beta/:slug*", status: 301, to: "/v2/:slug*" },
+        { from: "/old", status: 307, to: "/new" },
+      ],
+    } as ResolvedConfig;
+    // SAFETY: platformRedirects reads only each route's path.
+    const routes = [{ path: "/docs/new" }] as RouteManifestEntry[];
+    expect(platformRedirects({ config, manifest: { routes } })).toStrictEqual([
+      { from: "/base/docs/old", status: 307, to: "/base/docs/new" },
+      { from: "/base/docs/old.md", status: 307, to: "/base/docs/new.md" },
+      { from: "/base/docs/old.mdx", status: 307, to: "/base/docs/new.mdx" },
+      {
+        from: "/base/docs/beta/:slug*",
+        status: 301,
+        to: "/base/docs/v2/:slug*",
+      },
+    ]);
+  });
+});
+
 /** The config paths a single redirect fails validation at. */
 const redirectIssues = (redirect: { from: string; to: string }): string[] => {
   const result = blumeConfigSchema.safeParse({ redirects: [redirect] });
@@ -194,11 +278,21 @@ const redirectIssues = (redirect: { from: string; to: string }): string[] => {
 };
 
 describe("redirect paths", () => {
-  it("rejects a `:param` segment or a `*` wildcard at either end", () => {
+  it("accepts patterns whose captures `to` reads", () => {
     expect(
       redirectIssues({ from: "/legacy/:slug", to: "/guides/:slug" })
-    ).toEqual(["redirects.0.from", "redirects.0.to"]);
-    expect(redirectIssues({ from: "/old/*", to: "/new" })).toEqual([
+    ).toEqual([]);
+    expect(redirectIssues({ from: "/beta/:slug*", to: "/v2/:slug*" })).toEqual(
+      []
+    );
+    expect(redirectIssues({ from: "/old/*", to: "/new/:splat" })).toEqual([]);
+    expect(
+      redirectIssues({ from: "/old/article-*", to: "/new/article-*" })
+    ).toEqual([]);
+  });
+
+  it("rejects a malformed capture in `from`, and a `to` reading one it doesn't make", () => {
+    expect(redirectIssues({ from: "/a/:b*/c", to: "/new" })).toEqual([
       "redirects.0.from",
     ]);
     expect(

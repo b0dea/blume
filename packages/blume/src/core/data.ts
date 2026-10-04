@@ -1,8 +1,10 @@
+import type { CaptchaSettings } from "../captcha/schema.ts";
+import type { EndpointAuth } from "../components/content/api-page.ts";
 import type { SearchAdapterKind } from "../search/adapters/registry.ts";
 import type { StructuredDataIdentity } from "../seo/jsonld.ts";
 import type { FontHead } from "../theme/fonts.ts";
 import type { UIStrings } from "./i18n-ui.ts";
-import type { ResolvedConfig } from "./schema.ts";
+import type { LocalizableLabel, ResolvedConfig } from "./schema.ts";
 import type { Navigation, RouteAlternate, VersionAlternate } from "./types.ts";
 
 /**
@@ -42,10 +44,14 @@ export interface BlumeFavicon {
   dark?: { href: string; type?: string };
 }
 
-/** Announcement banner, normalized from its config (string shorthand or object). */
+/**
+ * Announcement banner, normalized from its config (string shorthand or
+ * object). `content` and the link's `text` may be per-locale maps, resolved
+ * when the banner renders (see `core/localizable.ts`).
+ */
 export interface BlumeBanner {
-  content: string;
-  link?: { href: string; text: string };
+  content: LocalizableLabel;
+  link?: { href: string; text: LocalizableLabel };
   dismissible: boolean;
   /** Dismissal key: the configured id, else the content itself. */
   key: string;
@@ -71,6 +77,8 @@ export interface BlumeDataI18n {
   fallbackLocale: string | null;
   hideDefaultLocalePrefix: boolean;
   locales: BlumeDataLocale[];
+  /** Send visitors from the default home page to their browser's language. */
+  routeByBrowserLanguage: boolean;
 }
 
 /** A single content route, with the metadata custom pages can read. */
@@ -124,9 +132,23 @@ export interface BlumeDataConfig {
   appleIcon: BlumeFavicon | null;
   /** The assistant's empty-state suggestions, or `null` when the assistant is off. */
   assistant: {
+    /** The bot check's public settings, or `null` without one. */
+    captcha: CaptchaSettings | null;
     endpoint: string | null;
     suggestions: NonNullable<ResolvedConfig["ai"]["assistant"]>["suggestions"];
+    /** The Contact support link (`ai.assistant.support`), or `null`. */
+    support: string | null;
   } | null;
+  /**
+   * Defaults for hand-written endpoint pages (`api` frontmatter): the server a
+   * path joins, the default auth, and the playground, its `proxy` resolved to
+   * the URL sends go through (the built-in route under `basePath`) or `false`.
+   */
+  api: {
+    auth?: EndpointAuth;
+    playground: { enabled: boolean; proxy: string | false };
+    server?: string;
+  };
   banner: BlumeBanner | null;
   /** Site-wide route mount point, normalized to `""` or `/seg` (see config). */
   basePath: string;
@@ -134,6 +156,11 @@ export interface BlumeDataConfig {
   codeThemes: ResolvedConfig["markdown"]["code"]["theme"];
   /** `markdown.code.wrap`: wrap long code lines instead of scrolling. */
   codeWrap: boolean;
+  /**
+   * The consent adapter's descriptor, or `null` without one. When set, the
+   * layouts hold analytics until the reader allows it.
+   */
+  consent: ResolvedConfig["consent"];
   /** `dateFormat`: `Intl.DateTimeFormat` options for the date stamps. */
   dateFormat: ResolvedConfig["dateFormat"];
   description: string | undefined;
@@ -156,7 +183,12 @@ export interface BlumeDataConfig {
     sitemap: boolean;
   };
   favicon: BlumeFavicon;
+  /** Whether pages end with the "Was this page helpful?" rating. */
   feedback: boolean;
+  /** Whether the rating asks for a written comment after it (`feedback.comments`). */
+  feedbackComments: boolean;
+  /** `footer`: social profile icons and link columns, or `null` when unset. */
+  footer: ResolvedConfig["footer"] | null;
   /**
    * Repo coordinates for content components that address the API or build
    * their own repo links (`<GithubInfo>`, the OG card's footer slug), carrying
@@ -176,6 +208,14 @@ export interface BlumeDataConfig {
   logo: BlumeLogo | null;
   /** Hosted MCP server, or `null` when MCP is off. */
   mcp: { name: string; route: string } | null;
+  /** `seo.metatags`: the site's own tags for every page's head, or `null`. */
+  metatags: Record<string, string> | null;
+  /**
+   * "Listen to this page": `generated` when a `narration.provider` makes
+   * `blume build` write audio clips the player should look for, else the
+   * player reads with browser voices. `null` when narration is off.
+   */
+  narration: { generated: boolean } | null;
   /**
    * Open Graph image generation. Card fonts are baked into the generated OG
    * endpoint (they can carry absolute build-machine paths) and deliberately
@@ -208,6 +248,8 @@ export interface BlumeDataConfig {
   /** Repository URL for header/edit links, or `null`. */
   repoUrl: string | null;
   search: {
+    /** `search.analytics`: whether the dialog's events carry each query's text. */
+    analytics: { queries: boolean };
     enabled: boolean;
     /** Resolved empty-state links; empty when unset (Search falls back to sidebar). */
     popular: { icon?: string; label: string; route: string }[];

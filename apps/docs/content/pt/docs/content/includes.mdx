@@ -42,6 +42,22 @@ Referências relativas a imagens dentro de uma parcial continuam funcionando: el
 
 Editar uma parcial enquanto o `blume dev` está rodando recarrega todas as páginas que a incluem.
 
+## Props
+
+Passe valores para uma parcial como atributos e leia eles na parcial com `{{name}}`, a mesma sintaxe das [variáveis](/docs/content/variables). Assim, uma única parcial atende todas as páginas que precisam de uma variação dela:
+
+```mdx docs/_snippets/upgrade.mdx
+Upgrade to the **{{plan}}** plan to use {{feature}}.
+```
+
+```mdx docs/sso.mdx
+<include plan="Enterprise" feature="SSO">
+  ./_snippets/upgrade.mdx
+</include>
+```
+
+Uma prop vale para o arquivo incluído e para tudo o que ele incluir, e tem precedência sobre uma variável global do site com o mesmo nome. Todo atributo, exceto `lang` e `meta`, é uma prop; os nomes dos atributos ficam em minúsculas, e os valores são texto puro entre aspas. Props só chegam a parciais Markdown e MDX: um `{{name}}` em um [arquivo de código](#including-code-files) incluído não é substituído por uma prop.
+
 ## Incluindo arquivos de código [#including-code-files]
 
 Um alvo que não seja `.md`/`.mdx` é embutido como um bloco de código cercado, com a linguagem inferida da extensão. Use `lang` para sobrescrever a linguagem (ou para mostrar um arquivo Markdown como código-fonte em vez de inseri-lo), e `meta` para passar uma string de meta da cerca, como um título:

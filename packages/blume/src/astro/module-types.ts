@@ -75,8 +75,16 @@ declare module "blume:features" {
     | null;
 }
 
+declare module "blume:consent-client" {
+  export const startConsentClient: (
+    consent: import("blume/components/layout/consent/types.ts").BlumeConsent
+  ) => void;
+}
+
 declare module "blume:search-client" {
-  export const createSearch: () =>
+  export const createSearch: (
+    options?: import("blume/components/layout/search/types.ts").SearchClientOptions
+  ) =>
     | import("blume/components/layout/search/types.ts").SearchFn
     | Promise<import("blume/components/layout/search/types.ts").SearchFn>;
 }

@@ -1,4 +1,5 @@
 import { defineConfig } from "blume";
+import { openai } from "blume/ai";
 import { cloudflare } from "blume/deploy";
 import { filesystem, githubReleases } from "blume/sources";
 
@@ -39,6 +40,12 @@ export default defineConfig({
     },
     skills: "../../skills",
   },
+  ai: {
+    assistant: {
+      enabled: true,
+      provider: openai({ model: "gpt-6-luna" }),
+    },
+  },
   content: {
     sources: [
       filesystem({ root: "content" }),
@@ -58,6 +65,55 @@ export default defineConfig({
   description:
     "The open-source docs framework for humans and agents. Drop Markdown into a folder and ship a fast, searchable docs site.",
   export: true,
+  // Docs pages only: the landing, CLI, and Agents pages pass their own
+  // footer (pages/_home/Footer.astro), which takes its place.
+  footer: {
+    links: [
+      {
+        href: "/changelog",
+        label: {
+          de: "Änderungen",
+          en: "Changelog",
+          hi: "चेंजलॉग",
+          ja: "変更履歴",
+          pt: "Alterações",
+        },
+      },
+      { href: "https://www.npmjs.com/package/blume", label: "npm" },
+      {
+        href: "https://github.com/sponsors/haydenbleasel",
+        label: {
+          de: "Sponsern",
+          en: "Sponsor",
+          hi: "प्रायोजक बनें",
+          ja: "スポンサー",
+          pt: "Patrocinar",
+        },
+      },
+      {
+        href: "https://github.com/haydenbleasel/blume/issues",
+        label: {
+          de: "Problem melden",
+          en: "Report an issue",
+          hi: "समस्या बताएं",
+          ja: "問題を報告",
+          pt: "Reportar um problema",
+        },
+      },
+      {
+        href: "https://github.com/haydenbleasel/blume/blob/main/LICENSE",
+        label: {
+          de: "MIT-Lizenz",
+          en: "MIT License",
+          hi: "MIT लाइसेंस",
+          ja: "MIT ライセンス",
+          pt: "Licença MIT",
+        },
+      },
+    ],
+    // The repository link comes first on its own, from `github`.
+    socials: { x: "https://x.com/haydenbleasel" },
+  },
   github: {
     dir: "apps/docs",
     owner: "haydenbleasel",
@@ -102,6 +158,8 @@ export default defineConfig({
       { label: "CLI", path: "/cli" },
       { label: "Agents", path: "/agents" },
       { label: "Compare", path: "/compare" },
+      { label: "Customers", path: "/customers" },
+      { label: "Guides", path: "/guides" },
       {
         label: {
           de: "Änderungen",
@@ -112,6 +170,7 @@ export default defineConfig({
         },
         path: "/changelog",
       },
+      { label: "Pricing", path: "/pricing" },
     ],
   },
   redirects: [
@@ -214,6 +273,7 @@ export default defineConfig({
         "/compare/mintlify": "Blume vs Mintlify",
         "/compare/nextra": "Blume vs Nextra",
         "/compare/starlight": "Blume vs Starlight",
+        "/pricing": "Pricing",
       },
     },
     organization: {

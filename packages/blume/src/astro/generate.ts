@@ -27,12 +27,18 @@ import type { RawMarkdownEntry } from "../ai/markdown.ts";
 import { buildMcpData } from "../ai/mcp/data.ts";
 import type { McpData } from "../ai/mcp/data.ts";
 import { buildMcpDiscovery, buildMcpServerCard } from "../ai/mcp/discovery.ts";
+import { captchaSettings } from "../captcha/schema.ts";
+import { parseApiEndpoint } from "../components/content/api-page.ts";
 import {
   hasDeferrableGroups,
   navVariants,
 } from "../components/layout/nav-utils.ts";
 import { normalizeBasePath, withBasePath } from "../core/base-path.ts";
-import { validateUsedComponents } from "../core/component-diagnostics.ts";
+import { withChangelogIndexText } from "../core/changelog-index.ts";
+import {
+  missingExampleDiagnostics,
+  validateUsedComponents,
+} from "../core/component-diagnostics.ts";
 import {
   analyzeComponentOverrides,
   emptyComponentOverrides,
@@ -44,6 +50,7 @@ import {
 } from "../core/content-assets.ts";
 import type {
   BlumeBanner,
+  BlumeDataConfig,
   BlumeData,
   BlumeFavicon,
   BlumeLogo,
@@ -58,6 +65,7 @@ import {
 import { EN_UI, resolveUIStrings } from "../core/i18n-ui.ts";
 import { resolveFallbackLocale } from "../core/i18n.ts";
 import { buildIncludeGraph } from "../core/includes.ts";
+import { resolveLocalizable } from "../core/localizable.ts";
 import {
   validateNavTargets,
   validateSearchPopularIcons,
@@ -85,16 +93,17 @@ import type { AsyncApiSpecValue } from "../openapi/asyncapi.ts";
 import type { ApiSpecData, HttpMethod, OpenApiData } from "../openapi/model.ts";
 import { HTTP_METHODS, withServerDefaults } from "../openapi/model.ts";
 import {
+  apiPagesUseBuiltinProxy,
   builtinProxyReferences,
   hasScalarReferences,
   needsPlaygroundProxy,
-  referenceRoutes,
 } from "../openapi/references.ts";
 import { buildReferenceFiles } from "../openapi/scalar.ts";
 import { isOpenApiSource } from "../openapi/source.ts";
 import { registry } from "../registry/registry.ts";
 import { buildSearchDocuments } from "../search/documents.ts";
 import { resolveSearchPopular } from "../search/popular.ts";
+import { sourcePages } from "../search/source-pages.ts";
 import {
   examplesEntryTemplate,
   tailwindEntryTemplate,
@@ -120,6 +129,7 @@ import {
   customOgRoutes,
   discoverPages,
   hasGeneratedChangelog,
+  navTargetRoutes,
   routeIsTaken,
 } from "./pages.ts";
 import { candidateHolding } from "./render-deps.ts";
@@ -159,6 +169,7 @@ import {
   runtimeTsconfigTemplate,
   featuresTemplate,
   navFragmentTemplate,
+  consentClientTemplate,
   searchClientTemplate,
   searchEndpointTemplate,
   stagedContentDir,
@@ -174,28 +185,35 @@ export type { PrerenderDepsPlugin } from "./render-deps.ts";
 const BLUME_SRC = join(packageRoot(), "src");
 
 /**
- * Absolute path to `babel-plugin-react-compiler`, resolved from Blume's own
- * package root (Blume ships it). Returns null when React or the compiler is off.
+ * Whether the generated `react()` call turns the React Compiler on: React and
+ * `react.compiler` are both on, and `oxc-transform-react` (Blume ships it)
+ * resolves. False when React or the compiler is off.
  *
- * The path must be absolute: @vitejs/plugin-react resolves babel plugins from
- * the *project* root, not `.blume/`, so a bare specifier fails in a user project
- * that never installed the plugin directly. Resolving from `packageRoot()` binds
- * to Blume's shipped copy regardless of the user's package manager or hoisting.
+ * The compiler is loaded by `@vitejs/plugin-react` with a bare
+ * `import("oxc-transform-react")` from its own directory, which fails the
+ * build when it throws, so the check walks the same chain — Blume →
+ * `@astrojs/react` → `@vitejs/plugin-react` — rather than resolving from
+ * Blume's root, which a strict package manager may not link the plugin to.
  */
 export const resolveReactCompiler = (
   config: ResolvedConfig,
   needsReact: boolean,
   pkgDir: string = packageRoot()
-): string | null => {
+): boolean => {
   if (!(needsReact && config.react.compiler)) {
-    return null;
+    return false;
   }
   try {
-    return createRequire(pathToFileURL(join(pkgDir, "_.js")).href).resolve(
-      "babel-plugin-react-compiler"
+    const astroReact = createRequire(
+      pathToFileURL(join(pkgDir, "_.js")).href
+    ).resolve("@astrojs/react");
+    const pluginReact = createRequire(astroReact).resolve(
+      "@vitejs/plugin-react"
     );
+    createRequire(pluginReact).resolve("oxc-transform-react");
+    return true;
   } catch {
-    return null;
+    return false;
   }
 };
 
@@ -207,11 +225,11 @@ export const resolveReactCompiler = (
 export const reactCompilerWarnings = (
   config: ResolvedConfig,
   needsReact: boolean,
-  compilerPath: string | null
+  compiler: boolean
 ): string[] =>
-  needsReact && config.react.compiler && !compilerPath
+  needsReact && config.react.compiler && !compiler
     ? [
-        "React Compiler is enabled but `babel-plugin-react-compiler` could not be resolved; falling back to an uncompiled build. Reinstall Blume, or set `react: { compiler: false }` to silence this.",
+        "React Compiler is enabled but `oxc-transform-react` could not be resolved; falling back to an uncompiled build. Reinstall Blume, or set `react: { compiler: false }` to silence this.",
       ]
     : [];
 
@@ -749,12 +767,12 @@ const isStringShorthand = <T>(value: T | string): value is string =>
   typeof value === "string";
 
 /**
- * The URL behind the header's repo mark. A string is used as-is: `github`
- * drives the per-page edit link, the header mark and the manifest's
+ * The URL behind the footer's repo mark. A string is used as-is: `github`
+ * drives the per-page edit link, the footer mark and the manifest's
  * `repository` together, so a project whose docs repo is private has to unset
  * all three, and would otherwise have no way to point the mark at anything.
  */
-const headerRepoUrl = (
+const footerRepoUrl = (
   repo: boolean | string,
   derived: string | null
 ): string | null => {
@@ -961,9 +979,51 @@ const resolveBanner = (config: ResolvedConfig): BlumeBanner | null => {
   return {
     content: banner.content,
     dismissible: banner.dismissible,
-    key: banner.id ?? banner.content,
+    key:
+      banner.id ??
+      resolveLocalizable(banner.content, undefined, config.i18n?.defaultLocale),
     link: banner.link,
   };
+};
+
+/** The URL the built-in proxy is injected at (see {@link planPlaygroundProxy}). */
+export const playgroundProxyPattern = (config: ResolvedConfig): string =>
+  withBasePath(config.basePath, "/_api-proxy");
+
+/**
+ * The hand-written endpoint defaults for the runtime, the playground's
+ * `proxy: true` resolved to the built-in route's URL, as an OpenAPI
+ * reference's is.
+ */
+const resolveApiPages = (config: ResolvedConfig): BlumeDataConfig["api"] => {
+  const { auth, playground, server } = config.api;
+  const resolved: BlumeDataConfig["api"] = {
+    playground: {
+      enabled: playground.enabled,
+      proxy:
+        playground.proxy === true
+          ? playgroundProxyPattern(config)
+          : playground.proxy,
+    },
+  };
+  if (auth) {
+    resolved.auth = auth;
+  }
+  if (server) {
+    resolved.server = server;
+  }
+  return resolved;
+};
+
+/** The footer config for the runtime: `null` when unset or empty, so no bare border renders. */
+const resolveFooter = (
+  config: ResolvedConfig
+): ResolvedConfig["footer"] | null => {
+  const { footer } = config;
+  return footer &&
+    (footer.links.length > 0 || Object.keys(footer.socials).length > 0)
+    ? footer
+    : null;
 };
 
 /**
@@ -1036,6 +1096,22 @@ const resolveGithubData = (
       }
     : null;
 
+/** The assistant's snapshot: what the panel needs, never a secret. */
+const resolveAssistant = (
+  config: ResolvedConfig
+): BlumeDataConfig["assistant"] => {
+  const { assistant } = config.ai;
+  if (!assistant?.enabled) {
+    return null;
+  }
+  return {
+    captcha: assistant.captcha ? captchaSettings(assistant.captcha) : null,
+    endpoint: assistant.endpoint ?? null,
+    suggestions: assistant.suggestions,
+    support: assistant.support ?? null,
+  };
+};
+
 /** Serialize the content graph into the data module the runtime consumes. */
 export const buildRuntimeData = (project: BlumeProject): string => {
   const { config, context, graph, manifest } = project;
@@ -1067,10 +1143,10 @@ export const buildRuntimeData = (project: BlumeProject): string => {
 
   const { i18n } = config;
 
-  // Resolve the header repo link per locale. API references no longer add a tab
+  // Resolve the footer's repo link per locale. API references no longer add a tab
   // automatically — authors point a `navigation.tabs` entry at the reference
   // route to surface it (see `referenceRoutes`).
-  const markUrl = headerRepoUrl(config.navigation.repo, repoUrl);
+  const markUrl = footerRepoUrl(config.navigation.repo, repoUrl);
   const withRepoUrl = (nav: Navigation): Navigation => ({
     ...nav,
     repoUrl: markUrl,
@@ -1078,23 +1154,32 @@ export const buildRuntimeData = (project: BlumeProject): string => {
 
   // Resolved UI dictionaries: one per locale under i18n, English baseline
   // otherwise. Threaded into chrome so the catch-all can pick the active locale.
+  // The `changelog` config's title and description replace the dictionaries'.
   const uiByLocale = i18n
     ? Object.fromEntries(
         i18n.locales.map(({ code }) => [
           code,
-          resolveUIStrings(code, {
-            defaultLocale: i18n.defaultLocale,
-            overrides: i18n.ui,
-          }),
+          withChangelogIndexText(
+            config,
+            resolveUIStrings(code, {
+              defaultLocale: i18n.defaultLocale,
+              overrides: i18n.ui,
+            }),
+            code
+          ),
         ])
       )
     : {};
-  const defaultUi = i18n
-    ? resolveUIStrings(i18n.defaultLocale, {
-        defaultLocale: i18n.defaultLocale,
-        overrides: i18n.ui,
-      })
-    : EN_UI;
+  const defaultUi = withChangelogIndexText(
+    config,
+    i18n
+      ? resolveUIStrings(i18n.defaultLocale, {
+          defaultLocale: i18n.defaultLocale,
+          overrides: i18n.ui,
+        })
+      : EN_UI,
+    i18n?.defaultLocale
+  );
 
   const navigationByLocale = i18n
     ? Object.fromEntries(
@@ -1117,17 +1202,14 @@ export const buildRuntimeData = (project: BlumeProject): string => {
   const data: BlumeData = {
     config: {
       analytics: config.analytics,
+      api: resolveApiPages(config),
       appleIcon: resolveAppleIcon(project),
-      assistant: config.ai.assistant?.enabled
-        ? {
-            endpoint: config.ai.assistant.endpoint ?? null,
-            suggestions: config.ai.assistant.suggestions,
-          }
-        : null,
+      assistant: resolveAssistant(config),
       banner: resolveBanner(config),
       basePath: config.basePath,
       codeThemes: config.markdown.code.theme,
       codeWrap: config.markdown.code.wrap,
+      consent: config.consent,
       dateFormat: config.dateFormat,
       description: config.description,
       discovery: {
@@ -1139,7 +1221,9 @@ export const buildRuntimeData = (project: BlumeProject): string => {
         sitemap: config.seo.sitemap && Boolean(config.deployment.options.site),
       },
       favicon: resolveFavicon(project),
-      feedback: config.feedback,
+      feedback: config.feedback.enabled,
+      feedbackComments: config.feedback.comments,
+      footer: resolveFooter(config),
       github: resolveGithubData(github),
       i18n: i18n
         ? {
@@ -1153,6 +1237,7 @@ export const buildRuntimeData = (project: BlumeProject): string => {
               dir,
               label,
             })),
+            routeByBrowserLanguage: i18n.routeByBrowserLanguage,
           }
         : null,
       // `undefined` members drop out of the JSON snapshot; the null keeps the
@@ -1172,6 +1257,10 @@ export const buildRuntimeData = (project: BlumeProject): string => {
             route: config.agents.mcp.route,
           }
         : null,
+      metatags: config.seo.metatags ?? null,
+      narration: config.narration.enabled
+        ? { generated: config.narration.provider !== null }
+        : null,
       // `og.enabled` is resolved to a definite boolean in `loadConfig`; coerce
       // the optional schema type so the serialized shape stays `boolean`.
       // Card fonts are baked into the generated OG endpoint (they can carry
@@ -1187,6 +1276,7 @@ export const buildRuntimeData = (project: BlumeProject): string => {
       openInChat: config.ai.openInChat,
       repoUrl,
       search: {
+        analytics: config.search.analytics,
         enabled: config.search.provider.mode !== "none",
         popular: resolveSearchPopular(config.search.popular, config.basePath),
         provider: config.search.provider.kind,
@@ -1496,10 +1586,6 @@ const writeApiFiles = async (
 /** The proxy endpoint's file under the Astro `src/` dir (eject writes it too). */
 export const PLAYGROUND_PROXY_ENTRY = join("blume-openapi", "api-proxy.ts");
 
-/** The URL the built-in proxy is injected at (see {@link planPlaygroundProxy}). */
-export const playgroundProxyPattern = (config: ResolvedConfig): string =>
-  withBasePath(config.basePath, "/_api-proxy");
-
 /**
  * Decide whether to generate the playground's built-in CORS proxy endpoint.
  * Only the Blume renderer's playground with `proxy: true` needs it — a proxy
@@ -1592,6 +1678,47 @@ type DocumentPathItem = { servers?: DocumentServer[] } & Partial<
 export const specOrigins = (data: OpenApiData): string[] =>
   [...new Set(Object.values(data).flatMap(specOriginsOf))].toSorted();
 
+/** The origin of an absolute URL, or `null` for a path or anything unparsable. */
+const originOf = (url: string): string | null => {
+  try {
+    return new URL(url).origin;
+  } catch {
+    return null;
+  }
+};
+
+/**
+ * The origins hand-written endpoint pages send to through the built-in
+ * proxy: the site's `api.server`, and every page whose `api` names a full
+ * URL. Empty unless those pages use the built-in proxy.
+ */
+export const apiPageOrigins = (project: BlumeProject): string[] => {
+  const { config } = project;
+  if (!apiPagesUseBuiltinProxy(config)) {
+    return [];
+  }
+  const targets = project.graph.pages.map(
+    (page) => parseApiEndpoint(page.meta.api ?? "")?.target ?? ""
+  );
+  return [config.api.server ?? "", ...targets].flatMap((target) => {
+    const origin = originOf(target);
+    return origin ? [origin] : [];
+  });
+};
+
+/**
+ * A warning when the hand-written endpoint pages send through the built-in
+ * proxy but name no absolute origin for it to allow, so it would refuse every
+ * request they send.
+ */
+export const apiPageProxyWarnings = (project: BlumeProject): string[] =>
+  apiPagesUseBuiltinProxy(project.config) &&
+  apiPageOrigins(project).length === 0
+    ? [
+        "api.playground.proxy is true, but api.server isn't an absolute URL and no page's api frontmatter names one, so the built-in proxy has no origin to allow and will refuse every request the endpoint pages send. Set api.server to the API's URL, like https://api.acme.com/v1.",
+      ]
+    : [];
+
 /**
  * Build-time diagnostics for playground sends the built-in proxy would refuse.
  * The baked-in allowlist pools every documented origin, but each spec's
@@ -1644,9 +1771,12 @@ const writeAskFiles = async (
   await write(
     join(srcDir, "pages", "api", "ask.ts"),
     askEndpointTemplate(backend, {
+      captcha: assistant.captcha,
       cors: assistant.cors,
       instructions: assistant.instructions,
+      rateLimit: project.config.rateLimit,
       retrieval: assistant.retrieval,
+      tools: assistant.tools ?? backend.toolsByDefault,
     })
   );
 };
@@ -1863,6 +1993,7 @@ export const generateRuntime = async (
   const askPath = join(srcDir, "generated", "Ask.astro");
   const themePath = join(srcDir, "generated", "app.css");
   const searchClientPath = join(srcDir, "generated", "search-client.ts");
+  const consentClientPath = join(srcDir, "generated", "consent-client.ts");
   const featuresPath = join(srcDir, "generated", "features.ts");
   const examplesPath = join(srcDir, "generated", "examples.ts");
   const examplesThemePath = join(srcDir, "generated", "examples.css");
@@ -1955,11 +2086,12 @@ export const generateRuntime = async (
   const needsVue = frameworks.has("vue");
   const needsSvelte = frameworks.has("svelte");
 
-  // Absolute path to the React Compiler babel plugin (null when off). Resolved
-  // here, Node-side, so the generated config points babel straight at Blume's
-  // shipped copy — see resolveReactCompiler. Any unresolved-but-requested
-  // warning is folded into `warnings` below (declared later).
-  const reactCompilerPath = resolveReactCompiler(config, needsReact);
+  // Whether react() turns the React Compiler on (false when off). Checked here,
+  // Node-side, so an unresolvable compiler degrades to an uncompiled build
+  // instead of failing it — see resolveReactCompiler. Any
+  // unresolved-but-requested warning is folded into `warnings` below (declared
+  // later).
+  const reactCompiler = resolveReactCompiler(config, needsReact);
 
   // Custom pages that should get a generated OG card (the home most of all).
   // Computed before the MCP `.well-known` routes are appended below — those are
@@ -2000,7 +2132,9 @@ export const generateRuntime = async (
   // Computed once: the endpoint template bakes it in below. A spec that
   // contributes no origin of its own gets a per-spec diagnostic
   // (`proxyAllowlistWarnings`) — the proxy would refuse its every send.
-  const proxyOrigins = specOrigins(openApiData);
+  const proxyOrigins = [
+    ...new Set([...specOrigins(openApiData), ...apiPageOrigins(project)]),
+  ].toSorted();
 
   const hasStaged = staged.size > 0;
   // Only emit a project-scanning `docs` collection when a filesystem source
@@ -2022,6 +2156,7 @@ export const generateRuntime = async (
           aliases: resolveTsconfigAliases(context.root),
           askPath,
           config,
+          consentClientPath,
           contentRoot: docsCollection.base,
           contentRoutes,
           context,
@@ -2034,7 +2169,7 @@ export const generateRuntime = async (
           needsSvelte,
           needsVue,
           pages,
-          reactCompilerPath,
+          reactCompiler,
           searchClientPath,
           themePath,
         })
@@ -2097,7 +2232,7 @@ export const generateRuntime = async (
           languageIcons,
           sources: [
             `${BLUME_SRC}/**/*.{astro,ts,tsx}`,
-            `${context.root}/**/*.{astro,mdx,ts,tsx}`,
+            `${context.root}/**/*.{astro,jsx,mdx,ts,tsx}`,
           ],
           twoslashCss: twoslashCss(),
           userTheme,
@@ -2135,7 +2270,10 @@ export const generateRuntime = async (
     writeMcpFiles(mcp, write, agentData),
     writeApiFiles(project, api, write, agentData, mcp),
     playgroundProxy.enabled
-      ? write(playgroundProxy.entrypoint, playgroundProxyTemplate(proxyOrigins))
+      ? write(
+          playgroundProxy.entrypoint,
+          playgroundProxyTemplate(proxyOrigins, config.rateLimit)
+        )
       : Promise.resolve(false),
   ]);
 
@@ -2186,6 +2324,7 @@ export const generateRuntime = async (
     }),
     writeNotFoundPage(write, srcDir, pages, project.graph.pages),
     write(searchClientPath, searchClientTemplate(config)),
+    write(consentClientPath, consentClientTemplate(config.consent)),
     write(featuresPath, featuresTemplate(clientFeatures)),
   ]);
 
@@ -2204,7 +2343,11 @@ export const generateRuntime = async (
   if (searchAdapter.kind === "mixedbread") {
     await write(
       join(srcDir, "pages", "api", "search.ts"),
-      mixedbreadSearchEndpointTemplate(searchAdapter.options)
+      mixedbreadSearchEndpointTemplate(
+        searchAdapter.options,
+        sourcePages(project),
+        config.rateLimit
+      )
     );
   }
 
@@ -2258,7 +2401,8 @@ export const generateRuntime = async (
   const warnings: string[] = [
     ...(depsLinkWarning ? [depsLinkWarning] : []),
     ...proxyAllowlistWarnings(config, openApiData),
-    ...reactCompilerWarnings(config, needsReact, reactCompilerPath),
+    ...apiPageProxyWarnings(project),
+    ...reactCompilerWarnings(config, needsReact, reactCompiler),
     ...mcp.warnings,
     ...islandDiscovery.warnings,
     ...exampleDiscovery.warnings,
@@ -2266,24 +2410,18 @@ export const generateRuntime = async (
     ...overrideWarnings,
   ];
 
-  // Missing-navigation-target check, now that every servable route is known:
-  // content routes, custom `.astro` pages, the generated changelog, and any
-  // OpenAPI reference routes (so a tab an author points at one still validates).
-  const navTargetRoutes = new Set<string>([
-    ...project.graph.routes.keys(),
-    ...pages.map((page) => page.pattern),
-    ...referenceRoutes(config),
-  ]);
-  if (changelogIndex) {
-    navTargetRoutes.add("/changelog");
-  }
+  // Missing-navigation-target check, now that every servable route is known
+  // (see `navTargetRoutes`).
   // Curated `search.popular` icons live outside the navigation model, so they
   // miss `validateNavIcons` in the graph build — they're checked here too,
   // where the search config is known. A typo otherwise just renders the
   // default glyph.
   warnings.push(
     ...[
-      ...validateNavTargets(project.graph.navigation, navTargetRoutes),
+      ...validateNavTargets(
+        project.graph.navigation,
+        navTargetRoutes(project, pages)
+      ),
       ...validateSearchPopularIcons(config.search.popular),
     ].map(diagnosticWarning)
   );
@@ -2299,6 +2437,12 @@ export const generateRuntime = async (
       project.graph.pages,
       knownComponentTags,
       new Set(registry.map((item) => item.name))
+    ).map(diagnosticWarning),
+    ...missingExampleDiagnostics(
+      project.graph.pages,
+      exampleDiscovery,
+      context.root,
+      knownComponentTags
     ).map(diagnosticWarning),
     ...dependencyWarnings
   );

@@ -3,13 +3,9 @@ import type { Diagnostic } from "../../core/types.ts";
 import { finding } from "../catalog.ts";
 import { orphanPages } from "../graph.ts";
 import { pageSite } from "../locate.ts";
-import type {
-  AuditContext,
-  CheckModule,
-  PageSnapshot,
-  SnapshotLink,
-} from "../types.ts";
-import { isServed, normalizePath, resolveHref, siteOrigin } from "../url.ts";
+import { redirectAt } from "../redirects.ts";
+import type { CheckModule, PageSnapshot, SnapshotLink } from "../types.ts";
+import { isServed, resolveHref, siteOrigin } from "../url.ts";
 
 /** Browser-magic fragments that scroll without needing a matching id. */
 const MAGIC_FRAGMENTS = new Set(["", "top"]);
@@ -32,9 +28,6 @@ const anchorResolves = (target: PageSnapshot, fragment: string): boolean => {
     return target.ids.has(fragment);
   }
 };
-
-const redirectFrom = (context: AuditContext, path: string) =>
-  context.redirects.find((entry) => normalizePath(entry.from) === path);
 
 /**
  * Internal links, and what they land on.
@@ -108,6 +101,12 @@ export const linkChecks: CheckModule = {
         return;
       }
       if (resolved.kind === "outside-base") {
+        // A full URL on this host outside the base names another app there
+        // (the navigation docs say to link one that way), not a page of this
+        // build that lost its base.
+        if (resolved.absolute) {
+          return;
+        }
         if (link.content) {
           found.push(
             finding(
@@ -150,7 +149,7 @@ export const linkChecks: CheckModule = {
       }
 
       const { path } = resolved;
-      const redirect = redirectFrom(context, path);
+      const redirect = redirectAt(context.redirects, path);
       if (redirect) {
         if (link.content) {
           found.push(
@@ -200,7 +199,7 @@ export const linkChecks: CheckModule = {
       );
     }
     for (const [path, page] of redirectedChrome) {
-      const redirect = redirectFrom(context, path);
+      const redirect = redirectAt(context.redirects, path);
       found.push(
         finding(
           "BLUME_AUDIT_LINK_TO_REDIRECT",
@@ -222,11 +221,18 @@ export const linkChecks: CheckModule = {
 
     const homeUrl = normalizeBasePath(context.project.config.basePath) || "/";
     for (const page of orphanPages(context.pages, context.graph, homeUrl)) {
+      // A `sidebar.hidden` page is in no other page's navigation either, so
+      // it isn't reachable from the sidebar at all.
+      const fromNavigation = [
+        ...(context.graph.chromeIn.get(page.url) ?? []),
+      ].some((from) => from !== page.url);
       found.push(
         finding(
           "BLUME_AUDIT_ORPHAN_PAGE",
           pageSite(context, page),
-          "No other page's body links here — it is reachable only from the sidebar."
+          fromNavigation
+            ? "No other page's body links here — it is reachable only from the sidebar."
+            : "No page links here, from its body or from navigation, so readers and crawlers can't reach it."
         )
       );
     }

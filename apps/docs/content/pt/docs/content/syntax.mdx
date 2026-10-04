@@ -28,7 +28,7 @@ Os ids das âncoras são gerados a partir do texto do título, então um título
 
 Crie um link para ela como `/page#setup`. A sintaxe é igual à do Fumadocs, então conteúdo migrado funciona sem alterações.
 
-A forma `{#custom-id}`, usada pelo Pandoc, pelo kramdown e por toolchains de especificação baseadas em Markdown, é aceita como equivalente em arquivos `.md`. No `.mdx`, um `{…}` solto é uma expressão JSX e a página não compila — o `blume check` reporta o marcador como `BLUME_MDX_CURLY_ANCHOR` — então escreva `[#custom-id]` ali, ou escape as chaves. A forma escapada fixa a mesma âncora nos dois formatos, o que a torna a grafia certa para um partial que páginas `.mdx` [incluem](/docs/content/includes):
+A forma `{#custom-id}`, usada pelo Pandoc, pelo kramdown e por toolchains de especificação baseadas em Markdown, é aceita como equivalente em arquivos `.md`. Somente essa grafia sem espaços fixa uma âncora: a forma com espaços `{ #custom-id }` e o `{: #custom-id }` do kramdown (ambos vindos do `attr_list` do MkDocs) permanecem no texto do título. No `.mdx`, um `{…}` solto é uma expressão JSX e a página não compila — o `blume check` reporta as três grafias como `BLUME_MDX_CURLY_ANCHOR` — então escreva `[#custom-id]` ali, ou escape as chaves. A forma escapada fixa a mesma âncora nos dois formatos, o que a torna a grafia certa para um partial que páginas `.mdx` [incluem](/docs/content/includes):
 
 ```md
 ## Getting started \{#setup\}
@@ -54,7 +54,7 @@ Os marcadores são sempre interpretados — um título que termine literalmente 
 
 Formatação inline para enfatizar palavras, marcar exclusões e mostrar código ou teclas no meio da frase.
 
-**Negrito**, _itálico_, ~~tachado~~ e `código inline`.
+**Negrito**, _itálico_, ~~tachado~~ e `inline code`.
 
 ```md
 **Bold**, _italic_, ~~strikethrough~~, and `inline code`.
@@ -249,6 +249,65 @@ createServer().listen(3000);
 ```
 ````
 
+### Linhas longas e blocos longos [#long-lines-and-long-blocks]
+
+Acrescente `wrap` para quebrar as linhas longas de um bloco em vez de rolá-las para os lados:
+
+```ts client.ts wrap
+const client = createClient({
+  baseUrl: "https://api.example.com/v1",
+  retries: 3,
+  timeout: 10_000,
+  headers: { "x-client": "docs" },
+});
+```
+
+````md
+```ts client.ts wrap
+const client = createClient({
+  baseUrl: "https://api.example.com/v1",
+  retries: 3,
+  timeout: 10_000,
+  headers: { "x-client": "docs" },
+});
+```
+````
+
+Acrescente `expandable` a um bloco longo para mostrar as primeiras linhas com um botão **Mostrar mais** logo abaixo delas. Quando aberto, o bloco aparece por inteiro, sem rolagem dentro dele. Um bloco com menos de 16 linhas é renderizado normalmente, já que há pouco a esconder.
+
+```ts routes.ts expandable
+import { defineRoutes } from "./router";
+
+export default defineRoutes({
+  home: "/",
+  docs: "/docs",
+  guides: "/docs/guides",
+  reference: "/docs/reference",
+  changelog: "/changelog",
+  blog: "/blog",
+  pricing: "/pricing",
+  about: "/about",
+  careers: "/careers",
+  contact: "/contact",
+  privacy: "/legal/privacy",
+  terms: "/legal/terms",
+  security: "/security",
+  status: "https://status.example.com",
+});
+```
+
+````md
+```ts routes.ts expandable
+import { defineRoutes } from "./router";
+
+export default defineRoutes({
+  // …every route
+});
+```
+````
+
+Os dois funcionam junto de um título e de `lineNumbers`. Para quebrar as linhas de todos os blocos, defina `markdown.code.wrap`.
+
 ### Realce [#highlighting]
 
 Anote o código com comentários no estilo GitHub para chamar atenção para linhas, palavras e alterações. Os comentários são removidos da saída renderizada, então o código continua limpo para copiar e colar. Todos os quatro estão ativos por padrão — sem configuração.
@@ -287,7 +346,7 @@ export default defineConfig({
 });
 ```
 
-Ou realce linhas por **número** em vez de comentários — útil quando você não pode editar o código. Coloque um intervalo entre chaves depois da linguagem; linhas isoladas, listas separadas por vírgula e intervalos `início-fim` funcionam:
+Ou realce linhas por **número** em vez de comentários — útil quando você não pode editar o código. Coloque um intervalo entre chaves depois da linguagem; linhas isoladas, listas separadas por vírgula e intervalos `start-end` funcionam:
 
 ```ts {1,4-5}
 import { defineConfig } from "blume";
@@ -399,7 +458,7 @@ flowchart LR
 ```
 ````
 
-Os diagramas são renderizados no cliente, então este é um recurso exclusivo do MDX, e a biblioteca Mermaid é carregada apenas em páginas que incluem um; um site sem nenhum diagrama nem chega a enviá-la. Por padrão, os diagramas usam o layout dagre e o visual clássico do Mermaid; ative outro layout ou visual em um único diagrama pelo front matter do Mermaid (um bloco `config:` com `layout: elk` ou `look: neo`), e o motor ELK é carregado apenas para os diagramas que o solicitarem. O restante desta seção é uma galeria de tipos comuns — veja a [documentação do Mermaid](https://mermaid.js.org/intro/) para a lista completa.
+Os diagramas são renderizados no cliente, então este é um recurso exclusivo do MDX, e a biblioteca Mermaid é carregada apenas em páginas que incluem um; um site sem nenhum diagrama nem chega a enviá-la. Por padrão, os diagramas usam o layout dagre e o visual clássico do Mermaid; ative outro layout ou visual em um único diagrama pelo front matter do Mermaid (um bloco `config:` com `layout: elk` ou `look: neo`), e o motor ELK é carregado apenas para os diagramas que o solicitarem. Um diagrama que o Mermaid não consegue interpretar mostra "Não foi possível renderizar este diagrama." no lugar dele; o erro do parser do Mermaid, com a linha em que ele parou, vai para o console do navegador, e o `blume dev` também o exibe abaixo da mensagem. O restante desta seção é uma galeria de tipos comuns — veja a [documentação do Mermaid](https://mermaid.js.org/intro/) para a lista completa.
 
 ### Fluxograma [#flowchart]
 
@@ -522,7 +581,7 @@ timeline
 
 ## Avisos [#callouts]
 
-Os avisos chamam a atenção do leitor para contexto, conselhos ou riscos. Escreva-os como diretivas `:::type`; adicione um título entre colchetes, como `:::warning[Atenção]`. As diretivas são um recurso exclusivo do MDX — em um arquivo `.md` uma linha `:::note` permanece como texto literal.
+Os avisos chamam a atenção do leitor para contexto, conselhos ou riscos. Escreva-os como diretivas `:::type`; adicione um título entre colchetes, como `:::warning[Heads up]`. As diretivas são um recurso exclusivo do MDX — em um arquivo `.md` uma linha `:::note` permanece como texto literal.
 
 ### Nota [#note]
 
@@ -626,7 +685,7 @@ Commit `blume.config.ts`, not `.blume/`.
 
 ## Matemática [#math]
 
-Renderize LaTeX com o KaTeX como blocos centralizados — útil para documentação científica ou com muita matemática. Envolva uma fórmula em `$$…$$`:
+Renderize LaTeX com o KaTeX, útil para documentação científica ou com muita matemática. Coloque `$$…$$` em linhas próprias para um bloco centralizado:
 
 $$
 \int_0^\infty e^{-x^2}\,dx = \frac{\sqrt{\pi}}{2}
@@ -638,8 +697,14 @@ a^2 + b^2 = c^2
 $$
 ```
 
+Ou escreva `$$…$$` dentro de uma frase para matemática inline, como a identidade de Euler $$e^{i\pi} + 1 = 0$$:
+
+```md
+Like Euler's identity $$e^{i\pi} + 1 = 0$$.
+```
+
 :::note
-A matemática funciona apenas em bloco e está ativa automaticamente — escreva `$$…$$` e ela é renderizada; não escreva nenhuma e a folha de estilo do KaTeX nunca é enviada. Não existe matemática inline com `$…$`: um `$` isolado (moeda, variáveis de shell, código) é sempre mantido como texto literal, então não há delimitador para escapar nem configuração para alternar. A matemática é um recurso exclusivo do MDX. Os nomes de classe dentro da marcação renderizada (`.katex-html`, `.katex-base`, …) são internos do próprio KaTeX, não um contrato de estilização que o Blume mantém — eles podem mudar quando o KaTeX for atualizado, então mire no wrapper `.katex-display` para estilos personalizados.
+A matemática está ativa automaticamente: escreva `$$…$$` e ela é renderizada; não escreva nenhuma e a folha de estilo do KaTeX nunca é enviada. Tanto a matemática em bloco quanto a inline usam dois cifrões. Um `$` isolado (moeda, variáveis de shell, código) é sempre texto literal, então "$5 e $10" nunca vira matemática, e não há delimitador para escapar nem configuração para alternar. A matemática é um recurso exclusivo do MDX. Os nomes de classe dentro da marcação renderizada (`.katex-html`, `.katex-base`, …) são internos do próprio KaTeX, não um contrato de estilização que o Blume mantém — eles podem mudar quando o KaTeX for atualizado, então mire no wrapper `.katex-display` para estilos personalizados.
 :::
 
 ## Pontuação inteligente [#smart-punctuation]

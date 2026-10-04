@@ -125,6 +125,27 @@ describe("referenceAdapterSchema", () => {
     });
   });
 
+  it("accepts codeSamples: false to generate no samples", () => {
+    const parsed = blumeConfigSchema.parse({
+      reference: [
+        openapi({ codeSamples: false, spec: "o.json" }),
+        asyncapi({ codeSamples: false, spec: "a.yaml" }),
+        graphql({ codeSamples: false, spec: "s.graphql" }),
+      ],
+    }).reference;
+    expect(
+      parsed.map((adapter) =>
+        adapter.kind === "scalar" ? null : adapter.options.codeSamples
+      )
+    ).toEqual([false, false, false]);
+    const blume = blumeReferences(
+      blumeConfigSchema.parse({
+        reference: [openapi({ codeSamples: false, spec: "o.json" })],
+      })
+    );
+    expect(blume[0]?.display.codeSamples).toBe(false);
+  });
+
   it("re-derives the Scalar dependency from the resolved kind", () => {
     const [adapter] = blumeConfigSchema.parse({
       reference: [
@@ -161,6 +182,7 @@ describe("referenceAdapterSchema", () => {
         includeInLlms: true,
         includeInSearch: true,
         noindex: false,
+        overlays: [],
         seoDescriptionSuffix: true,
         spec: "./one.json",
       },
@@ -246,8 +268,8 @@ describe("referenceAdapterSchema", () => {
       hideTestRequestButton: true,
       route: "/reference",
       sources: [
-        { noindex: false, spec: "./one.json" },
-        { label: "Two", noindex: false, spec: "./two.json" },
+        { noindex: false, overlays: [], spec: "./one.json" },
+        { label: "Two", noindex: false, overlays: [], spec: "./two.json" },
       ],
     });
     const result = referenceConfigSchema.safeParse([

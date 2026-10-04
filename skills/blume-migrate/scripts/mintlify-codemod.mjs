@@ -156,22 +156,31 @@ const ICONS = {
 
 // --- Frontmatter field policy ----------------------------------------------
 // Top-level keys Blume's strict schema rejects: delete the whole block, report.
-const DROP = new Set([
-  "groups",
-  "hideApiMarker",
-  "hideFooterPagination",
-  "iconType",
-  "keywords",
-  "mode",
-  "public",
-  "rss",
-]);
+const DROP = new Set(["groups", "hideApiMarker", "iconType", "public", "rss"]);
 
-// Mintlify-only keys → Blume nested target. `[parent, child]`.
+// Keys whose fate depends on their value: the source value (and its line) →
+// the line that replaces it, the line itself to keep it, or `null` to drop it
+// (a value Blume has no counterpart for, or one that restates its default).
+const REPLACE = {
+  hideFooterPagination: (value) =>
+    value === "true" ? "pagination: false" : null,
+  mode: (value, line) => (value === "assistant" ? null : line),
+};
+
+// Mintlify-only keys → Blume nested target. `[parent, child]`, plus a value
+// mapper where the meaning flips: it returns the new value, or `null` to drop a
+// value that restates Blume's default.
 const RENAME = {
+  boost: ["search", "boost"],
   canonical: ["seo", "canonical"],
+  keywords: ["search", "keywords"],
   "og:image": ["seo", "image"],
   ogImage: ["seo", "image"],
+  searchable: [
+    "search",
+    "exclude",
+    (value) => (value === "false" ? "true" : null),
+  ],
   sidebarTitle: ["sidebar", "label"],
   tag: ["sidebar", "badge"],
 };
@@ -179,7 +188,8 @@ const RENAME = {
 // Keys we deliberately do NOT auto-transform — they usually mean the page is an
 // OpenAPI endpoint stub that should be deleted (Blume generates operation pages),
 // or else a normal page that just loses the key. Flag for the human; never guess.
-const FLAG = new Set(["api", "asyncapi", "openapi"]);
+// (`api` is not one: a hand-written endpoint page keeps it as written.)
+const FLAG = new Set(["asyncapi", "openapi"]);
 
 // Which change kinds actually edit the file. Report-only kinds (flags,
 // unknowns, conflicts, manual-rename notices) leave the bytes untouched.
@@ -334,11 +344,41 @@ const rewriteFields = (fm) => {
       changes.push({ detail: tk.key, kind: "flag" });
       continue;
     }
+    if (Object.hasOwn(REPLACE, tk.key)) {
+      const [start, end] = blockRange(fm, i);
+      const value = tk.value.replace(
+        /^(?<q>["'])(?<inner>.*)\k<q>$/u,
+        "$<inner>"
+      );
+      const line =
+        end - start === 1 ? REPLACE[tk.key](value, fm[start]) : undefined;
+      if (line === undefined) {
+        changes.push({ detail: tk.key, kind: "rename-manual" });
+      } else if (line === null) {
+        fm.splice(start, 1);
+        changes.push({ detail: `${tk.key}: ${value}`, kind: "drop" });
+      } else if (line !== fm[start]) {
+        const [key] = line.split(":");
+        if (fm.some((other, j) => j !== start && topKey(other)?.key === key)) {
+          changes.push({
+            detail: `${tk.key} → ${key} (child-exists)`,
+            kind: "rename-conflict",
+          });
+        } else {
+          fm[start] = line;
+          changes.push({
+            detail: `${tk.key}: ${value} → ${line}`,
+            kind: "rename",
+          });
+        }
+      }
+      continue;
+    }
     const target = RENAME[tk.key];
     if (!target) {
       continue;
     }
-    const [parent, child] = target;
+    const [parent, child, map] = target;
     const [start, end] = blockRange(fm, i);
     if (end - start !== 1 || tk.value === "") {
       // Multi-line or valueless source — too structured to move safely.
@@ -348,12 +388,18 @@ const rewriteFields = (fm) => {
       });
       continue;
     }
+    const value = map ? map(tk.value) : tk.value;
+    if (value === null) {
+      fm.splice(start, 1);
+      changes.push({ detail: `${tk.key}: ${tk.value}`, kind: "drop" });
+      continue;
+    }
     // Remove the source line before inserting: setNested splices into the
     // parent block, and when that block sits above the source key the insert
     // would otherwise shift `start` onto the wrong line. Failure paths don't
     // mutate `fm`, so the line can be restored as-is on conflict.
     const [removed] = fm.splice(start, 1);
-    const placed = setNested(fm, parent, child, tk.value);
+    const placed = setNested(fm, parent, child, value);
     if (placed.ok) {
       if (placed.index < start) {
         // The insert above the cursor pushed the unvisited lines down one

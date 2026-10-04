@@ -1,6 +1,7 @@
 import { markdownTable } from "markdown-table";
 import { mdxToMdast } from "satteri";
 
+import { PARAM_LOCATIONS } from "../components/content/api-field.ts";
 import { parseYouTubeId } from "../components/content/youtube.ts";
 import type { ExampleLookup } from "../core/types.ts";
 import { MDX_FEATURES } from "../markdown/features.ts";
@@ -398,6 +399,18 @@ const tabs: ComponentMarkdown = ({ childComponents, children }) => {
     .join("\n\n");
 };
 
+/**
+ * A `<View>` block: its content under its view's name, so an agent reading
+ * the Markdown sees every view and which one each part belongs to.
+ */
+const view: ComponentMarkdown = ({ children, props }) => {
+  const title = isString(props.title) && props.title !== "" ? props.title : "";
+  if (!title) {
+    return children;
+  }
+  return children ? `**${title}**\n\n${children}` : `**${title}**`;
+};
+
 /** Escape the brackets that would end a link's text early. */
 const linkText = (value: string): string =>
   value.replaceAll(/[[\]]/gu, String.raw`\$&`);
@@ -419,6 +432,63 @@ const textProp = (value: EvaluatedValue): string => {
   }
   return isNumber(value) ? String(value) : "";
 };
+
+/** Whether a flag prop is on: shorthand `true`, or the string `"true"`. */
+const flagOn = (value: EvaluatedValue): boolean =>
+  value === true || value === "true";
+
+/** A prop that holds one label or several. */
+const labelList = (value: EvaluatedValue): string[] =>
+  (Array.isArray(value) ? value : [value]).map(textProp).filter(Boolean);
+
+/**
+ * One `<ParamField>` or `<ResponseField>` as a list item: its labels, name,
+ * location, type, flags, and default on the first line, joined with middle
+ * dots, and its description indented under it, nested fields included. A
+ * field with no name, or a prop that wouldn't evaluate, declines.
+ */
+const apiField = (
+  { children, lossy, props }: ComponentMarkdownContext,
+  name: string,
+  location?: string
+): string | null => {
+  if (lossy || name === "") {
+    return null;
+  }
+  const value = props.default;
+  const head = [
+    ...labelList(props.pre),
+    `**${cellCode(name)}**`,
+    ...labelList(props.post),
+    location,
+    textProp(props.type) && cellCode(props.type),
+    flagOn(props.required) ? "required" : "",
+    flagOn(props.deprecated) ? "deprecated" : "",
+    value === undefined || value === null || value === ""
+      ? ""
+      : `default ${cellCode(isString(value) ? value : JSON.stringify(value))}`,
+  ].filter(Boolean);
+  const item = `- ${head.join(" · ")}`;
+  if (!children) {
+    return item;
+  }
+  const body = children
+    .split("\n")
+    .map((line) => (line === "" ? "" : `  ${line}`))
+    .join("\n");
+  return `${item}\n\n${body}`;
+};
+
+/** `<ParamField query="limit">`: named by its location attribute, else `name`. */
+const paramFieldMarkdown: ComponentMarkdown = (context) => {
+  const location = PARAM_LOCATIONS.find((key) => isString(context.props[key]));
+  return location
+    ? apiField(context, textProp(context.props[location]), location)
+    : apiField(context, textProp(context.props.name));
+};
+
+const responseFieldMarkdown: ComponentMarkdown = (context) =>
+  apiField(context, textProp(context.props.name));
 
 /**
  * A card is a link with a blurb, so that is what it becomes: the title as the
@@ -514,7 +584,7 @@ export const inlineCode = (text: string): string => {
 };
 
 /** Fence `code` so its opening/closing run outlengths any backticks inside. */
-const fencedBlock = (lang: string, code: string): string => {
+export const fencedBlock = (lang: string, code: string): string => {
   const trimmed = code.replace(/(?<!\n)\n+$/u, "");
   const runs = trimmed.match(/`+/gu);
   const longest = runs ? Math.max(...runs.map((run) => run.length)) : 0;
@@ -822,7 +892,11 @@ const SERIALIZERS = {
   Icon: icon,
   Math: math,
   Panel: panel,
+  ParamField: paramFieldMarkdown,
   Prompt: prompt,
+  RequestExample: cardGroup,
+  ResponseExample: cardGroup,
+  ResponseField: responseFieldMarkdown,
   Steps: steps,
   Tabs: tabs,
   Tile: tile,
@@ -832,6 +906,7 @@ const SERIALIZERS = {
   "Tree.Folder": treeFolder,
   TypeTable: typeTable,
   Update: update,
+  View: view,
   YouTube: youtube,
 } satisfies Record<string, ComponentMarkdown>;
 

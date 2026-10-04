@@ -1,0 +1,120 @@
+---
+title: Narração
+description: >-
+  Um player "Ouvir esta página" que lê cada página em voz alta e destaca a frase que está sendo lida, usando as vozes do próprio navegador do leitor ou vozes neurais geradas em tempo de build.
+---
+
+A narração adiciona um player **Ouvir esta página** abaixo da descrição de cada página. O leitor aperta play e a página é lida em voz alta a partir do título, enquanto a frase que está sendo lida fica destacada e sempre visível na tela. O recurso é opcional:
+
+```ts blume.config.ts lineNumbers
+export default defineConfig({
+  narration: true,
+});
+```
+
+Com `true`, as páginas são lidas com as próprias [vozes do navegador](#browser-voices) do leitor. Você não precisa de chave nem de etapa de build, e funciona em qualquer host, estático ou não. Adicione um `provider` para usar [vozes geradas](#generated-voices) em vez disso.
+
+## O que é lido [#what-it-reads]
+
+A narração lê em ordem o título da página, a descrição, os títulos, os parágrafos, os itens de lista e o texto dos cards. Alguns componentes são anunciados com uma breve deixa falada, para que o ouvinte saiba que tipo de conteúdo vem a seguir:
+
+| Componente | Deixa |
+| --- | --- |
+| [Callouts](/docs/content/syntax#callouts) | "Nota.", "Dica.", "Aviso." e assim por diante |
+| [Steps](/docs/content/components#steps) | "Passo 1.", "Passo 2." |
+| [Tabs](/docs/content/components#tabs) | "Aba macOS." Todas as abas são lidas, não só a que está aberta |
+| [Accordions](/docs/content/components#accordion) e [Expandable](/docs/content/components#expandable) | "Seção expansível." |
+
+Quando a narração chega a uma seção fechada ou a uma aba que não está visível, ela abre esse conteúdo. Assim, o destaque sempre cai em um texto que o leitor consegue ver.
+
+Blocos de código, tabelas, imagens, vídeos, diagramas, fórmulas matemáticas, tabelas de tipos, árvores de arquivos e previews de componentes ao vivo são pulados, porque não fazem sentido lidos em voz alta.
+
+O player só aparece em páginas com texto suficiente para valer a pena ouvir, cerca de 50 palavras. Páginas muito curtas e páginas compostas principalmente de código ou campos de API não ganham um player.
+
+## Ouvindo [#listening]
+
+Enquanto uma página está tocando, o player fica fixado abaixo do cabeçalho. Ele traz play e pause, botões para a frase anterior e a próxima, um controle deslizante de progresso, o tempo já lido em relação à duração da página e um controle de velocidade de 0,8× a 2×. A velocidade escolhida é mantida na próxima página.
+
+A página rola para manter visível a frase que está sendo lida. Se o leitor rolar para outro ponto, a página para de acompanhar a leitura, mas o áudio continua. Para retomar o acompanhamento, basta voltar até a frase ou apertar **Acompanhar**. Abrir outra página interrompe a narração.
+
+## Vozes do navegador [#browser-voices]
+
+`narration: true` lê a página com a [Web Speech API](https://developer.mozilla.org/docs/Web/API/SpeechSynthesis) e com as vozes do dispositivo do leitor, escolhendo uma para o idioma da página. Se o navegador não tiver nenhuma voz para esse idioma, o player fica oculto, em vez de ler a página com o sotaque errado.
+
+Isso não exige nada de você e não custa nada, mas a qualidade do som depende do dispositivo. As vozes do sistema no macOS, no iOS e no Windows são boas, enquanto alguns navegadores no Linux vêm com poucas vozes ou nenhuma.
+
+## Vozes geradas [#generated-voices]
+
+Passe um `provider` para gerar áudio com um modelo neural de fala em tempo de build. O provider é o mesmo adaptador [`gateway()`](/docs/configuration/assistant#adapters) que o assistente usa, apontado para um modelo de fala:
+
+```ts blume.config.ts lineNumbers
+import { defineConfig } from "blume";
+import { gateway } from "blume/ai";
+
+export default defineConfig({
+  narration: {
+    provider: gateway({
+      model: "openai/tts-1-hd",
+      voice: "alloy",
+    }),
+  },
+});
+```
+
+O `blume build` lê cada página gerada exatamente como o player vai ler, divide o texto em frases e gera um clipe por frase pelo [Vercel AI Gateway](https://vercel.com/docs/ai-gateway). Os clipes e um pequeno manifest por página são gravados no seu build como arquivos estáticos em `/blume-narration/`. Assim, ouvir de novo não custa nada e nada roda em um servidor.
+
+Antes de gerar qualquer coisa, o build mostra no log quantos clipes novos precisa criar e quantos caracteres eles somam, para que você veja o custo logo de início:
+
+```txt
+Generating narration: 214 new clip(s), 15,880 characters, with openai/tts-1-hd
+```
+
+| Opção | Padrão | Descrição |
+| --- | --- | --- |
+| `model` | `openai/tts-1-hd` | Um modelo de fala do gateway: `openai/tts-1`, `openai/tts-1-hd`, `fish-audio/s2.1-pro`, `spacexai/grok-tts` e outros listados pelo gateway. |
+| `voice` | `alloy` | A voz do modelo. |
+| `instructions` |  | Como a voz deve soar, para modelos que aceitam instruções ("Leia com calma, como um professor"). |
+| `apiKeyEnv` | `AI_GATEWAY_API_KEY` | A variável de ambiente que guarda a chave do gateway. Na Vercel, o token OIDC do build também funciona. |
+| `headers` |  | Headers estáticos enviados em todas as requisições. |
+| `providerOptions` |  | Repassado sem alterações para o `generateSpeech` do AI SDK, para configurações do modelo que o Blume não expõe por nome. |
+
+### Cache [#caching]
+
+Os clipes ficam em cache em `node_modules/.cache/blume/narration`, identificados pelo que define o som deles: a frase, o idioma, o modelo, a voz e as instruções. Um novo build só paga pelas frases que mudaram, e uma frase que aparece em várias páginas é gerada uma única vez. A Vercel e a Netlify restauram o `node_modules` dos caches de build, então um deploy nelas gera de novo só o que mudou. Em outros serviços de CI, configure o cache desse diretório entre as execuções.
+
+### Fallbacks
+
+Quando não existem clipes, as vozes geradas são substituídas pelas vozes do navegador:
+
+- No `blume dev`, que nunca gera áudio. Rode `blume build` e `blume preview` para ouvir a voz gerada localmente.
+- Quando a chave não está definida no momento do build. O build mostra um aviso e pula a geração.
+- Quando a geração falha. O build para no primeiro clipe que falhar, já que o AI SDK já fez novas tentativas, e mantém todos os clipes que já estão em cache.
+
+## Idiomas [#languages]
+
+A narração lê cada página no idioma do conteúdo, então, em um site [internacionalizado](/docs/content/i18n), cada locale é lido com a própria voz. As deixas faladas e os rótulos do player já vêm traduzidos em todos os idiomas de interface incluídos. Para personalizar esses textos em um locale, use a chave `narration` em [`i18n.ui`](/docs/content/i18n#translated-ui).
+
+## Desativando em uma página [#turning-it-off-for-a-page]
+
+Defina `narration: false` no [frontmatter](/docs/content/frontmatter) de uma página para que ela fique sem player:
+
+```yaml
+---
+title: Changelog
+narration: false
+---
+```
+
+## Deixando conteúdo de fora [#keeping-content-out]
+
+Adicione `data-blume-narration="skip"` a um elemento para deixar esse elemento e todo o seu conteúdo fora da narração. É assim que o Blume pula as próprias tabelas de tipos e previews, e funciona do mesmo jeito nos seus próprios componentes e islands:
+
+```html
+<div data-blume-narration="skip">
+  <PricingCalculator />
+</div>
+```
+
+## Analytics
+
+Quando um leitor começa a ouvir, o player envia um evento `narration_play` com o `engine` (`audio` ou `browser`) e o `path` da página. Quando uma página toca até o fim, ele envia `narration_complete`. Os dois eventos passam pelos seus adaptadores de [analytics](/docs/configuration/analytics#custom-events), como os outros eventos personalizados.

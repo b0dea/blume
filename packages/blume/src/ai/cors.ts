@@ -61,8 +61,17 @@ export const preflightResponse = (
 
 /** The slice of Astro's `APIContext` the wrapped handler reads. */
 interface RequestContext {
+  /** The reader's address, which the route's rate limit keys on. */
+  readonly clientAddress?: string;
   request: Request;
 }
+
+/**
+ * The response headers a cross-origin caller may read beyond the safelisted
+ * ones: the rate limit's `Retry-After`, so a caller can tell a reader how
+ * long to wait after a `429`.
+ */
+const EXPOSED_HEADERS = "retry-after";
 
 /** Stamp the CORS headers on every response `handler` returns. */
 export const withCors =
@@ -72,9 +81,8 @@ export const withCors =
   ): ((context: RequestContext) => Promise<Response>) =>
   async (context) => {
     const response = await handler(context);
-    for (const [key, value] of Object.entries(
-      corsHeaders(context.request, allowed)
-    )) {
+    const headers = corsHeaders(context.request, allowed);
+    for (const [key, value] of Object.entries(headers)) {
       // `Vary` accumulates (the handler may already vary on something), the
       // rest replace.
       if (key === "vary") {
@@ -82,6 +90,9 @@ export const withCors =
       } else {
         response.headers.set(key, value);
       }
+    }
+    if (headers["access-control-allow-origin"]) {
+      response.headers.set("access-control-expose-headers", EXPOSED_HEADERS);
     }
     return response;
   };

@@ -89,6 +89,36 @@ The active tab is written to the URL hash, so a link opens on it; pass `hash={fa
 </Tabs>
 ```
 
+## View
+
+Write one page for several audiences, such as readers of different programming languages or frameworks, with `<View>` blocks. Each distinct `title` becomes an option in a picker above the page's content, and only the chosen view's blocks show. The table of contents follows: headings inside hidden views drop out of it. Prose outside any `<View>` shows in every view, and blocks sharing a title show and hide together, so a page can alternate shared and view-specific sections. `icon` shows beside the view's name in the picker.
+
+````mdx lineNumbers
+Everyone reads this paragraph.
+
+<View title="JavaScript" icon="braces">
+
+## Install the client
+
+```bash
+npm install @acme/commerce
+```
+
+</View>
+
+<View title="Python" icon="terminal">
+
+## Install the client
+
+```bash
+pip install acme-commerce
+```
+
+</View>
+````
+
+The first view shows until the reader picks another. Blume remembers that pick across pages written in views, and writes it to the URL as `?view=Python`, so a link opens on the same view. A link to a heading inside a view opens that view. Use `<View>` when most of the page changes with the choice, and [Tabs](#tabs) when only one part of the page does. The agent-facing Markdown includes every view, each under its name.
+
 ## Badge
 
 A small inline label for status or metadata — version tags, “new” or “beta” markers, stability levels. The `variant` tunes the color to the meaning.
@@ -514,7 +544,7 @@ A **Prop / Type** grid where each row expands to reveal its description and deta
 
 ### Auto type table
 
-Generate a type table from a TypeScript type so the docs stay in sync with the source. Point `AutoTypeTable` at a file with `path` (resolved from your project root) and a type `name`. Descriptions come from JSDoc comments, defaults from `@default` tags, and optional properties (`?`) are marked accordingly.
+Generate a type table from a TypeScript type so the docs stay in sync with the source. Point `AutoTypeTable` at a file with `path` (resolved from your project root, the folder you run `blume` in) and a type `name`. Descriptions come from JSDoc comments, defaults from `@default` tags, and optional properties (`?`) are marked accordingly.
 
 ```astro
 <AutoTypeTable path="./src/button.ts" name="ButtonProps" />
@@ -558,6 +588,82 @@ export interface ButtonProps {
 />
 ```
 
+## API fields
+
+Rows for documenting an endpoint by hand, one field at a time, styled like the generated [OpenAPI reference](/docs/references/openapi). `ParamField` is a request parameter, named by the attribute that says where it goes: `path`, `query`, `header`, or `body`. `ResponseField` is a field of the response, named by `name`. Both take a `type`, `required`, `deprecated`, and a `default`, with the description as their content; `ResponseField` also takes `pre` and `post` labels around the name.
+
+<ParamField path="userId" type="string" required>
+  The user's ID.
+</ParamField>
+
+<ParamField query="limit" type="integer" default={20}>
+  How many results to return, up to 100.
+</ParamField>
+
+<ResponseField name="plan" type="string" post={["beta"]}>
+  The user's plan.
+</ResponseField>
+
+```mdx lineNumbers
+<ParamField path="userId" type="string" required>
+  The user's ID.
+</ParamField>
+
+<ParamField query="limit" type="integer" default={20}>
+  How many results to return, up to 100.
+</ParamField>
+
+<ResponseField name="plan" type="string" post={["beta"]}>
+  The user's plan.
+</ResponseField>
+```
+
+Nest an object's fields inside its description with an [`Expandable`](#expandable):
+
+```mdx lineNumbers
+<ResponseField name="address" type="object">
+  Where the order ships.
+
+  <Expandable title="properties">
+    <ResponseField name="city" type="string" required>
+      City name.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+```
+
+On a page with `api` frontmatter, the `ParamField`s also build the page's Try it panel and request samples: see [Hand-written API pages](/docs/references/api-pages). The fields use the same names and props as Mintlify's, so pages written for it render as they are. The Markdown copy of the page lists each field with its type and flags.
+
+### Request and response examples
+
+`RequestExample` and `ResponseExample` hold code blocks, one tab per titled fence (`dropdown` switches to a language menu, as on [`CodeGroup`](#codegroup)). On a wide screen they pin to a column beside the page, the request above the response, and stay in view as the reader scrolls the fields, the way an OpenAPI operation's examples do; the page drops its table of contents to make room. On a narrow screen they follow the page's content.
+
+````mdx lineNumbers
+<RequestExample>
+
+```bash cURL
+curl --request POST https://api.acme.dev/v1/users \
+  --header "Authorization: Bearer $ACME_TOKEN" \
+  --data '{ "email": "ada@example.com" }'
+```
+
+```ts title="Acme SDK"
+await acme.users.create({ email: "ada@example.com" });
+```
+
+</RequestExample>
+
+<ResponseExample>
+
+```json 201
+{ "id": "usr_8f2k", "status": "invited" }
+```
+
+</ResponseExample>
+````
+
+Write them anywhere at the top level of the page; each moves to the column. One nested inside another component, such as a `Tab`, stays where it is written.
+
 ## GitHub info
 
 A card linking to a GitHub repository with its star and fork counts. The counts are fetched at build time — no client JavaScript — so they show the numbers as of your last build, not live ones; the card still renders without them if the API is unreachable. Pass `owner` and `repo`, or omit them to use the repository from your `blume.config`. Set a `GITHUB_TOKEN` environment variable to lift the API rate limit; a `token` prop overrides it for one card, but the environment variable keeps the token out of your content.
@@ -579,7 +685,7 @@ The card reads the instance from [`github.host`](/docs/configuration#github-ente
 
 ## Component
 
-`Component` renders an example file from your project's `examples/` directory as a live preview alongside its highlighted source, in tabs. Point it at a file with `path` — its location under `examples/`, without the extension (so `examples/counter.tsx` is `path="counter"`). React, Vue, Svelte, and Astro examples are all supported; framework examples hydrate, Astro ones render statically. It keeps the preview and the code in sync from a single file.
+`Component` renders an example file from your project's `examples/` directory as a live preview alongside its highlighted source, in tabs. Point it at a file with `path` — its location under `examples/`, without the extension (so `examples/counter.tsx` is `path="counter"`). React, Vue, Svelte, and Astro examples are all supported; framework examples hydrate, Astro ones render statically. It keeps the preview and the code in sync from a single file. A `path` that names no example renders a "No example found" box instead, and `blume dev`, `blume build`, and [`blume doctor`](/docs/cli/doctor) warn about it (`BLUME_EXAMPLE_NOT_FOUND`) at its line.
 
 The preview renders in an isolated frame that the docs styles never reach — no prose margins, typography, or theme chrome bleed into your component. The frame gets Tailwind (preflight + utilities scanned from your project and your examples directory), Blume's design tokens so classes like `bg-background` follow the site palette by default, and it follows the site's light/dark toggle live. The pane sizes itself to the rendered example — and keeps tracking it if the example grows or shrinks after load — with the Preview and Code tabs sharing one height so toggling them never shifts the page.
 

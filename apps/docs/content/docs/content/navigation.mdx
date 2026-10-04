@@ -106,6 +106,24 @@ A group's `display` applies to that group only — nested subgroups resolve thei
 
 A group in an [explicit sidebar](#explicit-sidebar) overrides the global mode with its own `display`, exactly as before.
 
+## Directory listings
+
+A group's own page can list the group's other pages below its content, so a section's landing page doubles as its table of contents. Set `directory` in the folder's [`meta.ts`](/docs/content/meta):
+
+```ts guides/meta.ts lineNumbers
+import { defineMeta } from "blume";
+
+export default defineMeta({
+  directory: "card",
+});
+```
+
+- **`card`** shows each page and subgroup as a card with its icon and description.
+- **`accordion`** lists the pages as rows, and each subgroup as a section that opens to its pages.
+- **`none`** lists nothing. This is the default.
+
+Only a group with its own page has somewhere to show the listing: a folder's `index` page, or an explicit group's `root`. The setting carries down to nested folders, so one `directory` on the content root's `meta.ts` gives every section a listing, and a folder can set its own value (`none` included) to override what it inherits. An [explicit sidebar](#explicit-sidebar) sets `directory` on its groups the same way.
+
 ## Ordering
 
 When the sidebar is generated, order is resolved highest priority first:
@@ -234,6 +252,8 @@ Each item takes a `label`, a `path`, and optional `icon`, `description`, and `ta
 
 With [versioning](/docs/content/versioning) configured, Blume renders a version selector automatically — declaring your own `kind: "version"` selector here replaces the automatic one, so hand-rolled setups keep working.
 
+On screens narrower than the desktop sidebar, selectors, the version selector, and the [language switcher](/docs/content/i18n#the-language-switcher) move out of the header and into the top of the mobile navigation drawer, where each spans the drawer's width.
+
 ## Featured links
 
 Pin links to the top of the sidebar, above every section — a blog, a changelog, a contact or support page that should always be one click away. Unlike the generated tree, featured links are **not scoped by tab**: they show on every route, on every breakpoint.
@@ -247,7 +267,7 @@ navigation: {
 }
 ```
 
-Each link takes a `label`, an `href`, and an optional `icon` (a [built-in icon](/docs/content/components#icon) name, image path/URL, or inline SVG — the same as anywhere else). An `href` may point anywhere: an external URL opens in a new tab, while an internal route (`/contact`) is validated against your pages at build time, warning you if nothing matches.
+Each link takes a `label`, an `href`, and an optional `icon` (a [built-in icon](/docs/content/components#icon) name, image path/URL, or inline SVG — the same as anywhere else). An `href` may point anywhere: an external URL opens in a new tab, while an internal route (`/contact`) is validated against your pages at build time and by [`blume doctor`](/docs/cli/doctor), warning you if nothing matches.
 
 ## Explicit sidebar
 
@@ -267,7 +287,7 @@ navigation: {
 }
 ```
 
-Each item is a page route (a string), a group (`label` + `items`), or a link (`label` + `href`). Groups can nest, override the global [`display` mode](#display-modes), and start `collapsed`.
+Each item is a page route (a string), a group (`label` + `items`), or a link (`label` + `href`). Groups can nest, override the global [`display` mode](#display-modes), start `collapsed`, and link a `root` page, which can list the group's pages with a [`directory`](#directory-listings).
 
 Blume warns about an item it can't render as written: a route that matches no page (the item is left out), a `root` that matches no page (its link would 404), or an item with no route, `href`, `root`, or `items` (left out).
 
@@ -282,23 +302,25 @@ navigation: {
 }
 ```
 
+Like tab labels, a `label` here can be a map of locale code to text on a [multilingual](/docs/content/i18n#per-locale-navigation) site.
+
 `cta` is singular on purpose — a docs header has room for exactly one thing a reader is being asked to do, and a row of buttons asks for nothing. Secondary links belong in `actions`, or in [`featured`](#featured-links) if they should sit with the sidebar instead.
 
 An `http(s)` or protocol-relative href opens in a new tab; a route stays in the tab, and is validated against your pages at build time like a `featured` link — so a page served by another app on the same host (`/signup` on the product, say) should be written as an absolute URL. `actions` are hidden below the `sm` breakpoint, where the header has room for the logo and the navigation toggle and nothing else. `cta` hides there too, except on a page with no navigation toggle — a landing page on `PageLayout` with no tabs — where it stays, since nothing else can surface it on a phone.
 
 ## Repository link
 
-When you set [`github`](/docs/configuration) in your config, Blume shows a GitHub icon in the header — beside the theme toggle — that links to your repository. It's on by default; hide it with `navigation.repo`:
+When you set [`github`](/docs/configuration) in your config, Blume shows a GitHub icon in the [footer](/docs/configuration#footer), ahead of your social profiles, that links to your repository. It's on by default; hide it with `navigation.repo`:
 
 ```ts blume.config.ts lineNumbers
 navigation: {
-  repo: false, // hide the header GitHub link (default: true)
+  repo: false, // hide the footer's GitHub link (default: true)
 }
 ```
 
 The link only appears when `github` is configured, so projects without a repo are unaffected either way.
 
-`repo` also takes an absolute URL, which points the header mark anywhere on GitHub:
+`repo` also takes an absolute URL, which points the GitHub mark anywhere on GitHub:
 
 ```ts blume.config.ts lineNumbers
 navigation: {
@@ -306,25 +328,25 @@ navigation: {
 }
 ```
 
-That's for a project whose docs repo is private. `github` drives the per-page edit link, the header mark and the [agent manifest](/docs/discoverability/agent-discovery)'s repository together, so such a project has to leave `github` unset — and a URL is what lets it still show a mark pointing somewhere public. The icon stays the GitHub mark, so a link to another host belongs in [`actions`](#header-actions).
+That's for a project whose docs repo is private. `github` drives the per-page edit link, the GitHub mark and the [agent manifest](/docs/discoverability/agent-discovery)'s repository together, so such a project has to leave `github` unset — and a URL is what lets it still show a mark pointing somewhere public. A `footer.socials.github` URL takes the mark's place, and a link to another host belongs in the footer's `links` or [`actions`](#header-actions).
 
 ## Breadcrumbs and pagination
 
 These come for free from the sidebar tree — no configuration:
 
 - **Breadcrumbs** show the current page's parent group above the title.
-- **Previous and next** links at the foot of each page follow sidebar order, skipping hidden pages.
+- **Previous and next** links at the foot of each page follow sidebar order, skipping hidden pages. Set [`pagination: false`](/docs/content/frontmatter) in a page's frontmatter to leave them off that page.
 
 ## On this page
 
-A right-rail outline is generated automatically from each page's headings — `##` and `###` by default — so long pages stay scannable. Set [`toc`](/docs/configuration#table-of-contents) to change the heading range or turn the outline off. On narrower screens, where the right rail is hidden, it collapses into an “On this page” dropdown above the content.
+A right-rail outline is generated automatically from each page's headings — `##` and `###` by default — so long pages stay scannable. Set [`toc`](/docs/configuration#table-of-contents) to change the heading range or turn the outline off. On narrower screens, where the right rail is hidden, it collapses into an “On this page” dropdown above the content, which also holds the [page actions](#page-actions).
 
 ## Page actions
 
-Below the table of contents, every page shows a set of quick actions:
+Below the table of contents, every page shows a set of quick actions. In windows at least 1,280px wide they sit in the right-hand column with the outline. In narrower windows and on phones they sit at the bottom of the “On this page” dropdown above the content, which shows on a page with no headings too:
 
 - **Edit on GitHub** — links straight to the source file. Appears once you set [`github`](/docs/configuration) in your config.
-- **Scroll to top** — smoothly returns to the top of long pages.
+- **Scroll to top** — smoothly returns to the top of long pages. It's in the right-hand column only, since the dropdown already sits at the top of the page.
 
 Others hand the page to AI tools — **Copy as Markdown** and **Open in chat** — covered in [Markdown for agents](/docs/discoverability/markdown#copy-as-markdown).
 

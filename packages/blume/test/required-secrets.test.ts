@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it } from "bun:test";
 
+import { gateway } from "../src/ai/ask.ts";
 import { checkRequiredSecrets } from "../src/cli/required-secrets.ts";
 import { blumeConfigSchema } from "../src/core/schema.ts";
 import { mixedbread } from "../src/search/adapters/index.ts";
@@ -38,6 +39,20 @@ describe("checkRequiredSecrets", () => {
     expect(result[0]?.message).toBe(
       "Assistant (AI Gateway) is enabled but AI_GATEWAY_API_KEY is not set (on Vercel the gateway can also authenticate via OIDC)."
     );
+  });
+
+  it("warns when generated narration has no key to build with", () => {
+    Reflect.deleteProperty(process.env, "AI_GATEWAY_API_KEY");
+    const config = blumeConfigSchema.parse({
+      narration: { provider: gateway() },
+    });
+    expect(checkRequiredSecrets(config)[0]?.message).toBe(
+      "Narration audio is enabled but AI_GATEWAY_API_KEY is not set (read at build; without it pages use browser voices)."
+    );
+    // Browser voices need no key.
+    expect(
+      checkRequiredSecrets(blumeConfigSchema.parse({ narration: true }))
+    ).toEqual([]);
   });
 
   it("is satisfied when the key is set", () => {
@@ -143,6 +158,46 @@ describe("checkRequiredSecrets", () => {
 
     process.env.PROBE_ANALYTICS_TOKEN = "set";
     expect(checkRequiredSecrets(config)).toEqual([]);
+  });
+
+  it("warns about the assistant's bot check secret", () => {
+    Reflect.deleteProperty(process.env, "TURNSTILE_SECRET_KEY");
+    process.env.AI_GATEWAY_API_KEY = "set";
+    const config = blumeConfigSchema.parse({
+      ai: {
+        assistant: {
+          captcha: {
+            kind: "turnstile",
+            options: { siteKey: "0x4" },
+            requiredSecrets: ["TURNSTILE_SECRET_KEY"],
+            runtimeDeps: [],
+          },
+          enabled: true,
+        },
+      },
+    });
+    expect(checkRequiredSecrets(config).map((d) => d.message)).toStrictEqual([
+      "Assistant bot check (turnstile) is enabled but TURNSTILE_SECRET_KEY is not set.",
+    ]);
+    Reflect.deleteProperty(process.env, "AI_GATEWAY_API_KEY");
+  });
+
+  it("reads the consent adapter's requiredSecrets from its descriptor", () => {
+    Reflect.deleteProperty(process.env, "PROBE_CONSENT_KEY");
+    const config = blumeConfigSchema.parse({
+      consent: {
+        kind: "native",
+        options: {},
+        requiredSecrets: ["PROBE_CONSENT_KEY"],
+        runtimeDeps: [],
+      },
+    });
+    expect(checkRequiredSecrets(config)[0]?.message).toBe(
+      "Consent (native) is enabled but PROBE_CONSENT_KEY is not set."
+    );
+    process.env.PROBE_CONSENT_KEY = "set";
+    expect(checkRequiredSecrets(config)).toEqual([]);
+    Reflect.deleteProperty(process.env, "PROBE_CONSENT_KEY");
   });
 
   it("requires nothing for the built-in analytics adapters", () => {

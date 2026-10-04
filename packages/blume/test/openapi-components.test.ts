@@ -74,6 +74,68 @@ describe("openapi component serializers", () => {
     ).toBe("`POST /v1/pets`\n\n**Deprecated.**\n");
   });
 
+  it("tells an agent a webhook is sent to it, not served", () => {
+    const data = {
+      reference: spec([
+        operation({
+          deprecated: true,
+          key: "new-pet",
+          method: "post",
+          path: "newPet",
+          webhook: true,
+        }),
+      ]),
+    };
+    expect(
+      downlevelComponents(
+        '<Operation source="reference" id="new-pet" />\n',
+        serializers(data)
+      )
+    ).toBe(
+      "`POST newPet`\n\n**Webhook.** The API sends this request to your endpoint.\n\n**Deprecated.**\n"
+    );
+  });
+
+  it("carries the spec's own x-codeSamples, labeled as their tabs are", () => {
+    const data = {
+      reference: spec([operation({ key: "list-pets" })], {
+        document: {
+          info: { title: "Pet API", version: "1.0.0" },
+          openapi: "3.1.0",
+          paths: {
+            "/pets": {
+              get: {
+                "x-codeSamples": [
+                  {
+                    label: "SDK *beta*",
+                    lang: "typescript",
+                    source: "const pets = await client.pets.list();\n",
+                  },
+                  { lang: "bash", source: "pets list --limit 10" },
+                  { lang: "go", source: { $ref: "./list-pets.go" } },
+                ],
+              },
+            },
+          },
+        },
+      }),
+    };
+    expect(
+      downlevelComponents(
+        '<Operation source="reference" id="list-pets" />\n',
+        serializers(data)
+      )
+    ).toBe(
+      [
+        "`GET /pets`",
+        String.raw`**SDK \*beta\***`,
+        "```ts\nconst pets = await client.pets.list();\n```",
+        "**Shell**",
+        "```bash\npets list --limit 10\n```\n",
+      ].join("\n\n")
+    );
+  });
+
   it("names an AsyncAPI operation by its action and channel, as the page does", () => {
     const data = {
       events: spec(

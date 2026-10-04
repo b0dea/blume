@@ -90,6 +90,36 @@ Der aktive Tab wird in den URL-Hash geschrieben, sodass ein Link direkt mit ihm 
 </Tabs>
 ```
 
+## View
+
+Schreibe mit `<View>`-Blöcken eine einzige Seite für mehrere Zielgruppen, etwa für eine Leserschaft, die unterschiedliche Programmiersprachen oder Frameworks nutzt. Jeder unterschiedliche `title` wird zu einer Option in einer Auswahl über dem Seiteninhalt, und nur die Blöcke der gewählten Ansicht werden angezeigt. Das Inhaltsverzeichnis zieht mit: Überschriften in ausgeblendeten Ansichten fallen daraus heraus. Fließtext außerhalb aller `<View>`-Blöcke erscheint in jeder Ansicht, und Blöcke mit demselben Titel werden gemeinsam ein- und ausgeblendet, sodass sich auf einer Seite gemeinsame und ansichtsspezifische Abschnitte abwechseln können. `icon` wird in der Auswahl neben dem Namen der Ansicht angezeigt.
+
+````mdx lineNumbers
+Everyone reads this paragraph.
+
+<View title="JavaScript" icon="braces">
+
+## Install the client
+
+```bash
+npm install @acme/commerce
+```
+
+</View>
+
+<View title="Python" icon="terminal">
+
+## Install the client
+
+```bash
+pip install acme-commerce
+```
+
+</View>
+````
+
+Die erste Ansicht wird angezeigt, bis die Leserschaft eine andere wählt. Blume merkt sich diese Wahl über alle Seiten hinweg, die mit Ansichten geschrieben sind, und schreibt sie als `?view=Python` in die URL, sodass ein Link direkt mit derselben Ansicht öffnet. Ein Link auf eine Überschrift innerhalb einer Ansicht öffnet diese Ansicht. Verwende `<View>`, wenn sich der Großteil der Seite mit der Auswahl ändert, und [Tabs](#tabs), wenn das nur für einen Teil der Seite gilt. Das an Agenten gerichtete Markdown enthält jede Ansicht, jeweils unter ihrem Namen.
+
 ## Badge
 
 Ein kleines Inline-Label für Status oder Metadaten – Versionskennzeichen, „new“- oder „beta“-Markierungen, Stabilitätsstufen. Die `variant` stimmt die Farbe auf die Bedeutung ab.
@@ -515,7 +545,7 @@ Ein **Prop / Type**-Raster, in dem sich jede Zeile ausklappen lässt, um ihre Be
 
 ### Auto type table
 
-Erzeuge eine Typtabelle aus einem TypeScript-Typ, damit die Dokumentation mit dem Quellcode synchron bleibt. Richte `AutoTypeTable` mit `path` (relativ zum Projektstammverzeichnis aufgelöst) und einem Typ-`name` auf eine Datei aus. Beschreibungen stammen aus JSDoc-Kommentaren, Standardwerte aus `@default`-Tags, und optionale Eigenschaften (`?`) werden entsprechend markiert.
+Erzeuge eine Typtabelle aus einem TypeScript-Typ, damit die Dokumentation mit dem Quellcode synchron bleibt. Richte `AutoTypeTable` mit `path` (aufgelöst relativ zu deinem Projektstammverzeichnis, dem Ordner, in dem du `blume` ausführst) und einem Typ-`name` auf eine Datei aus. Beschreibungen stammen aus JSDoc-Kommentaren, Standardwerte aus `@default`-Tags, und optionale Eigenschaften (`?`) werden entsprechend markiert.
 
 ```astro
 <AutoTypeTable path="./src/button.ts" name="ButtonProps" />
@@ -559,6 +589,82 @@ export interface ButtonProps {
 />
 ```
 
+## API fields
+
+Zeilen, mit denen du einen Endpunkt Feld für Feld von Hand dokumentierst, gestaltet wie die generierte [OpenAPI-Referenz](/docs/references/openapi). `ParamField` ist ein Anfrageparameter, benannt über das Attribut, das angibt, wohin er gehört: `path`, `query`, `header` oder `body`. `ResponseField` ist ein Feld der Antwort, benannt über `name`. Beide nehmen `type`, `required`, `deprecated` und ein `default` entgegen, wobei die Beschreibung ihr Inhalt ist; `ResponseField` nimmt außerdem `pre`- und `post`-Beschriftungen rund um den Namen entgegen.
+
+<ParamField path="userId" type="string" required>
+  Die Benutzer-ID.
+</ParamField>
+
+<ParamField query="limit" type="integer" default={20}>
+  Wie viele Ergebnisse zurückgegeben werden, maximal 100.
+</ParamField>
+
+<ResponseField name="plan" type="string" post={["beta"]}>
+  Der Tarif des Benutzerkontos.
+</ResponseField>
+
+```mdx lineNumbers
+<ParamField path="userId" type="string" required>
+  The user's ID.
+</ParamField>
+
+<ParamField query="limit" type="integer" default={20}>
+  How many results to return, up to 100.
+</ParamField>
+
+<ResponseField name="plan" type="string" post={["beta"]}>
+  The user's plan.
+</ResponseField>
+```
+
+Verschachtle die Felder eines Objekts mit einem [`Expandable`](#expandable) in seiner Beschreibung:
+
+```mdx lineNumbers
+<ResponseField name="address" type="object">
+  Where the order ships.
+
+  <Expandable title="properties">
+    <ResponseField name="city" type="string" required>
+      City name.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+```
+
+Auf einer Seite mit `api`-Frontmatter bauen die `ParamField`s außerdem das „Try it“-Panel und die Anfragebeispiele der Seite auf: siehe [Handgeschriebene API-Seiten](/docs/references/api-pages). Die Felder verwenden dieselben Namen und Props wie bei Mintlify, sodass dafür geschriebene Seiten unverändert rendern. Die Markdown-Kopie der Seite listet jedes Feld mit seinem Typ und seinen Flags auf.
+
+### Anfrage- und Antwortbeispiele [#request-and-response-examples]
+
+`RequestExample` und `ResponseExample` enthalten Codeblöcke, ein Tab pro betiteltem Code-Fence (`dropdown` wechselt wie bei [`CodeGroup`](#codegroup) zu einem Sprachmenü). Auf breiten Bildschirmen heften sie sich an eine Spalte neben der Seite, die Anfrage über der Antwort, und bleiben sichtbar, während die Leserschaft durch die Felder scrollt – so wie die Beispiele einer OpenAPI-Operation; die Seite verzichtet dafür auf ihr Inhaltsverzeichnis. Auf schmalen Bildschirmen folgen sie dem Seiteninhalt.
+
+````mdx lineNumbers
+<RequestExample>
+
+```bash cURL
+curl --request POST https://api.acme.dev/v1/users \
+  --header "Authorization: Bearer $ACME_TOKEN" \
+  --data '{ "email": "ada@example.com" }'
+```
+
+```ts title="Acme SDK"
+await acme.users.create({ email: "ada@example.com" });
+```
+
+</RequestExample>
+
+<ResponseExample>
+
+```json 201
+{ "id": "usr_8f2k", "status": "invited" }
+```
+
+</ResponseExample>
+````
+
+Schreibe sie an eine beliebige Stelle auf der obersten Ebene der Seite; jedes wandert in die Spalte. Ist eines in eine andere Komponente verschachtelt, etwa in einen `Tab`, bleibt es dort, wo es steht.
+
 ## GitHub info
 
 Eine Karte, die auf ein GitHub-Repository verlinkt und dessen Stern- und Fork-Zahlen anzeigt. Die Zahlen werden zur Build-Zeit abgerufen – kein Client-JavaScript –, daher zeigen sie den Stand deines letzten Builds und keine Live-Werte; die Karte wird auch ohne sie gerendert, wenn die API nicht erreichbar ist. Übergib `owner` und `repo` oder lass beides weg, um das Repository aus deiner `blume.config` zu verwenden. Setze eine Umgebungsvariable `GITHUB_TOKEN`, um das API-Ratenlimit anzuheben; eine `token`-Prop überschreibt sie für eine einzelne Karte, aber die Umgebungsvariable hält das Token aus deinen Inhalten heraus.
@@ -580,7 +686,7 @@ Die Karte liest die Instanz aus [`github.host`](/docs/configuration#github-enter
 
 ## Component
 
-`Component` rendert eine Beispieldatei aus dem Verzeichnis `examples/` deines Projekts als Live-Vorschau neben ihrem hervorgehobenen Quellcode, in Tabs. Richte es mit `path` auf eine Datei aus – ihr Ort unterhalb von `examples/`, ohne Erweiterung (aus `examples/counter.tsx` wird also `path="counter"`). React-, Vue-, Svelte- und Astro-Beispiele werden alle unterstützt; Framework-Beispiele hydrieren, Astro-Beispiele werden statisch gerendert. So bleiben Vorschau und Code aus einer einzigen Datei synchron.
+`Component` rendert eine Beispieldatei aus dem Verzeichnis `examples/` deines Projekts als Live-Vorschau neben ihrem hervorgehobenen Quellcode, in Tabs. Richte es mit `path` auf eine Datei aus – ihr Ort unterhalb von `examples/`, ohne Erweiterung (aus `examples/counter.tsx` wird also `path="counter"`). React-, Vue-, Svelte- und Astro-Beispiele werden alle unterstützt; Framework-Beispiele hydrieren, Astro-Beispiele werden statisch gerendert. So bleiben Vorschau und Code aus einer einzigen Datei synchron. Ein `path`, der auf kein Beispiel verweist, rendert stattdessen einen „No example found“-Kasten, und `blume dev`, `blume build` und [`blume doctor`](/docs/cli/doctor) warnen an der entsprechenden Zeile davor (`BLUME_EXAMPLE_NOT_FOUND`).
 
 Die Vorschau rendert in einem isolierten Rahmen, den die Doku-Styles nie erreichen – keine Fließtext-Abstände, Typografie oder Theme-Elemente sickern in deine Komponente. Der Rahmen erhält Tailwind (Preflight + Utilities, die aus deinem Projekt und deinem Beispielverzeichnis gescannt werden), Blumes Design-Tokens, sodass Klassen wie `bg-background` standardmäßig der Website-Palette folgen, und er folgt der Hell-/Dunkel-Umschaltung der Website in Echtzeit. Der Bereich passt seine Größe an das gerenderte Beispiel an – und verfolgt das weiter, falls das Beispiel nach dem Laden wächst oder schrumpft – wobei die Tabs „Preview“ und „Code“ dieselbe Höhe teilen, sodass das Umschalten die Seite nie verschiebt.
 

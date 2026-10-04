@@ -12,6 +12,7 @@ import { CHECKS } from "./catalog.ts";
 import type { CheckId } from "./catalog.ts";
 import { assetChecks } from "./checks/assets.ts";
 import { contentChecks } from "./checks/content.ts";
+import { contrastChecks } from "./checks/contrast.ts";
 import { dnsAidChecks } from "./checks/dns-aid.ts";
 import { duplicateChecks } from "./checks/duplicates.ts";
 import { i18nChecks } from "./checks/i18n.ts";
@@ -51,6 +52,7 @@ const MODULES: CheckModule[] = [
   ogImageChecks,
   i18nChecks,
   assetChecks,
+  contrastChecks,
   sitemapChecks,
   robotsChecks,
   llmsChecks,
@@ -67,6 +69,8 @@ export interface AuditOptions {
   origin?: string;
   /** Probe outbound links (`--external`). */
   external?: boolean;
+  /** Outbound URLs not to probe (`--ignore`). */
+  ignore?: (url: string) => boolean;
   /** Only report these check ids or categories. */
   only?: string[];
   /** Suppress these check ids or categories. */
@@ -157,6 +161,7 @@ export const runAudit = async (options: AuditOptions): Promise<AuditResult> => {
       siteOrigin(project.config.deployment.options.site),
       normalizeBasePath(project.config.deployment.options.base)
     ),
+    ignore: options.ignore ?? (() => false),
     llms: crawl.llms,
     origin,
     pages: crawl.pages,

@@ -32,10 +32,12 @@ const link = (href: string, content = true) => ({
 describe("resolveHref under a deployment base", () => {
   it("reports a root-relative path without the base as outside it", () => {
     expect(resolveHref("/a", "/guide", SITE, BASE)).toEqual({
+      absolute: false,
       kind: "outside-base",
       path: "/guide",
     });
     expect(resolveHref("/a", `${SITE}/guide/`, SITE, BASE)).toEqual({
+      absolute: true,
       kind: "outside-base",
       path: "/guide",
     });
@@ -107,6 +109,23 @@ describe("link checks under a deployment base", () => {
     expect(broken.map((finding) => finding.message)).toEqual([
       "Navigation links to /guide, which the build does not serve.",
     ]);
+  });
+
+  it("leaves a full URL to another app on the same host alone", async () => {
+    // The host serves the docs under the base and another app beside them;
+    // a full URL is how a page links there (`/signup` on the product).
+    for (const content of [true, false]) {
+      // oxlint-disable-next-line no-await-in-loop -- two tiny sequential cases
+      const found = await findings(
+        linkChecks,
+        context({
+          base: BASE,
+          pages: pages(`${SITE}/signup`, content),
+          site: SITE,
+        })
+      );
+      expect(codes(found)).not.toContain("LINK_TO_BROKEN");
+    }
   });
 
   it("is silent when the link carries the base", async () => {

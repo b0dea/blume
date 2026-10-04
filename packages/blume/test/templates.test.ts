@@ -6,10 +6,13 @@ import { pathToFileURL } from "node:url";
 import { join } from "pathe";
 
 import {
+  anthropic,
   gateway,
+  gemini,
+  grok,
   inkeep,
   llmgateway,
-  openaiCompatible,
+  openai,
   openrouter,
   resolveAskBackend,
 } from "../src/ai/ask.ts";
@@ -42,6 +45,7 @@ import {
   navFragmentTemplate,
   ogEndpointTemplate,
   playgroundProxyTemplate,
+  rateLimitTemplate,
   rawMarkdownEndpointTemplate,
   rssEndpointTemplate,
   runtimeDependencies,
@@ -53,12 +57,19 @@ import {
   stagedContentDir,
   staticJsonEndpointTemplate,
 } from "../src/astro/templates.ts";
+import { hcaptcha, turnstile } from "../src/captcha/index.ts";
 import { mountBasePath, stripBasePath } from "../src/core/base-path.ts";
 import type { BlumeConfig } from "../src/core/config-input.ts";
 import { TOC_HIDDEN_KEY } from "../src/core/heading-markers.ts";
+import { routeSetFor, servesRoute } from "../src/core/locale-links.ts";
 import { blumeConfigSchema } from "../src/core/schema.ts";
 import type { ProjectContext } from "../src/core/types.ts";
 import { cloudflare, node, vercel } from "../src/deploy/adapters/index.ts";
+import {
+  cloudflare as cloudflareRateLimit,
+  memory,
+  upstash,
+} from "../src/ratelimit/index.ts";
 import { scalar } from "../src/reference/index.ts";
 import {
   algolia,
@@ -89,6 +100,7 @@ const ASK_PATH = "/p/.blume/src/generated/Ask.astro";
 const EXAMPLES_PATH = "/p/.blume/src/generated/examples.ts";
 const EXAMPLES_THEME_PATH = "/p/.blume/src/generated/examples.css";
 const SEARCH_CLIENT_PATH = "/p/.blume/src/generated/search-client.ts";
+const CONSENT_CLIENT_PATH = "/p/.blume/src/generated/consent-client.ts";
 const FEATURES_PATH = "/p/.blume/src/generated/features.ts";
 const THEME_PATH = "/p/.blume/src/generated/app.css";
 
@@ -128,6 +140,37 @@ const exportOpts = {
 };
 
 describe("catchAllPageTemplate", () => {
+  it("renders the narration player after the description unless the page opts out", () => {
+    const out = catchAllPageTemplate({ ...exportOpts, mathEnabled: false });
+    expect(out).toContain(
+      'import NarrationPlayer from "blume/components/layout/NarrationPlayer.astro";'
+    );
+    expect(out).toContain(
+      "const narration = pageChrome && frontmatter.narration ? data.config.narration : null;"
+    );
+    // The clips' and manifest's URLs are only set when the build generates them.
+    expect(out).toContain(
+      'audioBase={narration.generated ? withMountedBase("/blume-narration/audio/") : undefined}'
+    );
+    expect(out).toContain(
+      "manifest={narration.generated ? withMountedBase(encodeURI(`/blume-narration/"
+    );
+    const description = out.indexOf("frontmatter.description &&");
+    expect(out.indexOf("<NarrationPlayer")).toBeGreaterThan(description);
+    expect(out.indexOf("<NarrationPlayer")).toBeLessThan(
+      out.indexOf("<Content ")
+    );
+  });
+
+  it("leaves the title, description, and player to the page in a chrome-less mode", () => {
+    const out = catchAllPageTemplate({ ...exportOpts, mathEnabled: false });
+    expect(out).toContain(
+      "const pageChrome = pageModeLayout(frontmatter.mode).chrome;"
+    );
+    expect(out).toContain("{pageChrome && <h1>{title}</h1>}");
+    expect(out).toContain("pageMode={frontmatter.mode}");
+  });
+
   it("imports layout overrides and passes them to RootLayout", () => {
     const out = catchAllPageTemplate({ ...exportOpts, mathEnabled: false });
     expect(out).toContain(
@@ -163,7 +206,7 @@ describe("catchAllPageTemplate", () => {
       'import { mountBasePath, stripBasePath } from "blume/core/base-path.ts"'
     );
     expect(out).toContain(
-      "href: alt ? alt.path : mountLocalized(logicalRoute, l.code)"
+      "const href = alt ? alt.path : mountLocalized(logicalRoute, l.code);"
     );
     // Run the generated locale helpers and the fallback composition to pin
     // their behavior. The two slices are the locale prefix helpers and the
@@ -249,6 +292,82 @@ return i18n.locales.map((l) => mountLocalized(logicalRoute, l.code));
       "/reference",
       "/ja/reference",
       "/ko/reference",
+    ]);
+  });
+
+  it("leaves a locale out of the switcher when no page is served for it", () => {
+    const out = catchAllPageTemplate({ ...exportOpts, mathEnabled: false });
+    expect(out).toContain(
+      'import { routeSetFor, servesRoute } from "blume/core/locale-links.ts"'
+    );
+    // Run the locale helpers and the switcher block, as above.
+    const localeStart = out.indexOf("const localePrefix");
+    const localeEnd = out.indexOf("// Version resolution");
+    const switchStart = out.indexOf("const mountLocalized");
+    const switchEnd = out.indexOf("// Version switcher");
+    expect(switchEnd).toBeGreaterThan(switchStart);
+    const snippet = new Bun.Transpiler({ loader: "ts" }).transformSync(
+      `const switchFor = (i18n, data, route, locale, alternates, monolingual, mountBasePath, stripBasePath, routeSetFor, servesRoute) => {
+${out.slice(localeStart, localeEnd)}
+${out.slice(switchStart, switchEnd)}
+return localeSwitch.map((option) => [option.code, option.href, option.untranslated]);
+};`
+    );
+    type Switch = (
+      i18n: {
+        defaultLocale: string;
+        hideDefaultLocalePrefix: boolean;
+        locales: { code: string; dir: string; label: string }[];
+      },
+      data: { config: { basePath: string }; routes: { path: string }[] },
+      route: string,
+      locale: string,
+      alternates: { locale: string; path: string }[],
+      monolingual: boolean,
+      mount: typeof mountBasePath,
+      strip: typeof stripBasePath,
+      routeSet: typeof routeSetFor,
+      serves: typeof servesRoute
+    ) => [string, string, boolean][];
+    // SAFETY: the generated snippet wrapped above declares `switchFor` with
+    // exactly the parameter list and return asserted by `Switch`.
+    // oxlint-disable-next-line no-new-func -- evaluating our own generated output
+    const switchFor = new Function(`${snippet}\nreturn switchFor;`)() as Switch;
+    const i18n = {
+      defaultLocale: "en",
+      hideDefaultLocalePrefix: true,
+      locales: [
+        { code: "en", dir: "ltr", label: "English" },
+        { code: "fr", dir: "ltr", label: "Français" },
+        { code: "ja", dir: "ltr", label: "日本語" },
+      ],
+    };
+    const on = (routes: string[]) =>
+      switchFor(
+        i18n,
+        { config: { basePath: "" }, routes: routes.map((path) => ({ path })) },
+        "/guide",
+        "en",
+        [
+          { locale: "en", path: "/guide" },
+          { locale: "fr", path: "/fr/guide" },
+        ],
+        false,
+        mountBasePath,
+        stripBasePath,
+        routeSetFor,
+        servesRoute
+      );
+    // With fallbacks on, the missing Japanese page has a fallback copy to link.
+    expect(on(["/guide", "/fr/guide", "/ja/guide"])).toEqual([
+      ["en", "/guide", false],
+      ["fr", "/fr/guide", false],
+      ["ja", "/ja/guide", true],
+    ]);
+    // With `fallbackLocale: null` nothing is served there, so it's left out.
+    expect(on(["/guide", "/fr/guide"])).toEqual([
+      ["en", "/guide", false],
+      ["fr", "/fr/guide", false],
     ]);
   });
 
@@ -610,6 +729,12 @@ describe("changelogIndexTemplate", () => {
     expect(out).toContain("<h1>{changelogTitle}</h1>");
     expect(out).toContain("description: changelogDescription,");
     expect(out).not.toContain("<h1>Changelog</h1>");
+    // So is the line an index with no entries shows.
+    expect(out).toContain(
+      'const changelogEmpty = data.ui.changelog?.empty ?? "No changelog entries yet.";'
+    );
+    expect(out).toContain("<p>{changelogEmpty}</p>");
+    expect(out).not.toContain("<p>No changelog entries yet.</p>");
     // The island-hooks snapshot reuses the same localized page title.
     const reactOut = changelogIndexTemplate({
       ...changelogOpts,
@@ -895,9 +1020,9 @@ describe("runtimeDependencies", () => {
     ).toContain("probe-analytics-sdk");
   });
 
-  it("never declares the React Compiler plugin as a runtime dep (it's resolved by absolute path)", () => {
+  it("never declares the React Compiler as a runtime dep (it's a build-time transform)", () => {
     expect(runtimeDependencies({ config, needsReact: true })).not.toContain(
-      "babel-plugin-react-compiler"
+      "oxc-transform-react"
     );
   });
 });
@@ -935,6 +1060,7 @@ describe("astroConfigTemplate", () => {
     const out = astroConfigTemplate({
       askPath: ASK_PATH,
       config: configured,
+      consentClientPath: CONSENT_CLIENT_PATH,
       contentRoutes: [],
       context: context(),
       examplesPath: EXAMPLES_PATH,
@@ -972,6 +1098,7 @@ describe("astroConfigTemplate", () => {
     const out = astroConfigTemplate({
       askPath: ASK_PATH,
       config,
+      consentClientPath: CONSENT_CLIENT_PATH,
       contentRoutes: [],
       context: context(),
       examplesPath: EXAMPLES_PATH,
@@ -1013,6 +1140,9 @@ describe("astroConfigTemplate", () => {
     expect(out).not.toContain('"blume:data":');
     expect(out).not.toContain('"blume:openapi":');
     expect(out).toContain('"blume:ask": "/p/.blume/src/generated/Ask.astro"');
+    expect(out).toContain(
+      '"blume:consent-client": "/p/.blume/src/generated/consent-client.ts"'
+    );
     expect(out).toContain(
       'includeHmrPlugin("/p/.blume/src/generated/includes.json")'
     );
@@ -1093,6 +1223,7 @@ describe("astroConfigTemplate", () => {
     const out = astroConfigTemplate({
       askPath: ASK_PATH,
       config: serverConfig,
+      consentClientPath: CONSENT_CLIENT_PATH,
       contentRoutes: [],
       context: context(),
       examplesPath: EXAMPLES_PATH,
@@ -1119,13 +1250,62 @@ describe("astroConfigTemplate", () => {
     expect(out).toContain('import react from "@astrojs/react"');
     expect(out).toContain('import vue from "@astrojs/vue"');
     expect(out).toContain('import svelte from "@astrojs/svelte"');
-    // No reactCompilerPath passed, so react() carries no babel block
-    // (compiler off) — only the pre-bundle exclude.
+    // No reactCompiler passed, so react() leaves the compiler off — only the
+    // pre-bundle exclude.
     expect(out).toContain(
-      String.raw`react({ exclude: [/\/node_modules\/\.vite\//, /\/\.cache\/vite\//] })`
+      String.raw`react({ exclude: [/\/\.cache\/vite\//] })`
     );
     expect(out).toContain("vue()");
     expect(out).toContain("svelte()");
+    // Without `allowedDomains`, Astro trusts no forwarded header.
+    expect(out).not.toContain("security:");
+  });
+
+  it("sets node()'s allowedDomains as Astro's, not as an adapter option", () => {
+    const out = astroConfigTemplate({
+      askPath: ASK_PATH,
+      config: blumeConfigSchema.parse({
+        deployment: node({
+          allowedDomains: [{ hostname: "docs.example.com", protocol: "https" }],
+          site: "https://docs.example.com",
+          staticHeaders: true,
+        }),
+      }),
+      consentClientPath: CONSENT_CLIENT_PATH,
+      contentRoutes: [],
+      context: context(),
+      examplesPath: EXAMPLES_PATH,
+      examplesThemePath: EXAMPLES_THEME_PATH,
+      featuresPath: FEATURES_PATH,
+      needsReact: false,
+      pages: [],
+      searchClientPath: SEARCH_CLIENT_PATH,
+      themePath: THEME_PATH,
+    });
+    // Behind a proxy, Astro reads the reader's address from X-Forwarded-For
+    // only for a host `security.allowedDomains` lists.
+    expect(out).toContain(
+      'security: {"allowedDomains":[{"hostname":"docs.example.com","protocol":"https"}]},'
+    );
+    expect(out).toContain(
+      'adapter: adapter({"mode":"standalone","staticHeaders":true})'
+    );
+  });
+
+  it("rejects an allowedDomains entry Astro wouldn't take", () => {
+    // A misspelled field, as a JavaScript config could pass it.
+    const result = blumeConfigSchema.safeParse({
+      deployment: {
+        ...node(),
+        options: { allowedDomains: [{ host: "docs.example.com" }] },
+      },
+    });
+    expect(result.error?.issues[0]?.path).toStrictEqual([
+      "deployment",
+      "options",
+      "allowedDomains",
+      0,
+    ]);
   });
 
   it("writes deployment.base into a redirect destination, not into `from`", () => {
@@ -1137,6 +1317,7 @@ describe("astroConfigTemplate", () => {
     const out = astroConfigTemplate({
       askPath: ASK_PATH,
       config: basedConfig,
+      consentClientPath: CONSENT_CLIENT_PATH,
       contentRoutes: [],
       context: context(),
       examplesPath: EXAMPLES_PATH,
@@ -1163,6 +1344,7 @@ describe("astroConfigTemplate", () => {
     const out = astroConfigTemplate({
       askPath: ASK_PATH,
       config: basedConfig,
+      consentClientPath: CONSENT_CLIENT_PATH,
       contentRoutes: [],
       context: context(),
       examplesPath: EXAMPLES_PATH,
@@ -1184,12 +1366,11 @@ describe("astroConfigTemplate", () => {
     expect(out).toContain('"/manual/new"');
   });
 
-  it("carries the React Compiler babel plugin when a compiler path is given", () => {
-    const compilerPath =
-      "/abs/node_modules/babel-plugin-react-compiler/dist/index.js";
+  it("turns the React Compiler on when asked", () => {
     const out = astroConfigTemplate({
       askPath: ASK_PATH,
       config,
+      consentClientPath: CONSENT_CLIENT_PATH,
       contentRoutes: [],
       context: context(),
       examplesPath: EXAMPLES_PATH,
@@ -1197,24 +1378,25 @@ describe("astroConfigTemplate", () => {
       featuresPath: FEATURES_PATH,
       needsReact: true,
       pages: [],
-      reactCompilerPath: compilerPath,
+      reactCompiler: true,
       searchClientPath: SEARCH_CLIENT_PATH,
       themePath: THEME_PATH,
     });
     expect(out).toContain(
-      `react({ babel: { plugins: [[${JSON.stringify(compilerPath)}, { target: "19" }]] }, ${String.raw`exclude: [/\/node_modules\/\.vite\//, /\/\.cache\/vite\//]`} })`
+      String.raw`react({ compiler: true, exclude: [/\/\.cache\/vite\//] })`
     );
-    // The Babel-injected `react/compiler-runtime` import is invisible to the
+    // The compiler-injected `react/compiler-runtime` import is invisible to the
     // optimizer's source scan, so it must ride the include list — otherwise its
     // first request triggers a mid-session re-optimization whose new generation
     // duplicates React and tears down every hydrated island (#157).
     expect(out).toContain('"react/compiler-runtime"');
   });
 
-  it("omits the compiler babel plugin when no compiler path is given", () => {
+  it("leaves the React Compiler off when not asked", () => {
     const out = astroConfigTemplate({
       askPath: ASK_PATH,
       config,
+      consentClientPath: CONSENT_CLIENT_PATH,
       contentRoutes: [],
       context: context(),
       examplesPath: EXAMPLES_PATH,
@@ -1227,9 +1409,9 @@ describe("astroConfigTemplate", () => {
     });
     expect(out).toContain('import react from "@astrojs/react"');
     expect(out).toContain(
-      String.raw`react({ exclude: [/\/node_modules\/\.vite\//, /\/\.cache\/vite\//] })`
+      String.raw`react({ exclude: [/\/\.cache\/vite\//] })`
     );
-    expect(out).not.toContain("babel-plugin-react-compiler");
+    expect(out).not.toContain("compiler: true");
     // No compiler, no injected runtime import — keep it out of the optimizer.
     expect(out).not.toContain('"react/compiler-runtime"');
   });
@@ -1241,6 +1423,7 @@ describe("astroConfigTemplate", () => {
     const out = astroConfigTemplate({
       askPath: ASK_PATH,
       config: cloudflareConfig,
+      consentClientPath: CONSENT_CLIENT_PATH,
       contentRoutes: [],
       context: context(),
       examplesPath: EXAMPLES_PATH,
@@ -1264,6 +1447,7 @@ describe("astroConfigTemplate", () => {
     const out = astroConfigTemplate({
       askPath: ASK_PATH,
       config: cloudflareConfig,
+      consentClientPath: CONSENT_CLIENT_PATH,
       contentRoutes: [],
       context: context(),
       examplesPath: EXAMPLES_PATH,
@@ -1290,6 +1474,7 @@ describe("astroConfigTemplate", () => {
     const out = astroConfigTemplate({
       askPath: ASK_PATH,
       config: nodeConfig,
+      consentClientPath: CONSENT_CLIENT_PATH,
       contentRoutes: [],
       context: context(),
       examplesPath: EXAMPLES_PATH,
@@ -1317,6 +1502,7 @@ describe("astroConfigTemplate", () => {
       const out = astroConfigTemplate({
         askPath: ASK_PATH,
         config: cloudflareConfig,
+        consentClientPath: CONSENT_CLIENT_PATH,
         contentRoutes: [],
         context: context({
           outDir: join(root, ".blume"),
@@ -1353,6 +1539,7 @@ describe("astroConfigTemplate", () => {
       const out = astroConfigTemplate({
         askPath: ASK_PATH,
         config: cloudflareConfig,
+        consentClientPath: CONSENT_CLIENT_PATH,
         contentRoutes: [],
         context: context({
           outDir: root,
@@ -1379,6 +1566,7 @@ describe("astroConfigTemplate", () => {
     const out = astroConfigTemplate({
       askPath: ASK_PATH,
       config: vercelConfig,
+      consentClientPath: CONSENT_CLIENT_PATH,
       contentRoutes: [],
       context: context(),
       examplesPath: EXAMPLES_PATH,
@@ -1404,6 +1592,7 @@ describe("astroConfigTemplate", () => {
       config: blumeConfigSchema.parse({
         deployment: vercel(),
       }),
+      consentClientPath: CONSENT_CLIENT_PATH,
       contentRoutes: [],
       context: context(),
       examplesPath: EXAMPLES_PATH,
@@ -1431,6 +1620,7 @@ describe("astroConfigTemplate", () => {
       config: blumeConfigSchema.parse({
         deployment: vercel(),
       }),
+      consentClientPath: CONSENT_CLIENT_PATH,
       contentRoutes: [],
       context: context({
         distDir: "/p/.blume-verify/dist",
@@ -1455,6 +1645,7 @@ describe("astroConfigTemplate", () => {
     const out = astroConfigTemplate({
       askPath: ASK_PATH,
       config: blumeConfigSchema.parse({ deployment: vercel() }),
+      consentClientPath: CONSENT_CLIENT_PATH,
       contentRoutes: [],
       context: context({ distDir: "./dist", outDir: ".", root: "." }),
       examplesPath: EXAMPLES_PATH,
@@ -1477,6 +1668,7 @@ describe("astroConfigTemplate", () => {
     const out = astroConfigTemplate({
       askPath: ASK_PATH,
       config,
+      consentClientPath: CONSENT_CLIENT_PATH,
       contentRoutes: [],
       context: context({ distDir: "./dist", outDir: ".", root: "." }),
       examplesPath: EXAMPLES_PATH,
@@ -1498,6 +1690,7 @@ describe("astroConfigTemplate", () => {
     const out = astroConfigTemplate({
       askPath: ASK_PATH,
       config,
+      consentClientPath: CONSENT_CLIENT_PATH,
       contentRoutes: [],
       context: context(),
       examplesPath: EXAMPLES_PATH,
@@ -1563,6 +1756,7 @@ describe("astroConfigTemplate", () => {
       config: blumeConfigSchema.parse({
         deployment: node(),
       }),
+      consentClientPath: CONSENT_CLIENT_PATH,
       contentRoutes: [],
       context: context(),
       examplesPath: EXAMPLES_PATH,
@@ -1582,6 +1776,7 @@ describe("astroConfigTemplate", () => {
       aliases: { "@": "/proj/src", "@ui": "/proj/src/components/ui" },
       askPath: ASK_PATH,
       config,
+      consentClientPath: CONSENT_CLIENT_PATH,
       contentRoutes: [],
       context: context(),
       examplesPath: EXAMPLES_PATH,
@@ -1605,6 +1800,7 @@ describe("astroConfigTemplate", () => {
       aliases: { "@": "/proj/src", "@ui": "/proj/src/components/ui" },
       askPath: ASK_PATH,
       config,
+      consentClientPath: CONSENT_CLIENT_PATH,
       contentRoutes: [],
       context: context({ pagesRoot: "/p/pages" }),
       examplesPath: EXAMPLES_PATH,
@@ -1644,6 +1840,7 @@ describe("astroConfigTemplate workspace root", () => {
     const out = astroConfigTemplate({
       askPath: ASK_PATH,
       config,
+      consentClientPath: CONSENT_CLIENT_PATH,
       contentRoutes: [],
       context: context({
         contentRoot: join(root, "docs"),
@@ -1783,7 +1980,11 @@ const EVERY_ADAPTER = [
   openrouter({ model: "x/y" }),
   llmgateway({ model: "m" }),
   inkeep({ model: "m" }),
-  openaiCompatible(COMPATIBLE),
+  openai({ model: "m" }),
+  openai(COMPATIBLE),
+  anthropic({ model: "m" }),
+  gemini({ model: "m" }),
+  grok({ model: "m" }),
 ];
 
 describe("askEndpointTemplate", () => {
@@ -1806,7 +2007,7 @@ describe("askEndpointTemplate", () => {
     expect(out).not.toContain("OPTIONS");
     expect(out).not.toContain("blume/ai/cors.ts");
     expect(out).toContain(
-      "export const POST: APIRoute = async ({ request }) => {"
+      "export const POST: APIRoute = async (context) => {\n  const { request } = context;"
     );
     expect(out).toContain("{ status: 400 }");
     expect(out).toContain(
@@ -1832,7 +2033,7 @@ describe("askEndpointTemplate", () => {
     // errors — carries the headers without each `return` opting in, and a
     // cross-origin caller can read a 400 or 500 instead of an opaque failure.
     expect(out).toContain(
-      "export const POST: APIRoute = withCors(ALLOWED_ORIGINS, async ({ request }) => {"
+      "export const POST: APIRoute = withCors(ALLOWED_ORIGINS, async (context) => {\n  const { request } = context;"
     );
     expect(out).toContain("  }\n});\n");
     expect(out).toContain("{ status: 400 }");
@@ -1963,11 +2164,50 @@ describe("askEndpointTemplate", () => {
     expect(out).not.toContain("reasoning");
   });
 
+  it("generates the OpenAI route through OpenAI's own SDK", () => {
+    const out = askEndpointTemplate(
+      backendFor({
+        enabled: true,
+        provider: openai({ model: "gpt-5.5", reasoning: "low" }),
+      })
+    );
+    expect(out).toContain('import { createOpenAI } from "@ai-sdk/openai";');
+    expect(out).not.toContain("@ai-sdk/openai-compatible");
+    expect(out).toContain(
+      'const provider = createOpenAI({\n  apiKey: getSecret("OPENAI_API_KEY"),\n});'
+    );
+    expect(out).toContain('if (!getSecret("OPENAI_API_KEY"))');
+    expect(out).toContain("const ground = createAskContext(askData);");
+    expect(out).toContain(
+      'model: provider("gpt-5.5"),\n      instructions,\n      messages,\n      reasoning: "low",\n      onError({ error })'
+    );
+  });
+
+  it("generates the Anthropic, Gemini, and Grok routes through their own SDKs", () => {
+    for (const [provider, factory, pkg] of [
+      [
+        anthropic({ model: "claude-sonnet-5" }),
+        "createAnthropic",
+        "@ai-sdk/anthropic",
+      ],
+      [gemini({ model: "gemini-3.5-flash" }), "createGoogle", "@ai-sdk/google"],
+      [grok({ model: "grok-4.7" }), "createXai", "@ai-sdk/xai"],
+    ] as const) {
+      const out = askEndpointTemplate(backendFor({ enabled: true, provider }));
+      expect(out).toContain(`import { ${factory} } from "${pkg}";`);
+      expect(out).toContain(`const provider = ${factory}({`);
+      expect(out).toContain(
+        `model: provider(${JSON.stringify(provider.options.model)}),`
+      );
+      expect(out).toContain("const ground = createAskContext(askData);");
+    }
+  });
+
   it("generates the OpenAI-compatible route from the configured endpoint", () => {
     const out = askEndpointTemplate(
       backendFor({
         enabled: true,
-        provider: openaiCompatible({
+        provider: openai({
           ...COMPATIBLE,
           name: "acme",
           reasoning: "low",
@@ -1994,7 +2234,9 @@ describe("askEndpointTemplate", () => {
       openrouter({ model: "x/y", providerOptions, reasoning: "low" }),
       llmgateway({ model: "m", providerOptions }),
       inkeep({ model: "m", providerOptions }),
-      openaiCompatible({ ...COMPATIBLE, providerOptions }),
+      openai({ model: "m", providerOptions }),
+      openai({ ...COMPATIBLE, providerOptions }),
+      anthropic({ model: "m", providerOptions }),
     ]) {
       expect(
         askEndpointTemplate(backendFor({ enabled: true, provider }))
@@ -2037,7 +2279,7 @@ describe("askEndpointTemplate", () => {
     const compatible = askEndpointTemplate(
       backendFor({
         enabled: true,
-        provider: openaiCompatible({ ...COMPATIBLE, headers }),
+        provider: openai({ ...COMPATIBLE, headers }),
       })
     );
     // Sits between the key and the name so the API key's `Authorization`
@@ -2268,22 +2510,23 @@ describe("static endpoint templates", () => {
   });
 
   it("proxies mixedbread queries with the store id and every other option", () => {
-    const out = mixedbreadSearchEndpointTemplate({
-      search_options: { rerank: true },
-      storeId: "store_42",
-      top_k: 3,
-    });
-    expect(out).toContain(
-      'const OPTIONS = {"search_options":{"rerank":true},"storeId":"store_42","top_k":3}'
+    const out = mixedbreadSearchEndpointTemplate(
+      {
+        search_options: { rerank: true },
+        storeId: "store_42",
+        top_k: 3,
+      },
+      [["docs/index.md", { title: "Home", url: "/" }]]
     );
+    expect(out).toContain('const STORE_ID = "store_42";');
+    expect(out).toContain('const SEARCH_OPTIONS = {"top_k":3};');
+    expect(out).toContain('const SEARCH_TUNING = {"rerank":true};');
+    expect(out).toContain('[["docs/index.md",{"title":"Home","url":"/"}]]');
     // Every option but the store reaches the search call: `top_k` only
     // defaults to 8, while the query and store stay the request's and
-    // `storeId`'s.
+    // `storeId`'s, and file metadata is always returned.
     expect(out).toContain(
-      "const { storeId: STORE_ID, ...SEARCH_OPTIONS } = OPTIONS;"
-    );
-    expect(out).toContain(
-      "client.stores.search({\n    top_k: 8,\n    ...SEARCH_OPTIONS,\n    query,\n    store_identifiers: [STORE_ID],\n  })"
+      "client.stores.search({\n    top_k: 8,\n    ...SEARCH_OPTIONS,\n    query,\n    search_options: { ...SEARCH_TUNING, return_metadata: true },\n    store_identifiers: [STORE_ID],\n  })"
     );
   });
 
@@ -2463,6 +2706,7 @@ describe("package / tsconfig templates", () => {
     const out = astroConfigTemplate({
       askPath: "./src/generated/Ask.astro",
       config,
+      consentClientPath: "./src/generated/consent-client.ts",
       contentRoutes: ["/guide"],
       context: context(),
       examplesPath: "./src/generated/examples.ts",
@@ -2522,6 +2766,7 @@ describe("astroConfigTemplate image config", () => {
     astroConfigTemplate({
       askPath: ASK_PATH,
       config: parsed,
+      consentClientPath: CONSENT_CLIENT_PATH,
       contentRoutes: [],
       context: context(),
       examplesPath: EXAMPLES_PATH,
@@ -2570,5 +2815,102 @@ describe("contentAssetsEndpointTemplate", () => {
     // STAGED_DIR broke on Windows, where resolve() answers with backslashes.
     expect(out).toContain("const rel = relative(STAGED_DIR, abs);");
     expect(out).toContain('rel === "" || rel.startsWith("..") || isAbsolute');
+  });
+});
+
+describe(rateLimitTemplate, () => {
+  it("adds nothing when rate limiting is off", () => {
+    expect(rateLimitTemplate(null, "ask")).toStrictEqual({
+      check: "",
+      imports: [],
+      setup: "",
+    });
+    expect(rateLimitTemplate(undefined, "ask").check).toBe("");
+  });
+
+  it("builds a memory limiter and checks it per route", () => {
+    const limit = rateLimitTemplate(memory({ requests: 5 }), "ask");
+    expect(limit.imports).toStrictEqual([
+      'import { createLimiter, rateLimited } from "blume/ratelimit/runtime.ts";',
+    ]);
+    expect(limit.setup).toContain(
+      `const limiter = createLimiter(${JSON.stringify(memory({ requests: 5 }))});`
+    );
+    expect(limit.check).toContain(
+      'const limited = await rateLimited(limiter, context, "ask");'
+    );
+  });
+
+  it("hands Upstash its secrets and Cloudflare its binding", () => {
+    const shared = rateLimitTemplate(upstash(), "search");
+    expect(shared.imports).toContain(
+      'import { getSecret } from "astro:env/server";'
+    );
+    expect(shared.setup).toContain(", { secret: getSecret });");
+    const bound = rateLimitTemplate(cloudflareRateLimit(), "api-proxy");
+    expect(bound.imports).toContain(
+      'import { env } from "cloudflare:workers";'
+    );
+    expect(bound.setup).toContain(
+      ', { binding: Reflect.get(env, "BLUME_RATE_LIMIT") });'
+    );
+  });
+
+  it("checks the limit first in every server route", () => {
+    const ask = askEndpointTemplate(resolveAskBackend(), {
+      rateLimit: upstash(),
+    });
+    // One getSecret import serves the provider key and the limiter.
+    expect(ask.match(/from "astro:env\/server"/gu)).toHaveLength(1);
+    expect(ask).toContain(
+      '  const { request } = context;\n  const limited = await rateLimited(limiter, context, "ask");'
+    );
+    const proxy = playgroundProxyTemplate(["https://api.example"], memory());
+    expect(proxy).toContain(
+      'const limited = await rateLimited(limiter, context, "api-proxy");'
+    );
+    expect(proxy).toContain("return handler(context.request);");
+    const search = mixedbreadSearchEndpointTemplate(
+      { storeId: "s" },
+      [],
+      upstash()
+    );
+    expect(search.match(/from "astro:env\/server"/gu)).toHaveLength(1);
+    expect(search).toContain(
+      'const limited = await rateLimited(limiter, context, "search");'
+    );
+  });
+});
+
+describe("askEndpointTemplate bot check", () => {
+  it("verifies the question's token after the key check, before the model", () => {
+    const out = askEndpointTemplate(resolveAskBackend(), {
+      captcha: turnstile({ siteKey: "0x4" }),
+    });
+    expect(out).toContain(
+      'import { verifyCaptcha } from "blume/captcha/verify.ts";'
+    );
+    expect(out).toContain(
+      `const CAPTCHA = ${JSON.stringify(turnstile({ siteKey: "0x4" }))};`
+    );
+    expect(out).toContain(
+      '"The assistant is not configured: set TURNSTILE_SECRET_KEY."'
+    );
+    expect(out).toContain("status: 403");
+    const keyCheck = out.indexOf('getSecret("AI_GATEWAY_API_KEY") ||');
+    const check = out.indexOf("await verifyCaptcha(CAPTCHA, captchaToken");
+    const model = out.indexOf("streamText({");
+    expect(keyCheck).toBeGreaterThan(-1);
+    expect(check).toBeGreaterThan(keyCheck);
+    expect(model).toBeGreaterThan(check);
+  });
+
+  it("reads hCaptcha's own secret, and adds nothing without a check", () => {
+    expect(
+      askEndpointTemplate(resolveAskBackend(), {
+        captcha: hcaptcha({ siteKey: "10000000" }),
+      })
+    ).toContain('getSecret("HCAPTCHA_SECRET_KEY")');
+    expect(askEndpointTemplate(resolveAskBackend())).not.toContain("captcha");
   });
 });

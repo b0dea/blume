@@ -30,7 +30,12 @@ import type {
   ResolvedI18nConfig,
 } from "../src/core/schema.ts";
 import { resolveDocsCollection } from "../src/core/sources/collection.ts";
-import type { NavNode, PageRecord, ProjectContext } from "../src/core/types.ts";
+import type {
+  Navigation,
+  NavNode,
+  PageRecord,
+  ProjectContext,
+} from "../src/core/types.ts";
 import { UI_PACKS } from "../src/core/ui-packs/index.ts";
 
 type I18nInput = Partial<NonNullable<BlumeConfigInput["i18n"]>>;
@@ -71,6 +76,13 @@ const FILES = {
   "docs/guides/quickstart.mdx": "---\ntitle: Quickstart\n---\n# Quickstart\n",
   "docs/index.mdx": "---\ntitle: Home\n---\n# Home\n",
 };
+
+/** A navigation's first header action, call to action, and featured labels. */
+const headerLabels = (nav?: Navigation): (string | undefined)[] => [
+  nav?.actions?.[0]?.label,
+  nav?.cta?.label,
+  nav?.featured[0]?.label,
+];
 
 const buildProject = async (
   resolved: ResolvedConfig,
@@ -438,6 +450,46 @@ describe("per-locale navigation", () => {
     });
     const { graph } = await buildProject(resolved);
     expect(graph.navigation.tabs.map((tab) => tab.label)).toEqual(["Doku"]);
+  });
+
+  it("resolves per-locale header link labels, and first entries without i18n", async () => {
+    const navigation = {
+      actions: [{ href: "/status", label: { en: "Status", fr: "État" } }],
+      cta: {
+        href: "https://x.dev",
+        label: { en: "Sign up", fr: "S'inscrire" },
+      },
+      featured: [{ href: "/blog", label: { en: "Blog", fr: "Journal" } }],
+    };
+    const { graph } = await buildProject(
+      blumeConfigSchema.parse({
+        i18n: {
+          defaultLocale: "en",
+          locales: [
+            { code: "en", label: "English" },
+            { code: "fr", label: "Français" },
+            { code: "de", label: "Deutsch" },
+          ],
+        },
+        navigation,
+      })
+    );
+    expect(headerLabels(graph.navigationByLocale.fr)).toEqual([
+      "État",
+      "S'inscrire",
+      "Journal",
+    ]);
+    expect(headerLabels(graph.navigationByLocale.de)).toEqual([
+      "Status",
+      "Sign up",
+      "Blog",
+    ]);
+    const single = await buildProject(blumeConfigSchema.parse({ navigation }));
+    expect(headerLabels(single.graph.navigation)).toEqual([
+      "Status",
+      "Sign up",
+      "Blog",
+    ]);
   });
 
   it("localizes internal featured link hrefs per locale", async () => {
@@ -1081,7 +1133,7 @@ describe("UI dictionaries", () => {
     expect(EN_UI.actions.export).toBe("Export");
     expect(EN_UI.actions.generating).toBe("Generating…");
     expect(EN_UI.nav.sections).toBe("Sections");
-    expect(EN_UI.nav.toggleTheme).toBe("Toggle color theme");
+    expect(EN_UI.nav.toggleTheme).toBe("Toggle theme");
     expect(EN_UI.search.results).toBe("Results");
     expect(EN_UI.search.error).toBe("Something went wrong. Please try again.");
     expect(EN_UI.content.diagramError).toBe("Could not render this diagram.");
@@ -1135,9 +1187,13 @@ describe("UI dictionaries", () => {
     expect(EN_UI.changelog.description).toBe(
       "Product updates, new features, and fixes from every release."
     );
+    expect(EN_UI.changelog.empty).toBe("No changelog entries yet.");
     const dict = resolveUIStrings("fr", { defaultLocale: "en" });
     expect(dict.nav.breadcrumb).toBe("Fil d'Ariane");
     expect(dict.changelog.title).toBe("Journal des modifications");
+    expect(dict.changelog.empty).toBe(
+      "Aucune entrée dans le journal des modifications pour le moment."
+    );
     for (const [code, pack] of Object.entries(UI_PACKS)) {
       expect(pack.search?.all, `pack "${code}" misses search.all`).toBeTruthy();
       expect(
@@ -1156,6 +1212,42 @@ describe("UI dictionaries", () => {
         pack.changelog?.description,
         `pack "${code}" misses changelog.description`
       ).toBeTruthy();
+      expect(
+        pack.changelog?.empty,
+        `pack "${code}" misses changelog.empty`
+      ).toBeTruthy();
+    }
+  });
+
+  it("localizes the narration player and spoken cues in every shipped pack", () => {
+    // The page-narration player's chrome and the cues its voice speaks before
+    // a callout, step, tab, or collapsible section. Parameterized: `{n}` is
+    // the step number or minute count and `{title}` the tab's label, so every
+    // translation must carry its placeholder.
+    expect(EN_UI.narration.label).toBe("Listen to this page");
+    const de = resolveUIStrings("de", { defaultLocale: "en" });
+    expect(de.narration.label).toBe("Diese Seite anhören");
+    const keys = Object.keys(EN_UI.narration);
+    for (const [code, pack] of Object.entries(UI_PACKS)) {
+      expect(
+        Object.keys(pack.narration ?? {}),
+        `pack "${code}" narration keys differ from English`
+      ).toEqual(keys);
+      for (const [key, value] of Object.entries(pack.narration ?? {})) {
+        expect(value, `pack "${code}" misses narration.${key}`).toBeTruthy();
+      }
+      expect(
+        pack.narration?.cueStep,
+        `pack "${code}" narration.cueStep misses {n}`
+      ).toContain("{n}");
+      expect(
+        pack.narration?.minutes,
+        `pack "${code}" narration.minutes misses {n}`
+      ).toContain("{n}");
+      expect(
+        pack.narration?.cueTab,
+        `pack "${code}" narration.cueTab misses {title}`
+      ).toContain("{title}");
     }
   });
 

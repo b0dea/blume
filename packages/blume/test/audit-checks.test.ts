@@ -559,6 +559,16 @@ describe("link checks", () => {
     expect(run(linkChecks, ctx)).toContain("LINK_TO_REDIRECT");
   });
 
+  it("reports a link into a pattern redirect", () => {
+    const ctx = context({
+      pages: [snapshot({ links: [link("/beta/intro")], url: "/a" })],
+      redirects: [{ from: "/beta/:slug*", status: 301, to: "/a" }],
+    });
+    expect(run(linkChecks, ctx)).toContain("LINK_TO_REDIRECT");
+    // A pattern has no single chain to walk, so it reports nothing itself.
+    expect(run(redirectChecks, ctx)).toEqual([]);
+  });
+
   it("reports a nav link to a redirect once", () => {
     const pages = Array.from({ length: 3 }, (_, index) =>
       snapshot({ links: [link("/old", false)], url: `/p${index}` })
@@ -632,6 +642,32 @@ describe("link checks", () => {
       ],
     });
     expect(run(linkChecks, ctx)).toContain("ORPHAN_PAGE");
+  });
+
+  it("says when nothing links to an orphan, not even the sidebar", () => {
+    // A `sidebar.hidden` page is left out of every page's navigation.
+    const ctx = context({
+      pages: [
+        snapshot({ links: [link("/listed", false)], url: "/" }),
+        snapshot({ links: [], url: "/listed" }),
+        // Its own chrome linking back to it doesn't make it reachable.
+        snapshot({ links: [link("/hidden", false)], url: "/hidden" }),
+      ],
+    });
+    // SAFETY: the link checks run synchronously.
+    const found = linkChecks.run(ctx) as Diagnostic[];
+    expect(
+      found.map((diagnostic) => [diagnostic.url, diagnostic.message])
+    ).toStrictEqual([
+      [
+        "/listed",
+        "No other page's body links here — it is reachable only from the sidebar.",
+      ],
+      [
+        "/hidden",
+        "No page links here, from its body or from navigation, so readers and crawlers can't reach it.",
+      ],
+    ]);
   });
 
   it("does not report a page linked from another page's body", () => {
@@ -1270,8 +1306,59 @@ describe("robots rule matching (robots-parser semantics)", () => {
   });
 
   it("ignores rules scoped to another agent", () => {
+    // That rule is ROBOTS_BLOCKS_CRAWLER's finding (below), not this error.
     const raw = "User-agent: Googlebot\nDisallow: /x\n";
     expect(blocked(raw, `${SITE}/x`)).toBe(false);
+  });
+});
+
+describe("robots rules aimed at one crawler", () => {
+  const crawlerFindings = (raw: string, urls: string[]) =>
+    // SAFETY: the robots checks run synchronously.
+    (robotsChecks.run(robotsCtx(raw, urls)) as Diagnostic[])
+      .filter((d) => d.code === "BLUME_AUDIT_ROBOTS_BLOCKS_CRAWLER")
+      .map((d) => [d.severity, d.line, d.message]);
+
+  it("warns once per crawler, at the rule that blocks it", () => {
+    const raw = [
+      "User-agent: *",
+      "Allow: /",
+      "",
+      "User-agent: GPTBot/1.1",
+      "Disallow: /",
+      "",
+      "user-agent: gptbot # the same crawler, differently spelled",
+      "User-agent: Googlebot",
+      "Disallow: /private",
+    ].join("\n");
+    expect(
+      crawlerFindings(raw, [`${SITE}/`, `${SITE}/docs`, `${SITE}/private/x`])
+    ).toStrictEqual([
+      [
+        "warning",
+        5,
+        'robots.txt "Disallow: /" blocks GPTBot/1.1 from / and 2 more, which sitemap.xml advertises.',
+      ],
+      [
+        "warning",
+        9,
+        'robots.txt "Disallow: /private" blocks Googlebot from /private/x, which sitemap.xml advertises.',
+      ],
+    ]);
+  });
+
+  it("leaves a page every crawler is blocked from to the error", () => {
+    const raw =
+      "User-agent: *\nDisallow: /x\n\nUser-agent: Bingbot\nDisallow: /\n";
+    const ctx = robotsCtx(raw, [`${SITE}/x`]);
+    expect(run(robotsChecks, ctx)).toStrictEqual([
+      "ROBOTS_DISALLOWS_INDEXABLE",
+    ]);
+  });
+
+  it("is silent when a crawler's own group allows the page", () => {
+    const raw = "User-agent: *\nAllow: /\n\nUser-agent: ClaudeBot\nAllow: /\n";
+    expect(crawlerFindings(raw, [`${SITE}/x`])).toStrictEqual([]);
   });
 });
 

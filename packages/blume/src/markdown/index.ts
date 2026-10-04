@@ -9,6 +9,9 @@ import {
 import { escape as escapeHtml } from "html-escaper";
 import { codeToHtml } from "shiki";
 
+import { hasVariables } from "../core/variables.ts";
+import type { ContentVariables } from "../core/variables.ts";
+import { apiRailPlugin } from "./api-rail.ts";
 import { baseLinksPlugin } from "./base-links.ts";
 import { codeTitleTransformer } from "./code-title.ts";
 import { directiveToCalloutPlugin } from "./directives.ts";
@@ -26,6 +29,8 @@ import { tableWrapPlugin } from "./table-wrap.ts";
 import { DEFAULT_CODE_THEMES } from "./themes.ts";
 import type { CodeThemes } from "./themes.ts";
 import { ts2jsPlugin } from "./ts2js.ts";
+import { variablesPlugin } from "./variables.ts";
+import { viewsPlugin } from "./views.ts";
 
 export type { CodeTheme, CodeThemes } from "./themes.ts";
 
@@ -278,6 +283,12 @@ export interface BlumeMarkdownOptions {
    */
   deployBase?: string;
   /**
+   * `variables`: `{{name}}` references replaced in `.md` pages and in every
+   * included file (`.mdx` pages are substituted before parsing, by the
+   * `variablesVitePlugin`).
+   */
+  variables?: ContentVariables;
+  /**
    * The docs content root, bounding `<include>` target resolution (and
    * anchoring `/`-leading include paths). When unset, relative includes still
    * resolve from the including file. Also the base the `docs` collection's
@@ -326,7 +337,12 @@ const blumeSharedMdastPlugins = (
  * (callouts, mermaid, math, base links) like inline content.
  */
 const blumeIncludePlugin = (options: BlumeMarkdownOptions): MdastPlugin =>
-  asMdastPlugin(includePlugin({ contentRoot: options.contentRoot }));
+  asMdastPlugin(
+    includePlugin({
+      contentRoot: options.contentRoot,
+      variables: options.variables,
+    })
+  );
 
 /** Sätteri processor for plain `.md`, with Blume's curated feature set. */
 export const blumeMarkdownProcessor = (options: BlumeMarkdownOptions = {}) =>
@@ -335,6 +351,9 @@ export const blumeMarkdownProcessor = (options: BlumeMarkdownOptions = {}) =>
     hastPlugins: blumeHastPlugins(options),
     mdastPlugins: [
       blumeIncludePlugin(options),
+      ...(hasVariables(options.variables)
+        ? [asMdastPlugin(variablesPlugin(options.variables))]
+        : []),
       ...blumeSharedMdastPlugins(options),
     ],
   });
@@ -345,13 +364,15 @@ export type BlumeMdxOptions = BlumeMarkdownOptions;
  * Sätteri MDX processor: Blume's feature set plus the MDAST plugins that target
  * components — `package-install` → package-manager tabs, ` ```ts ts2js ` →
  * TypeScript/JavaScript tabs, `:::note` → `<Callout>`, ` ```mermaid ` → a
- * `<blume-mermaid>` element, and block math
- * (`$$…$$`) → the `<Math>` component. Used as the `processor` for
+ * `<blume-mermaid>` element, block math
+ * (`$$…$$`) → the `<Math>` component, and top-level `<RequestExample>` and
+ * `<ResponseExample>` → the page's `<ApiRail>`. Used as the `processor` for
  * `@astrojs/mdx` so these apply to `.mdx` only (plain `.md` uses
  * {@link blumeMarkdownProcessor}).
  *
- * Math is always on but block-only: `singleDollarTextMath: false` keeps a bare
- * `$` (currency, shell, code) as literal text and only parses `$$…$$`. The
+ * Math is always on and written `$$…$$`, as a block or inline:
+ * `singleDollarTextMath: false` keeps a bare `$` (currency, shell, code) as
+ * literal text. The
  * generated runtime imports the `<Math>` component (and KaTeX's stylesheet) only
  * when content actually uses `$$`, so a math-free site ships no KaTeX CSS.
  *
@@ -370,5 +391,7 @@ export const blumeMdxProcessor = (options: BlumeMdxOptions = {}) =>
       asMdastPlugin(mermaidPlugin()),
       asMdastPlugin(mathPlugin()),
       ...blumeSharedMdastPlugins(options),
+      asMdastPlugin(apiRailPlugin()),
+      asMdastPlugin(viewsPlugin()),
     ],
   });

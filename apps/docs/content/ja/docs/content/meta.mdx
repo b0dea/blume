@@ -35,6 +35,7 @@ Blume は、コンテンツの対象となるフォルダーにある `meta.ts` 
 | `order` | `number` | 兄弟のグループやページの中での位置。数値が小さいほど先に並びます。 |
 | `collapsed` | `boolean` | [`group` 表示モード](/docs/content/navigation#display-modes)において、グループを折りたたんだ状態で開始するかどうか。 |
 | `display` | `"flat" \| "group" \| "page"` | このグループの描画モード。グローバルの [`navigation.sidebar.display`](/docs/content/navigation#display-modes) を上書きします。 |
+| `directory` | `"card" \| "accordion" \| "none"` | グループのページを、その `index` ページのコンテンツの下に一覧表示します。ネストされたフォルダーはこれを継承します。[ディレクトリ一覧](/docs/content/navigation#directory-listings)を参照してください。 |
 | `pages` | `string[]` | スラッグによる、グループの子要素の明示的な順序。 |
 
 `pages` 配列は子要素をスラッグで列挙します — スラッグとは、フォルダー名またはファイル名から数値プレフィックスと括弧を取り除いたものです（つまり `01-quickstart.mdx` は `"quickstart"` になります）。列挙された各子要素は、配列内での位置がそのまま順序になります（`0`、`1`、`2`、…）。省略した子要素も表示され、それぞれ自身の順序で並びます: `index` ページは先頭のままとなり、`sidebar.order`、数値プレフィックス、または自身の `meta.ts` の `order` を持つ子要素は、その数値に従って列挙されたものの間に並び、これらのいずれも持たない子要素は列挙されたものの後に並びます。配列で順序全体を指定したい場合は、すべての子要素を列挙してください。

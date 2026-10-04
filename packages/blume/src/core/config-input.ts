@@ -2,15 +2,20 @@ import type { AstroIntegration } from "astro";
 import type { z } from "zod";
 
 import type { AskRetrievalOptions } from "../ai/ask-context.ts";
-import type { AssistantAdapter } from "../ai/ask.ts";
+import type { AssistantAdapter, AssistantGatewayAdapter } from "../ai/ask.ts";
 import type { ComponentMarkdown } from "../ai/component-markdown.ts";
 import type { AnalyticsAdapter } from "../analytics/schema.ts";
+import type { CaptchaAdapter } from "../captcha/schema.ts";
+import type { ConsentAdapter } from "../consent/schema.ts";
 import type { DeploymentInput } from "../deploy/adapters/registry.ts";
 import type { CodeTheme } from "../markdown/themes.ts";
+import type { RateLimitAdapter } from "../ratelimit/schema.ts";
+import type { PlaygroundOptions } from "../reference/options.ts";
 import type { ReferenceAdapter } from "../reference/schema.ts";
 import type { AnySearchAdapter } from "../search/adapters/registry.ts";
 import type { SourceAdapterInput } from "../sources/registry.ts";
 import type { FontSlug } from "../theme/fonts.ts";
+import type { FooterSocial } from "./footer.ts";
 import type {
   blumeConfigSchema,
   OpenInChatProvider,
@@ -92,20 +97,76 @@ export type LogoConfig =
 export type BannerConfig =
   | string
   | {
-      /** The banner message. */
-      content: string;
+      /** The banner message, or a map of locale code to message. */
+      content: LocalizableLabel;
       /** Show a dismiss button; the choice is remembered per visitor. */
       dismissible?: boolean;
-      /** Stable key for remembering dismissal; defaults to the content. */
+      /**
+       * Stable key for remembering dismissal; defaults to the content (the
+       * default locale's, for a per-locale map).
+       */
       id?: string;
       /** An optional call-to-action link. */
       link?: {
         /** Link target (internal route or external URL). */
         href: string;
-        /** Link text. */
-        text: string;
+        /** Link text, or a map of locale code to text. */
+        text: LocalizableLabel;
       };
     };
+
+/** Defaults for hand-written endpoint pages, the ones with `api` frontmatter. */
+export interface ApiConfig {
+  /** How requests authenticate, unless a page sets `authMethod`. Defaults to none. */
+  auth?: {
+    method: "bearer" | "basic" | "key" | "none";
+    /** The header an API key goes in. Defaults to `x-api-key`. */
+    name?: string;
+  };
+  /**
+   * The Try it panel: `false` hides it, and `{ proxy }` sends requests through
+   * a CORS proxy, a URL or `true` for the built-in `/_api-proxy` route (server
+   * output only). Defaults to `true`, sending directly.
+   */
+  playground?: PlaygroundOptions;
+  /** The base URL an `api` path joins, like `https://api.acme.com/v1`. */
+  server?: string;
+}
+
+/** A link in the footer's row. */
+export interface FooterLink {
+  /** Link target (internal route or external URL). An external href opens in a new tab. */
+  href: string;
+  /** Link text, or a map of locale code to text. */
+  label: LocalizableLabel;
+}
+
+/**
+ * The site footer, below the content on every page: a row of links on one
+ * side, and social profile icons on the other.
+ */
+export interface FooterConfig {
+  /** Links in one row, left to right. */
+  links?: FooterLink[];
+  /**
+   * Social profiles, platform to URL, shown as icons in the order written:
+   * `{ github: "https://github.com/acme", x: "https://x.com/acme" }`.
+   */
+  socials?: Partial<Record<FooterSocial, string>>;
+}
+
+/**
+ * The generated `/changelog` index's heading and description. Each is a
+ * string, or a map of locale code to text; the index renders in the default
+ * locale. Unset, they're the `changelog` UI strings (`Changelog` in English),
+ * which `i18n.ui` translates.
+ */
+export interface ChangelogConfig {
+  /** The index's description, below its heading and in its meta description. */
+  description?: LocalizableLabel;
+  /** The index's heading, page title, and OG card title. */
+  title?: LocalizableLabel;
+}
 
 /**
  * Where content lives and how it's discovered. `root`/`include`/`exclude` are
@@ -203,7 +264,8 @@ export interface ContentTypeConfig {
 // ---------------------------------------------------------------------------
 
 /**
- * A header label, optionally per locale: a plain string, or a map of locale
+ * A label, optionally per locale (header tabs and links, the banner, the
+ * footer): a plain string, or a map of locale
  * code to label (`{ en: "Docs", ja: "ドキュメント" }`). The active locale's
  * entry wins, then the default locale's, then the map's first entry.
  */
@@ -286,8 +348,8 @@ export interface FeaturedLink {
   href: string;
   /** Lucide icon name shown beside the label. */
   icon?: string;
-  /** Link label. */
-  label: string;
+  /** Link label, or a map of locale code to label. */
+  label: LocalizableLabel;
 }
 
 /**
@@ -312,8 +374,8 @@ export type SidebarConfig =
 export interface HeaderAction {
   /** Link target. An external href opens in a new tab. */
   href: string;
-  /** Link label. */
-  label: string;
+  /** Link label, or a map of locale code to label. */
+  label: LocalizableLabel;
 }
 
 /** Header, sidebar, tabs, and switcher configuration. */
@@ -325,7 +387,7 @@ export interface NavigationConfig {
   /** Pinned links shown above the generated sidebar sections. */
   featured?: FeaturedLink[];
   /**
-   * The GitHub link in the header. `true` derives it from `github` (the
+   * The GitHub link in the footer. `true` derives it from `github` (the
    * default), `false` hides it, and an absolute URL points it anywhere on
    * GitHub — an organization, say, when the docs repo itself is private.
    */
@@ -457,6 +519,16 @@ export type SearchProviderConfig = AnySearchAdapter | false;
 
 /** The object form of `search`: the adapter plus adapter-independent settings. */
 export interface SearchOptions {
+  /** What search reports to the configured analytics providers. */
+  analytics?: {
+    /**
+     * Send each query's text with the `search` and `search_select` events.
+     * Defaults to `true`. `false` sends the query's length (`queryChars`)
+     * instead, and the text rides only the `blume:track` DOM event, for a
+     * site to forward on its own terms.
+     */
+    queries?: boolean;
+  };
   /** Indexing behavior. */
   indexing?: {
     /**
@@ -480,7 +552,7 @@ export interface SearchOptions {
 /**
  * Search configuration. Pass an adapter directly (`search: algolia({…})`, or
  * `false`) as shorthand for the object form, which also carries `popular`
- * links and `indexing` settings.
+ * links and `indexing` and `analytics` settings.
  */
 export type SearchConfig = SearchProviderConfig | SearchOptions;
 
@@ -521,6 +593,13 @@ export interface AssistantRetrievalConfig {
 /** The chat assistant. */
 export interface AssistantConfig {
   /**
+   * A bot check from `blume/captcha` — `turnstile({ siteKey })` or
+   * `hcaptcha({ siteKey })`. The panel sends a token with each question and
+   * the generated route verifies it (with `TURNSTILE_SECRET_KEY` or
+   * `HCAPTCHA_SECRET_KEY`) before the model runs.
+   */
+  captcha?: CaptchaAdapter;
+  /**
    * Origins allowed to call the generated endpoint from another site — a
    * marketing page that embeds an ask box, for example — or `"*"` to allow
    * every origin. The route answers preflight requests and names a listed
@@ -548,10 +627,10 @@ export interface AssistantConfig {
   instructions?: string;
   /**
    * Which backend answers: the descriptor an adapter factory returns —
-   * `gateway({ model })`, `openrouter({ model, reasoning })`,
-   * `llmgateway({ model })`, `inkeep({ model })`, or
-   * `openaiCompatible({ baseUrl, name, model, apiKeyEnv })`, all exported
-   * from `blume/ai`. Each adapter owns its model, key env var, reasoning
+   * `openai({ model, baseUrl })`, `anthropic({ model })`,
+   * `gemini({ model })`, `grok({ model })`, `gateway({ model })`,
+   * `openrouter({ model, reasoning })`, `llmgateway({ model })`, or
+   * `inkeep({ model })`, all exported from `blume/ai`. Each adapter owns its model, key env var, reasoning
    * mapping, and `providerOptions` passthrough. Defaults to
    * `gateway({ model: "openai/gpt-5.5" })`.
    */
@@ -562,8 +641,23 @@ export interface AssistantConfig {
    * backend — at the cost of recall. Defaults keep the built-in behavior.
    */
   retrieval?: AssistantRetrievalConfig;
+  /**
+   * A Contact support link in the panel once there's a conversation: a
+   * `mailto:` address starts an email with the conversation as its body; a
+   * URL or root-relative path gets the conversation's `thread` id, which the
+   * assistant's analytics events carry too.
+   */
+  support?: string;
   /** Starter prompts shown before the first question. */
   suggestions?: AssistantSuggestion[];
+  /**
+   * Let the model search the docs and read whole pages itself, over several
+   * steps, instead of answering only from the excerpts retrieved up front.
+   * Defaults to `true`, except for `openai()` with a `baseUrl`, whose model
+   * may not support tool calling. `inkeep()` does its own retrieval and
+   * ignores it.
+   */
+  tools?: boolean;
 }
 
 /** What the AI Catalog (ARD) manifest carries. */
@@ -694,6 +788,12 @@ export interface I18nConfig {
   /** `dir`: locale directories (`fr/page.mdx`). `dot`: filename suffix (`page.fr.mdx`). */
   parser?: "dir" | "dot";
   /**
+   * Send a visitor who lands on the default language's home page to the home
+   * page in their browser's preferred language, until they pick a language
+   * with the switcher. Defaults to `false`.
+   */
+  routeByBrowserLanguage?: boolean;
+  /**
    * Per-locale UI string overrides, e.g.
    * `{ fr: { search: { button: "Rechercher" } } }`.
    */
@@ -802,11 +902,19 @@ type RedirectStatus = RedirectStatusPermanent | RedirectStatusTemporary;
 
 /** A URL redirect rule. */
 export interface RedirectConfig {
-  /** Path to redirect from. */
+  /**
+   * Path to redirect from: an exact path, or a pattern. `:name` matches one
+   * segment, `:name*` as the last segment the rest of the path
+   * (`/beta/:slug*`), and `*` ending a segment the rest from there
+   * (`/old/article-*`).
+   */
   from: string;
   /** HTTP status. Defaults to `301`. */
   status?: RedirectStatus;
-  /** Path or URL to redirect to. */
+  /**
+   * Path or URL to redirect to. Reads `from`'s captures as `/:name` (or `*`
+   * for what `*` matched): `/v2/:slug*`.
+   */
   to: string;
 }
 
@@ -890,6 +998,13 @@ export interface AgentsConfig {
   markdownComponents?: Record<string, ComponentMarkdown>;
   /** Expose the docs as an MCP server for agents. */
   mcp?: McpConfig;
+  /**
+   * Generate the site's own agent skill: a `SKILL.md` named after the site,
+   * built from its navigation and page descriptions, served at `/skill.md`
+   * and in the skills discovery index. Needs `deployment.site`. A skill in
+   * `agents.skills` with the same name replaces it. Defaults to `true`.
+   */
+  skillMd?: boolean;
   /**
    * Publish Agent Skills for discovery: a directory (resolved against the
    * project root) whose subdirectories each hold a `SKILL.md`. Skills are
@@ -1070,6 +1185,23 @@ export interface SoftwareConfig {
 
 /** Discoverability: OG images, feeds, sitemap, robots, and structured data. */
 export interface SeoConfig {
+  /**
+   * Meta tags written into every page's head, name to content: site
+   * verification tokens, `theme-color`, an app banner, and anything else
+   * Blume has no setting for. `og:*`, `fb:*`, and `article:*` tags render
+   * with `property`, the rest with `name`. A tag Blume writes itself
+   * (`description`, `robots`, `og:image`, `twitter:card`, …) is refused.
+   *
+   * ```ts
+   * seo: {
+   *   metatags: {
+   *     "google-site-verification": "abc123",
+   *     "theme-color": "#0b5fff",
+   *   },
+   * }
+   * ```
+   */
+  metatags?: Record<string, string>;
   /** Per-page Open Graph image generation. */
   og?: OgConfig;
   /**
@@ -1199,8 +1331,8 @@ export interface MarkdownConfig {
 export interface ReactConfig {
   /**
    * Auto-memoize React components/hooks with the React Compiler
-   * (`babel-plugin-react-compiler`). On by default whenever React is enabled;
-   * set to `false` to skip the compiler's babel pass. Defaults to `true`.
+   * (`oxc-transform-react`). On by default whenever React is enabled;
+   * set to `false` to skip the compiler pass. Defaults to `true`.
    */
   compiler?: boolean;
 }
@@ -1239,6 +1371,37 @@ export type ExportConfig =
       epub?: boolean;
       /** Offer PDF export (via print). Defaults to `false`. */
       pdf?: boolean;
+    };
+
+/** Page feedback: the rating, and an optional written comment after it. */
+export interface FeedbackConfig {
+  /**
+   * After the rating, offer a box to say more. The comment is sent as a
+   * `feedback_comment` event through every analytics adapter with an event
+   * API. Defaults to `false`.
+   */
+  comments?: boolean;
+  /** Show the rating. Defaults to `true`. */
+  enabled?: boolean;
+}
+
+/**
+ * "Listen to this page". `true` reads pages aloud with the reader's browser
+ * voices (no key, any host). The object form's `provider` generates neural
+ * audio at build instead, one cached clip per sentence, and falls back to
+ * browser voices where no clips exist. Defaults to `false`.
+ */
+export type NarrationConfig =
+  | boolean
+  | {
+      /** Show the player. Defaults to `true` in the object form. */
+      enabled?: boolean;
+      /**
+       * Generate audio at build with a speech model:
+       * `gateway({ model: "openai/tts-1-hd", voice: "alloy" })` from
+       * `blume/ai`. Without it, pages are read with browser voices.
+       */
+      provider?: AssistantGatewayAdapter;
     };
 
 /**
@@ -1335,6 +1498,8 @@ export interface BlumeConfig {
   agents?: AgentsConfig;
   /** Model-facing features: the assistant and the "Open in chat" action. */
   ai?: AiConfig;
+  /** Defaults for hand-written endpoint pages (`api` frontmatter). */
+  api?: ApiConfig;
   /**
    * Analytics adapters from `blume/analytics`, emitted into `<head>` of every
    * production page in this order: `[posthog({ key }), vercel(),
@@ -1353,6 +1518,19 @@ export interface BlumeConfig {
    * compose: with both set, a page lands at `{deployment.base}/{basePath}/page`.
    */
   basePath?: string;
+  /**
+   * The generated `/changelog` index's title and description, each a string
+   * or a per-locale map. Unset, they're the `changelog` UI strings.
+   */
+  changelog?: ChangelogConfig;
+  /**
+   * Ask readers before analytics runs, with an adapter from `blume/consent`:
+   * `native()` for Blume's own banner, or a hosted consent manager
+   * (`osano({ customerId, configId })`, `ethyca({ privacyCenter })`). Every
+   * `analytics` adapter waits until the reader allows analytics. Unset runs
+   * analytics as it loads.
+   */
+  consent?: ConsentAdapter;
   /** Where content lives and how it's discovered. */
   content?: ContentConfig;
   /**
@@ -1376,8 +1554,17 @@ export interface BlumeConfig {
   examples?: string | ExamplesConfig;
   /** Reader-facing PDF/EPUB export actions. Defaults to `false`. */
   export?: ExportConfig;
-  /** Show the per-page "Was this helpful?" widget. Defaults to `true`. */
-  feedback?: boolean;
+  /**
+   * The "Was this page helpful?" rating at the foot of each page. On by
+   * default; `false` hides it. `{ comments: true }` also asks for a written
+   * comment after the rating, sent through your analytics adapters.
+   */
+  feedback?: boolean | FeedbackConfig;
+  /**
+   * The site footer: social profile icons and up to four link columns. Unset,
+   * the site has no footer.
+   */
+  footer?: FooterConfig;
   /** Opt-in custom frontmatter keys, validated by schemas you supply. */
   frontmatter?: FrontmatterConfig;
   /** Source repository (Edit-this-page links and the header repo link). */
@@ -1394,8 +1581,17 @@ export interface BlumeConfig {
   logo?: LogoConfig;
   /** Markdown / MDX rendering behavior. */
   markdown?: MarkdownConfig;
+  /** "Listen to this page" narration. Defaults to `false`. */
+  narration?: NarrationConfig;
   /** Header, sidebar, tabs, and switchers. */
   navigation?: NavigationConfig;
+  /**
+   * Limit how often one reader (by IP address) can call the server routes —
+   * the assistant, the API playground proxy, server-side search — with an
+   * adapter from `blume/ratelimit`: `memory()` (the default, 30 requests per
+   * 10 minutes), `upstash()`, or `cloudflare()`. `false` turns it off.
+   */
+  rateLimit?: false | RateLimitAdapter;
   /** React island behavior (compiler auto-memoization). */
   react?: ReactConfig;
   /** URL redirect rules. */
@@ -1416,6 +1612,12 @@ export interface BlumeConfig {
   title?: string;
   /** On-page table of contents. Defaults to on (H2–H3). */
   toc?: TocConfig;
+  /**
+   * Content variables: `{{name}}` in a page reads the value, in prose, code,
+   * and links alike. Names take letters, digits, `_`, and `-`; an undefined
+   * name in prose fails the build. Defaults to none.
+   */
+  variables?: Record<string, string>;
   /** Docs versioning (opt-in frozen snapshots with a version switcher). */
   versions?: VersionsConfig;
 }

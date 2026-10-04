@@ -4,6 +4,7 @@ import { createIconSprite } from "../icon-sprite.ts";
 import "blume:theme";
 import data from "blume:data";
 import type {
+  BlumeBanner,
   BlumeDataConfig,
   BlumeFavicon,
   DiscoveryHeadLinks,
@@ -14,6 +15,8 @@ import { NEW_TAB_HINT_ID } from "../../core/new-tab.ts";
 import type { FontHead } from "../../theme/fonts.ts";
 import type { Navigation } from "../../core/types.ts";
 import Analytics from "./Analytics.astro";
+import ConsentBanner from "./ConsentBanner.astro";
+import ConsentHead from "./ConsentHead.astro";
 import WebMcp from "./WebMcp.astro";
 import Banner from "./Banner.astro";
 import DiscoveryLinks from "./DiscoveryLinks.astro";
@@ -27,6 +30,7 @@ import {
 import Header from "./Header.astro";
 import { pageDirection, pageLocale } from "./page-locale.ts";
 import { searchLocaleFor } from "./search-locale.ts";
+import SiteMetatags from "./SiteMetatags.astro";
 
 // A minimal shell for the Scalar API/AsyncAPI reference: Blume's banner + navbar
 // on top, then a full-height region the reference mounts into. Unlike RootLayout
@@ -50,12 +54,7 @@ interface Props {
   } | null;
   favicon?: BlumeFavicon | null;
   appleIcon?: BlumeFavicon | null;
-  banner?: {
-    content: string;
-    link?: { text: string; href: string };
-    dismissible: boolean;
-    key: string;
-  } | null;
+  banner?: BlumeBanner | null;
   analytics?: BlumeDataConfig["analytics"] | null;
   navigation: Navigation;
   route: string;
@@ -110,6 +109,8 @@ const locale = pageLocale(data.config.i18n, localeProp, Astro.currentLocale);
 const dir = dirProp ?? pageDirection(data.config.i18n, locale);
 
 const strings = ui ?? EN_UI;
+// The consent adapter (`consent`), site-wide: analytics waits for the reader.
+const consent = data.config.consent;
 const navStrings = { ...EN_UI.nav, ...strings.nav };
 // Scope search to the reference page's language on a multi-locale site.
 const searchLocale = searchLocaleFor(data.config.i18n, locale);
@@ -128,6 +129,7 @@ createIconSprite(Astro.locals);
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     {noindex && <meta name="robots" content="noindex" />}
     <title>{pageTitle}</title>
+    <SiteMetatags tags={data.config.metatags} />
     <Favicon favicon={favicon} appleIcon={appleIcon} />
     <Fonts cssVars={fontCssVars ?? []} />
     <DiscoveryLinks discovery={discovery} />
@@ -137,6 +139,7 @@ createIconSprite(Astro.locals);
       )
     }
     <script data-mode={themeMode} is:inline set:html={THEME_INIT_SCRIPT} />
+    {consent && <ConsentHead consent={consent} />}
     <Analytics analytics={analytics} />
   </head>
   <body class="bg-background font-sans text-foreground antialiased">
@@ -170,6 +173,14 @@ createIconSprite(Astro.locals);
       <script is:inline set:html={SCALAR_THEME_INIT_SCRIPT} />
     </div>
     <WebMcp />
+    {
+      consent?.kind === "native" && (
+        <ConsentBanner
+          policy={consent.options.policy}
+          strings={strings.consent}
+        />
+      )
+    }
   <IconSprite />
   </body>
 </html>

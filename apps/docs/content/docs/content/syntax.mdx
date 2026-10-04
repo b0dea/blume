@@ -27,7 +27,7 @@ Anchor ids are generated from the heading text, so a reworded heading gets a new
 
 Link to it as `/page#setup`. The syntax matches Fumadocs, so migrated content works verbatim.
 
-The `{#custom-id}` form used by Pandoc, kramdown, and Markdown-based specification toolchains is accepted as an equivalent in `.md` files. In `.mdx`, a bare `{…}` is a JSX expression and the page fails to compile — `blume check` reports the marker as `BLUME_MDX_CURLY_ANCHOR` — so write `[#custom-id]` there, or escape the braces. The escaped form pins the same anchor in both formats, which makes it the right spelling for a partial that `.mdx` pages [include](/docs/content/includes):
+The `{#custom-id}` form used by Pandoc, kramdown, and Markdown-based specification toolchains is accepted as an equivalent in `.md` files. Only that unspaced spelling pins an anchor: the spaced `{ #custom-id }` and kramdown's `{: #custom-id }` (both from MkDocs' `attr_list`) stay in the heading text. In `.mdx`, a bare `{…}` is a JSX expression and the page fails to compile — `blume check` reports all three spellings as `BLUME_MDX_CURLY_ANCHOR` — so write `[#custom-id]` there, or escape the braces. The escaped form pins the same anchor in both formats, which makes it the right spelling for a partial that `.mdx` pages [include](/docs/content/includes):
 
 ```md
 ## Getting started \{#setup\}
@@ -248,6 +248,65 @@ createServer().listen(3000);
 ```
 ````
 
+### Long lines and long blocks
+
+Append `wrap` to wrap one block's long lines instead of scrolling them sideways:
+
+```ts client.ts wrap
+const client = createClient({
+  baseUrl: "https://api.example.com/v1",
+  retries: 3,
+  timeout: 10_000,
+  headers: { "x-client": "docs" },
+});
+```
+
+````md
+```ts client.ts wrap
+const client = createClient({
+  baseUrl: "https://api.example.com/v1",
+  retries: 3,
+  timeout: 10_000,
+  headers: { "x-client": "docs" },
+});
+```
+````
+
+Append `expandable` to a long block to show its first lines with a **Show more** toggle under them. Opened, the block shows in full, with no scrolling inside it. A block under 16 lines renders as usual, since there's little to hide.
+
+```ts routes.ts expandable
+import { defineRoutes } from "./router";
+
+export default defineRoutes({
+  home: "/",
+  docs: "/docs",
+  guides: "/docs/guides",
+  reference: "/docs/reference",
+  changelog: "/changelog",
+  blog: "/blog",
+  pricing: "/pricing",
+  about: "/about",
+  careers: "/careers",
+  contact: "/contact",
+  privacy: "/legal/privacy",
+  terms: "/legal/terms",
+  security: "/security",
+  status: "https://status.example.com",
+});
+```
+
+````md
+```ts routes.ts expandable
+import { defineRoutes } from "./router";
+
+export default defineRoutes({
+  // …every route
+});
+```
+````
+
+Both work alongside a title and `lineNumbers`. To wrap every block, set `markdown.code.wrap` instead.
+
 ### Highlighting
 
 Annotate code with GitHub-style comments to draw attention to lines, words, and changes. The comments are stripped from the rendered output, so the code stays copy-paste clean. All four are on by default — no configuration.
@@ -398,7 +457,7 @@ flowchart LR
 ```
 ````
 
-Diagrams render on the client, so this is an MDX-only feature, and the Mermaid library loads only on pages that include one; a site with no diagram doesn't ship it at all. Diagrams use Mermaid's dagre layout and classic look by default; opt a single diagram into another layout or look through Mermaid front matter (a `config:` block with `layout: elk` or `look: neo`), and the ELK engine loads only for diagrams that ask for it. The rest of this section is a gallery of common types — see the [Mermaid docs](https://mermaid.js.org/intro/) for the full list.
+Diagrams render on the client, so this is an MDX-only feature, and the Mermaid library loads only on pages that include one; a site with no diagram doesn't ship it at all. Diagrams use Mermaid's dagre layout and classic look by default; opt a single diagram into another layout or look through Mermaid front matter (a `config:` block with `layout: elk` or `look: neo`), and the ELK engine loads only for diagrams that ask for it. A diagram Mermaid can't parse shows "Could not render this diagram." in its place; Mermaid's parser error, with the line it stopped on, goes to the browser console, and `blume dev` also prints it under the message. The rest of this section is a gallery of common types — see the [Mermaid docs](https://mermaid.js.org/intro/) for the full list.
 
 ### Flowchart
 
@@ -625,7 +684,7 @@ Commit `blume.config.ts`, not `.blume/`.
 
 ## Math
 
-Render LaTeX with KaTeX as centered blocks — useful for math-heavy or scientific docs. Wrap a formula in `$$…$$`:
+Render LaTeX with KaTeX, useful for math-heavy or scientific docs. Put `$$…$$` on lines of its own for a centered block:
 
 $$
 \int_0^\infty e^{-x^2}\,dx = \frac{\sqrt{\pi}}{2}
@@ -637,8 +696,14 @@ a^2 + b^2 = c^2
 $$
 ```
 
+Or write `$$…$$` inside a sentence for inline math, like Euler's identity $$e^{i\pi} + 1 = 0$$:
+
+```md
+Like Euler's identity $$e^{i\pi} + 1 = 0$$.
+```
+
 :::note
-Math is block-only and on automatically — write `$$…$$` and it renders; write none and KaTeX's stylesheet never ships. There's no inline `$…$` math: a lone `$` (currency, shell variables, code) is always left as literal text, so there's no delimiter to escape and no setting to toggle. Math is an MDX-only feature. The class names inside the rendered markup (`.katex-html`, `.katex-base`, …) are KaTeX's own internals, not a styling contract Blume maintains — they can change when KaTeX upgrades, so target the `.katex-display` wrapper for custom styles.
+Math is on automatically: write `$$…$$` and it renders; write none and KaTeX's stylesheet never ships. Both block and inline math use two dollar signs. A single `$` (currency, shell variables, code) is always literal text, so "$5 and $10" never turns into math, and there's no delimiter to escape and no setting to toggle. Math is an MDX-only feature. The class names inside the rendered markup (`.katex-html`, `.katex-base`, …) are KaTeX's own internals, not a styling contract Blume maintains — they can change when KaTeX upgrades, so target the `.katex-display` wrapper for custom styles.
 :::
 
 ## Smart punctuation

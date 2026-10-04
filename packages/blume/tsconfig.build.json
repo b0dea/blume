@@ -14,8 +14,11 @@
     "src/index.ts",
     "src/ai/index.ts",
     "src/analytics/index.ts",
+    "src/captcha/index.ts",
+    "src/consent/index.ts",
     "src/core/schema.ts",
     "src/deploy/adapters/index.ts",
+    "src/ratelimit/index.ts",
     "src/reference/index.ts",
     "src/search/adapters/index.ts",
     "src/sources/index.ts"

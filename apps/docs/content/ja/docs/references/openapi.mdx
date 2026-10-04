@@ -19,7 +19,7 @@ export default defineConfig({
 });
 ```
 
-これにより、リファレンスは `/reference`（概要ページ）にマウントされ、各オペレーションは `/reference/<tag>/<operation>` に配置されます。`spec` には `http(s)` URL か、プロジェクト内のローカルファイルへのパスを指定します。Blume は [Scalar の OpenAPI パーサー](https://github.com/scalar/scalar)で仕様を解析します。Swagger 2.0 と OpenAPI 3.0 の仕様は自動的に 3.1 にアップグレードされます。アダプターは解析済みの仕様ではなく、リファレンスを記述したプレーンな設定です。そのため Blume は事前に検証を行い、生成されるサイトにインライン化できます。`reference` を省略する（または空にする）と、リファレンスは一切レンダリングされません。イベント駆動型 API や GraphQL API をドキュメント化する場合は、[AsyncAPI](/docs/references/asyncapi) と [GraphQL](/docs/references/graphql) を参照してください。
+これにより、リファレンスは `/reference`（概要ページ）にマウントされ、各オペレーションは `/reference/<tag>/<operation>` に配置されます。`spec` には `http(s)` URL か、プロジェクト内のローカルファイルへのパスを指定します。Blume は [Scalar の OpenAPI パーサー](https://github.com/scalar/scalar)で仕様を解析します。Swagger 2.0 と OpenAPI 3.0 の仕様は自動的に 3.1 にアップグレードされ、3.1 と [3.2](#openapi-32) の仕様は記述されたまま読み込まれます。アダプターは解析済みの仕様ではなく、リファレンスを記述したプレーンな設定です。そのため Blume は事前に検証を行い、生成されるサイトにインライン化できます。`reference` を省略する（または空にする）と、リファレンスは一切レンダリングされません。イベント駆動型 API や GraphQL API をドキュメント化する場合は、[AsyncAPI](/docs/references/asyncapi) と [GraphQL](/docs/references/graphql) を参照してください。
 
 リファレンスを追加しても、ヘッダーのタブは自動では追加されません。表示するには、[ナビゲーションタブ](/docs/content/navigation#tabs)をリファレンスのルートに向けてください。これにより、ネイティブレンダラーのオペレーションサイドバーのスコープも設定されます。
 
@@ -29,17 +29,29 @@ navigation: {
 }
 ```
 
+サイドバーのタググループと概要ページのセクションは、同じ順序で並びます。まず仕様のトップレベルの `tags` リストの順序で並び、その後に `tags` で宣言されていないタグが、オペレーションで最初に使われた順に続きます。
+
 :::note
-オペレーションは**サマリー、説明、タグ、エンドポイント**（`GET /pets/{id}`）で検索用にインデックスされます。レンダリングされたスキーマテーブルとコードサンプルは全文インデックスの対象外です。検索はオペレーションのタイトル、本文、セクション、パスにマッチし、そのオペレーション自身のページにリンクします。
+オペレーションは**サマリー、説明、タグ、エンドポイント**（`GET /pets/{id}`）で検索用にインデックスされます。レンダリングされたスキーマテーブルと生成されたコードサンプルは全文インデックスの対象外です。検索はオペレーションのタイトル、本文、セクション、パスにマッチし、そのオペレーション自身のページにリンクします。[独自のサンプル](#your-own-samples)は他のコードブロックと同様に扱われ、[`search.indexing.includeCodeBlocks`](/docs/configuration/search) を有効にした場合にのみインデックスされます。
 :::
 
 ## ローカルの仕様 [#a-local-spec]
 
-相対パスはプロジェクトルートから解決され、ビルド時に読み込まれます。JSON と YAML のどちらも使えます。
+相対パスはプロジェクトルートから解決され、ビルド時に読み込まれます。JSON と YAML のどちらも使えます。また、`blume dev` はこのファイルをローカルの[オーバーレイ](#overlays)とあわせて監視するため、仕様を保存するとリファレンスが更新されます。
 
 ```ts blume.config.ts lineNumbers
 reference: [openapi({ spec: "./openapi.yaml" })],
 ```
+
+## OpenAPI 3.2 [#openapi-32]
+
+OpenAPI 3.2 の仕様は記述されたとおりにレンダリングされます。HTTP の `QUERY` メソッド（ボディを伴う安全なリクエスト）を表す `query` オペレーションにも、他のメソッドと同様にページ、Try it、コードサンプルが用意されます。3.2 で追加されたフィールドのうち Blume が表示しないもの（タグやレスポンスの `summary` など）は、エラーにはならず無視されます。3.2 で追加された機能の中には、まだレンダリングされないものもあります。
+
+- `additionalOperations`（`COPY` のように、パスアイテムで直接指定されないメソッドに使われます）：これらのオペレーションは除外され、`BLUME_OPENAPI_UNSUPPORTED` の[警告](#spec-warnings)が表示されます。
+- `in: querystring` パラメーター：パラメーターテーブルの行、Try it の入力欄、コードサンプルのいずれにも反映されず、同じ警告が表示されます。
+- `itemSchema`（`text/event-stream` や `application/jsonl` のようにストリーミングされるボディの、各項目のスキーマ）：並べて `schema` を設定しない限り、そのボディのスキーマはページに表示されません。
+- `value` の代わりに `dataValue` または `serializedValue` で記述された例：ページには表示されません。
+- ネストされたタグ（`parent`）とタグの `kind`：タグはサイドバーと概要ページで 1 つのフラットなリストのまま表示されます。
 
 ## ルート [#route]
 
@@ -56,16 +68,76 @@ reference: [
 
 ## コードサンプルとスキーマ [#code-samples-and-schemas]
 
-`codeSamples` は、オペレーションごとにレンダリングする言語を選択します（組み込み: `curl`、`js`、`python`）。`expandSchemas` を指定すると、ネストされたスキーマ行が折りたたまれた状態ではなく、展開された状態で表示されます。
+`codeSamples` は、オペレーションごとにレンダリングする言語を、列挙した順序で選択します。デフォルトは `["curl", "js", "python"]` で、`false` または空のリストを指定すると何も表示されません。`expandSchemas` を指定すると、ネストされたスキーマ行が折りたたまれた状態ではなく、展開された状態で表示されます。
 
 ```ts blume.config.ts lineNumbers
 reference: [
   openapi({
     spec: "./openapi.yaml",
-    codeSamples: ["curl", "js"],
+    codeSamples: ["curl", "python", "go", "java", "csharp"],
     expandSchemas: true,
   }),
 ],
+```
+
+各サンプルは、リクエストをそのままコピー＆ペーストして使えるプレーンなコードで、各言語の標準または最も一般的な HTTP クライアントを使って書かれています。
+
+| ID           | 言語       | クライアント        | 別名                  |
+| ------------ | ---------- | ------------------- | --------------------- |
+| `curl`       | cURL       | `curl`              | `bash`、`sh`、`shell` |
+| `python`     | Python     | `requests`          | `py`                  |
+| `js`         | JavaScript | `fetch`             | `javascript`          |
+| `node`       | Node.js    | `axios`             | `nodejs`、`node.js`   |
+| `typescript` | TypeScript | `fetch`             | `ts`                  |
+| `php`        | PHP        | curl 拡張機能       |                       |
+| `go`         | Go         | `net/http`          | `golang`              |
+| `java`       | Java       | `java.net.http`     |                       |
+| `ruby`       | Ruby       | `net/http`          | `rb`                  |
+| `powershell` | PowerShell | `Invoke-RestMethod` | `ps1`                 |
+| `swift`      | Swift      | `URLSession`        |                       |
+| `csharp`     | C#         | `HttpClient`        | `c#`、`cs`            |
+| `dotnet`     | .NET       | RestSharp           | `.net`、`dot-net`     |
+| `c`          | C          | libcurl             |                       |
+| `cpp`        | C++        | cpr                 | `c++`                 |
+| `kotlin`     | Kotlin     | OkHttp              | `kt`                  |
+| `rust`       | Rust       | reqwest             | `rs`                  |
+| `dart`       | Dart       | `package:http`      | `flutter`             |
+
+各値はそれぞれの言語の規則に従ってクォートされます。そのため、`If-Match: "33a64df5"` のようなヘッダーや `$` を含むボディも、記述したとおりに API に届きます。
+
+スキーマテーブルは、例と同様に、データが流れる方向に従います。リクエストボディでは、サーバーが設定する `readOnly` プロパティが省かれ、レスポンスでは、サーバーが返すことのない `writeOnly` プロパティが省かれます。[Webhook やコールバック](#webhooks-and-callbacks)のボディは API が送信するリクエストなので、レスポンスと同じように表示されます。
+
+### 独自のサンプル [#your-own-samples]
+
+生の HTTP 呼び出しの代わりにご自身の SDK を示すには、仕様内のオペレーションに `x-codeSamples` を追加します。これは Redocly が定義した拡張で、Speakeasy や Stainless で自動的に書き出すこともできます。各エントリには `lang`、`source`、および任意の `label` を指定します。
+
+```yaml openapi.yaml lineNumbers
+paths:
+  /plants:
+    get:
+      x-codeSamples:
+        - lang: typescript
+          label: SDK
+          source: |
+            const plants = await planter.plants.list();
+        - lang: bash
+          label: CLI
+          source: |
+            planter list
+```
+
+これらのサンプルは、生成されたサンプルより前に独立したタブとしてレンダリングされます。読者が [Try it](#try-it-playground) フォームの値を変更しても、記述したとおりの内容のまま表示されます。旧来の `x-code-samples` という表記も使えます。独自のサンプルだけを表示するには、`codeSamples: false` を設定してください。生成されたサンプルとは異なり、これらはオペレーションページの Markdown 版にも含まれるため、`llms-full.txt`、MCP サーバー、アシスタントからもご自身の SDK の呼び出しを参照できます。
+
+Redocly がサンプルを独立したファイルに保存する方法として説明しているように、`source` にはサンプルのコードを収めたファイルへの `$ref` も指定できます。Blume はこのファイルを仕様からの相対パスで読み込み、仕様が URL の場合はファイルを取得します。読み込めない `$ref` や、ドキュメント内を指す `$ref`（`#/…`）の場合、そのサンプルは除外され、[`BLUME_OPENAPI_CODE_SAMPLE_REF`](#spec-warnings) の警告が表示されます。
+
+```yaml openapi.yaml lineNumbers
+paths:
+  /plants:
+    get:
+      x-codeSamples:
+        - lang: go
+          source:
+            $ref: ./code_samples/go/list_plants.go
 ```
 
 ## Try it プレイグラウンド [#try-it-playground]
@@ -101,11 +173,11 @@ reference: [
 ],
 ```
 
-組み込みプロキシは、仕様の `servers`（ドキュメント、パス、オペレーションのいずれのレベルでも可。変数にはデフォルト値が使われます）で宣言されたオリジンにのみリクエストを転送します（リダイレクト先も同様です）。そのため、公開されたドキュメントのデプロイメントを悪用して、同じネットワーク上の他のホストにリクエストを送ることはできません。パネルに入力した **Custom base URL** は、仕様に記載されたサーバーとは見なされません。プロキシが有効な場合、そこへのリクエストは 403 で拒否されます。プロキシが転送するのは、パネル自身が設定したヘッダー（入力された資格情報とヘッダーパラメーター、およびボディの `Content-Type`）のみです。そのため、Cookie、ブラウザがドキュメントサイト向けに付与する資格情報（パスワードで保護されたプレビューでの HTTP Basic 認証など）、ホストが追加するヘッダー（`X-Forwarded-For`、`CF-*`、`X-Vercel-*`）が API に届くことはありません。プロキシが読み込むリクエストボディは 4 MB までです（それより大きい場合は `413` が返されます）。また、中継するすべてのレスポンスには `Content-Security-Policy: sandbox`、`X-Content-Type-Options: nosniff`、`Cross-Origin-Resource-Policy: same-origin` が付与され、HTML や SVG の場合はさらに `Content-Disposition: attachment` が付与されます。これにより、入力内容をそのまま返す API のエラーページがあっても、ドキュメントのオリジン上でスクリプトが実行されることはありません。
+組み込みプロキシは、仕様の `servers`（ドキュメント、パス、オペレーションのいずれのレベルでも可。変数にはデフォルト値が使われます）で宣言されたオリジンにのみリクエストを転送します（リダイレクト先も同様です）。そのため、公開されたドキュメントのデプロイメントを悪用して、同じネットワーク上の他のホストにリクエストを送ることはできません。パネルに入力した **Custom base URL** は、仕様に記載されたサーバーとは見なされません。プロキシが有効な場合、そこへのリクエストは 403 で拒否されます。プロキシが転送するのは、パネル自身が設定したヘッダー（入力された資格情報とヘッダーパラメーター、およびボディの `Content-Type`）のみです。そのため、Cookie、ブラウザがドキュメントサイト向けに付与する資格情報（パスワードで保護されたプレビューでの HTTP Basic 認証など）、ホストが追加するヘッダー（`X-Forwarded-For`、`CF-*`、`X-Vercel-*`）が API に届くことはありません。プロキシが読み込むリクエストボディは 4 MB までです（それより大きい場合は `413` が返されます）。また、中継するすべてのレスポンスには `Content-Security-Policy: sandbox`、`X-Content-Type-Options: nosniff`、`Cross-Origin-Resource-Policy: same-origin` が付与され、HTML や SVG の場合はさらに `Content-Disposition: attachment` が付与されます。これにより、入力内容をそのまま返す API のエラーページがあっても、ドキュメントのオリジン上でスクリプトが実行されることはありません。また、読者が呼び出せる他のすべてのサーバールートと同様に、プロキシにも読者ごとの[レート制限](/docs/configuration/rate-limiting)が適用されます。
 
 ## 複数の仕様 [#multiple-specs]
 
-1 つのアダプターから複数の仕様を公開するには、`sources` を使います。各ソースは独自の概要ルートとオペレーションページを持ち、アダプターの表示オプションを共有します。各ソースには `label`（サイドバーでの表示とルートの導出に使われます）を指定するか、明示的な `route` を設定してください。
+1 つのアダプターから複数の仕様を公開するには、`sources` を使います。各ソースは独自の概要ルートとオペレーションページを持ち、アダプターの表示オプションを共有します。各ソースには `label`（サイドバーではグループ名として記述どおりに表示され、ルートの導出にも使われます）を指定するか、明示的な `route` を設定してください。
 
 ```ts blume.config.ts lineNumbers
 reference: [
@@ -158,6 +230,36 @@ reference: [
 
 [`scalar()`](/docs/references/scalar) の埋め込みでは、これらの設定のうち `noindex` のみを指定できます。埋め込みはもともと Blume の検索と `llms.txt` の対象外であるため、2 つの `include*` 設定は効果がありません。
 
+## オーバーレイ [#overlays]
+
+仕様が別のツールで生成されている場合や別のチームが管理している場合は、[OpenAPI Overlay](https://spec.openapis.org/overlay/latest.html) を使うと、ドキュメント向けの変更を仕様本体に加えずに済みます。オーバーレイとは、仕様に加える変更（よりわかりやすい説明、公開用のサーバー URL、内部オペレーションの削除など）を列挙した別ファイルです。オーバーレイは `spec` と並べて列挙します。各オーバーレイにはローカルパスか `http(s)` URL を指定し、列挙した順に適用されます。
+
+```ts blume.config.ts lineNumbers
+reference: [
+  openapi({
+    spec: "./openapi.json",
+    overlays: ["./overlays/public.yaml"],
+  }),
+],
+```
+
+```yaml overlays/public.yaml lineNumbers
+overlay: 1.1.0
+info:
+  title: Public docs
+  version: 1.0.0
+actions:
+  - target: $.paths.*[?@['x-internal'] == true]
+    remove: true
+  - target: $.info
+    update:
+      description: The public Acme API.
+```
+
+各アクションの `target` は [JSONPath](https://www.rfc-editor.org/rfc/rfc9535) 式です。`update` は選択したすべてのノードにマージされます。オブジェクトはキーごとにマージされ、配列には新しい項目が追加され、それ以外の値は置き換えられます。`copy` は仕様内の別の場所にあるノードをマージし（Overlay 1.1）、`remove: true` は対象を削除します。Overlay Specification 1.0 と 1.1 の両方に対応しています。
+
+オーバーレイは、Blume が OpenAPI 3.1 にアップグレードする前の、記述されたままの仕様に適用されます。そのため、オーバーレイは仕様を記述したバージョンを対象にしてください。仕様から生成されるすべてのもの（オペレーションページ、サイドバー、検索、`llms.txt`、MCP サーバー）に結果が反映されます。`sources` を使う場合は、各ソースに独自の `overlays` を指定してください。適用できないオーバーレイがあると、読み込めない仕様の場合と同様にリファレンスがエラーになります。そのため、壊れたオーバーレイが原因で、隠すはずだった内容が公開されることはありません。
+
 ## 認可 [#authorization]
 
 [セキュリティ要件](https://spec.openapis.org/oas/v3.1.0#security-requirement-object)を宣言したオペレーションでは、パラメーターの上に **Authorization** セクションがレンダリングされます。また、生成されたコードサンプルでは、スキームに応じたプレースホルダーの資格情報（`Authorization: Bearer YOUR_TOKEN`、API キーのヘッダー、またはクエリキー）が送信されます。設定は必要ありません。Blume は仕様から `security` を読み取るため、リファレンスは常に API が実際に要求する内容と一致します。
@@ -168,6 +270,45 @@ OpenAPI のセマンティクスはそのまま引き継がれます。
 - 複数の要件エントリは選択肢を表し、「または」のグループとしてレンダリングされます。1 つのエントリ内のすべてのスキームは同時に必要です。コードサンプルには最初の選択肢が使われます。
 - 空の `{}` エントリは、そのオペレーションで認証が**任意**であることを意味し、セクションにもその旨が表示されます。
 - OAuth2 のスコープはスキームごとに一覧表示されます。`components.securitySchemes` に記述されたスキームの `description` はインラインでレンダリングされます。
+
+## Webhook とコールバック [#webhooks-and-callbacks]
+
+API が送信するリクエストもドキュメント化されます。仕様のトップレベルの `webhooks` にある各 [Webhook](https://spec.openapis.org/oas/v3.1.0#oas-webhooks) には、オペレーションと同様に独自のページが作られます。ページは最初のタグの下に配置され、タグがない場合は **Webhooks** グループに配置されます。このページには、ペイロードのスキーマと、受信側のエンドポイントが返すべきレスポンスが表示されます。このリクエストは API が受け付けるものではなく API が送信するものなので、サイドのレールには Try it パネルとコードサンプルの代わりにペイロードの例が表示されます。Webhook ページには、その Webhook 自身が宣言した `security` のみが表示されます。仕様のルートの `security` は API への呼び出しを保護するものであり、API が送信するリクエストには適用されないためです。共有パスアイテムへの `$ref` になっている Webhook は除外され、[`BLUME_OPENAPI_REF_PATH_ITEM`](#spec-warnings) の警告が表示されます。
+
+```yaml openapi.yaml lineNumbers
+webhooks:
+  newPet:
+    post:
+      summary: New pet added
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Pet"
+      responses:
+        "200":
+          description: Return a 200 to acknowledge the event.
+```
+
+3.0 の仕様で `x-webhooks` 拡張の下に記述された Webhook は、Blume が仕様を 3.1 にアップグレードする際に `webhooks` に変換されます。すでに 3.1 以降の仕様はアップグレードされないため、`x-webhooks` の下に残っている Webhook は何もレンダリングされず、[`BLUME_OPENAPI_X_WEBHOOKS`](#spec-warnings) の警告が表示されます。フィールド名を `webhooks` に変更してください。
+
+オペレーションの [`callbacks`](https://spec.openapis.org/oas/v3.1.0#callback-object)（呼び出し元が指定した URL に対して API が送り返すリクエスト）は、そのオペレーションのページの **Callbacks** セクションにレンダリングされます。各コールバックには、URL 式（`{$request.body#/callbackUrl}`）、メソッド、パラメーター（署名ヘッダーなど）、リクエストボディ、想定されるレスポンスが表示されます。`components.callbacks` の下で宣言し、`$ref` で参照したコールバックも同じように扱われます。
+
+Webhook ページも本物のページです。検索、`llms.txt`、MCP サーバーに含まれます。また、その Markdown ではこれが API から送信されるリクエストであることがエージェントに伝えられるため、エージェントがそれを呼び出そうとすることはありません。
+
+## 仕様の警告 [#spec-warnings]
+
+Blume は、OpenAPI スキーマに照らした仕様の検証は行いません。検証には、CI で [Spectral](https://github.com/stoplightio/spectral) や [oasdiff](https://github.com/oasdiff/oasdiff) などのリンターを実行してください。ただし、`blume dev`、`blume build`、`blume check` では、そのままでは何の兆候もなく誤ってレンダリングされてしまうミスや、仕様のうち除外される部分について警告が表示されます。各警告には対象の仕様が示され、リファレンスの残りの部分は通常どおりビルドされます。
+
+| コード | 問題点 |
+| --- | --- |
+| `BLUME_OPENAPI_PATH_PARAMETER_MISSING` | オペレーションのパスにある `{name}` に対応する、同じ名前の `in: path` パラメーターがありません。そのため、ページにはその入力欄がなく、Try it とコードサンプルはプレースホルダーをそのまま文字列として送信します。 |
+| `BLUME_OPENAPI_PATH_PARAMETER_UNUSED` | `in: path` パラメーターに対応する `{name}` がパスにありません。そのため、Try it で入力を求められた値が URL に反映されません。 |
+| `BLUME_OPENAPI_UNKNOWN_SECURITY_SCHEME` | `security` 要件が、`components.securitySchemes` で定義されていないスキームを指定しています。そのため、[Authorization](#authorization) セクションでそのスキームを説明できず、リクエストでもそのスキームの資格情報は送信されません。 |
+| `BLUME_OPENAPI_UNSUPPORTED` | 仕様で、Blume がまだレンダリングしない [OpenAPI 3.2](#openapi-32) の機能が使われています。`additionalOperations` の場合はそれらのオペレーションが除外され、`in: querystring` パラメーターの場合はクエリ文字列がページ、Try it、コードサンプルから除外されます。 |
+| `BLUME_OPENAPI_CODE_SAMPLE_REF` | `x-codeSamples` エントリの `source` が、Blume が読み込めない `$ref` か、ドキュメント内を指す `$ref` になっています。そのため、その[サンプル](#your-own-samples)は除外されます。 |
+| `BLUME_OPENAPI_X_WEBHOOKS` | 3.1 以降の仕様で、Webhook が 3.0 向けのツールが読み取る拡張である `x-webhooks` の下に記述されており、`webhooks` がありません。そのため、Webhook は 1 つもレンダリングされません。フィールド名を `webhooks` に変更してください。 |
+| `BLUME_OPENAPI_REF_PATH_ITEM` | パスまたは Webhook が、`components.pathItems` の下にあるものなどの共有パスアイテムへの `$ref` になっています。Blume はこれを解決しないため、そのオペレーションはリファレンスに含まれません。パスアイテムを `paths` または `webhooks` の下にインラインで記述してください。スキーマ、パラメーター、レスポンスは `$ref` のままでかまいません。 |
 
 ## 代わりに Scalar を埋め込む [#embedding-scalar-instead]
 

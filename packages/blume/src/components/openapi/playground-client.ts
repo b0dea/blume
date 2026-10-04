@@ -26,16 +26,34 @@ import { fetchRefusesMethod, sampleLanguages } from "./snippets.ts";
 import type { RequestSample } from "./snippets.ts";
 import { validateJson } from "./validate-json.ts";
 
+const OPENAPI_PROXY_SETTING =
+  "`playground: { proxy: true }` on the `openapi()` reference";
+
+/**
+ * The Blume config setting that turns on the proxy for a panel, keyed by the
+ * `data-proxy-config` the rendering surface stamps on it: an `openapi()` or
+ * `graphql()` reference's `playground` option, or `api.playground` for
+ * hand-written API pages.
+ */
+const PROXY_SETTINGS = new Map([
+  ["api", "`api: { playground: { proxy: true } }`"],
+  ["graphql", "`playground: { proxy: true }` on the `graphql()` reference"],
+  ["openapi", OPENAPI_PROXY_SETTING],
+]);
+
 /**
  * A failed fetch surfaces as a TypeError with no status — almost always the
  * browser's CORS wall, not the API being down — so the message explains the
- * one fix docs authors control instead of parroting "failed to fetch".
+ * one fix docs authors control instead of parroting "failed to fetch", naming
+ * the setting for the surface this panel is on and the server output the
+ * built-in proxy needs.
  */
-const CORS_MESSAGE =
+const corsMessage = (config: string): string =>
   "The browser blocked this request before it reached the API — the API " +
   "likely does not allow cross-origin requests from this docs site. Set " +
-  "`playground: { proxy: true }` on the `openapi()` reference in the Blume " +
-  "config to route playground requests through the docs server instead.";
+  `${PROXY_SETTINGS.get(config) ?? OPENAPI_PROXY_SETTING} in the Blume ` +
+  "config to route playground requests through the docs server instead. " +
+  "The proxy needs server output: a host adapter in `deployment`.";
 
 /**
  * `Cookie` is a forbidden header name: a page cannot set it, so a credential
@@ -294,6 +312,7 @@ export const initPlayground = (root: HTMLElement): void => {
   const response = root.querySelector<HTMLElement>("[data-response]");
   const storageKey = root.dataset.storageKey ?? "";
   const proxy = root.dataset.proxy ?? "";
+  const proxyConfig = root.dataset.proxyConfig ?? "";
 
   /** True while a send is outstanding, so a second click can't race it. */
   let sending = false;
@@ -607,7 +626,7 @@ export const initPlayground = (root: HTMLElement): void => {
         const crossOrigin = !proxy && !sample.url.startsWith("/");
         message =
           crossOrigin && (await reachable(sample.url))
-            ? CORS_MESSAGE
+            ? corsMessage(proxyConfig)
             : UNREACHABLE_MESSAGE;
       }
       response.textContent = "";

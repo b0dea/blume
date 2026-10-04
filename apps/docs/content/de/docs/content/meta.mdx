@@ -35,6 +35,7 @@ Blume liest `meta.ts`-Dateien nur aus Ordnern, die dein Content abdeckt: Eine Da
 | `order` | `number` | Position unter gleichrangigen Gruppen und Seiten. Niedrigere Zahlen werden zuerst einsortiert. |
 | `collapsed` | `boolean` | Legt im [Anzeigemodus `group`](/docs/content/navigation#display-modes) fest, ob die Gruppe eingeklappt startet. |
 | `display` | `"flat" \| "group" \| "page"` | Darstellungsmodus für diese Gruppe; überschreibt das globale [`navigation.sidebar.display`](/docs/content/navigation#display-modes). |
+| `directory` | `"card" \| "accordion" \| "none"` | Listet die Seiten der Gruppe unterhalb des Inhalts ihrer `index`-Seite auf. Verschachtelte Ordner erben diese Einstellung. Siehe [Verzeichnislisten](/docs/content/navigation#directory-listings). |
 | `pages` | `string[]` | Explizite Reihenfolge der Kinder der Gruppe, nach Slug. |
 
 Das `pages`-Array listet die Kinder nach Slug auf — dem Ordner- oder Dateinamen ohne numerisches Präfix und ohne Klammern (aus `01-quickstart.mdx` wird also `"quickstart"`). Jedes aufgeführte Kind erhält seine Position im Array als Reihenfolge (`0`, `1`, `2`, …). Kinder, die du weglässt, erscheinen trotzdem und werden nach ihrer eigenen Reihenfolge sortiert: Eine `index`-Seite bleibt an erster Stelle, ein Kind mit `sidebar.order`, numerischem Präfix oder einem eigenen `order` in seiner `meta.ts` wird nach dieser Zahl zwischen die aufgeführten einsortiert, und ein Kind ohne all das kommt nach ihnen. Führe jedes Kind auf, wenn das Array die gesamte Reihenfolge festlegen soll.

@@ -262,6 +262,13 @@ export const registry: RegistryItem[] = [
     name: "feedback",
     slot: "Feedback",
   }),
+  layoutComponent({
+    description:
+      "The site footer: a row of links, social icons, the theme toggle, and the Cookie settings link.",
+    file: "SiteFooter.astro",
+    name: "footer",
+    slot: "Footer",
+  }),
   ...CONTENT_COMPONENTS.map(contentComponent),
 ];
 

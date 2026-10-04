@@ -32,6 +32,11 @@ export interface ResolvedScheme {
   /** The scheme object; undefined when the requirement names an unknown one. */
   scheme?: SecuritySchemeLike;
   scopes: string[];
+  /**
+   * AsyncAPI: the servers that declare this scheme, set only when the
+   * channel's servers don't all declare the same ones.
+   */
+  servers?: string[];
 }
 
 /** The security state one operation renders. */
@@ -40,17 +45,25 @@ export interface OperationSecurity {
   alternatives: ResolvedScheme[][];
   /** True when an empty requirement also allows unauthenticated calls. */
   optional: boolean;
+  /**
+   * AsyncAPI: the servers that declare no security while others do, so the
+   * schemes apply on the other servers only.
+   */
+  unauthenticatedServers?: string[];
 }
 
 /**
  * The requirement list an operation actually enforces: its own `security` when
  * declared — the OpenAPI override rule, where `[]` removes the default and
- * makes the operation public — else the document's root `security`.
+ * makes the operation public — else the document's root `security`. A webhook
+ * takes only its own: the API sends it, so the root requirements, which guard
+ * calls to the API, say nothing about what the receiving endpoint checks.
  */
 export const effectiveSecurity = (
   operation?: SecurityRequirementLike[],
-  document?: SecurityRequirementLike[]
-): SecurityRequirementLike[] => operation ?? document ?? [];
+  document?: SecurityRequirementLike[],
+  webhook = false
+): SecurityRequirementLike[] => operation ?? (webhook ? [] : document) ?? [];
 
 /**
  * Resolve requirement names against `components.securitySchemes`. A name with

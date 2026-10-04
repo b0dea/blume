@@ -4,27 +4,44 @@ import { pathToFileURL } from "node:url";
 import { dirname, isAbsolute, join, relative } from "pathe";
 
 import type { AskRetrievalOptions } from "../ai/ask-context.ts";
+import { ASK_MAX_MESSAGES, ASK_MAX_MESSAGES_CHARS } from "../ai/ask-limits.ts";
 import type { AskBackend } from "../ai/ask.ts";
 import { buildHomeLinkHeader } from "../ai/link-headers.ts";
+import type { CaptchaAdapter } from "../captcha/schema.ts";
+import { CONSENT_CLIENT_MODULES } from "../consent/clients.ts";
 import { normalizeBasePath } from "../core/base-path.ts";
 import { TOC_HIDDEN_KEY } from "../core/heading-markers.ts";
+import {
+  compileEveryRedirect,
+  isPatternPath,
+} from "../core/redirect-patterns.ts";
+import type { CompiledRedirect } from "../core/redirect-patterns.ts";
 import type { ResolvedConfig } from "../core/schema.ts";
 import { resolveDocsCollection } from "../core/sources/collection.ts";
 import { BLUME_IGNORE_DIRS } from "../core/sources/watch.ts";
 import { trimChar } from "../core/trim.ts";
 import type { ProjectContext } from "../core/types.ts";
+import { hasVariables } from "../core/variables.ts";
 import { deployPassthrough } from "../deploy/adapters/types.ts";
 import { SVG_ASSET_HEADERS } from "../deploy/headers.ts";
 import { deployPlatform } from "../deploy/platforms/index.ts";
 import { adapterRoot, distDir } from "../deploy/platforms/paths.ts";
-import { applyBaseToAstroRedirects } from "../deploy/redirects.ts";
+import {
+  applyBaseToAstroRedirects,
+  withMirrorRedirects,
+} from "../deploy/redirects.ts";
+import { API_RAIL_KEY } from "../markdown/api-rail.ts";
+import { VIEWS_KEY } from "../markdown/views.ts";
 import type { OgCache } from "../og/cache.ts";
 import type { OgFont, OgFontFamilies, OgGoogleFont } from "../og/card.ts";
+import { RATE_LIMIT_BINDING } from "../ratelimit/cloudflare.ts";
+import type { RateLimitAdapter } from "../ratelimit/schema.ts";
 import type { MixedbreadOptions } from "../search/adapters/mixedbread.ts";
 import type {
   ResolvedSearchAdapter,
   SearchAdapterKind,
 } from "../search/adapters/registry.ts";
+import type { SourcePage } from "../search/source-pages.ts";
 import { buildFontEntries, fontLocaleCodes } from "../theme/fonts.ts";
 import { importSpecifier, wrapperPropsType } from "./component-slots.ts";
 import type { ExampleSpec } from "./examples.ts";
@@ -113,7 +130,7 @@ const renderAstroAdapter = (
   const { astro } = platform;
   const args = {
     ...astro.options(context),
-    ...deployPassthrough(deployment.options),
+    ...deployPassthrough(deployment.options, astro.configOptions),
   };
   const argsLiteral = Object.keys(args).length > 0 ? JSON.stringify(args) : "";
   const construct = `adapter(${argsLiteral})`;
@@ -124,7 +141,7 @@ const renderAstroAdapter = (
       ? `withAdapterRoot(${construct}, ${JSON.stringify(adapterRoot(context))})`
       : construct;
   return {
-    configEntries: Object.entries(astro.config)
+    configEntries: Object.entries(astro.config(deployment.options))
       .map(([key, value]) => `\n  ${key}: ${JSON.stringify(value)},`)
       .join(""),
     importLine: `import adapter from "${astro.package}";\n`,
@@ -188,7 +205,8 @@ export const runtimeDependencies = (options: {
   deps.push(
     ...new Set(config.reference.flatMap((adapter) => adapter.runtimeDeps)),
     ...config.search.provider.runtimeDeps,
-    ...config.analytics.flatMap((adapter) => adapter.runtimeDeps)
+    ...config.analytics.flatMap((adapter) => adapter.runtimeDeps),
+    ...(config.consent?.runtimeDeps ?? [])
   );
   // Each content source adapter declares the SDK its fetch imports (Notion,
   // Sanity); the descriptor is the one place that knows.
@@ -273,18 +291,14 @@ const renderUserAliases = (
     .join("");
 
 /**
- * Excludes Vite's pre-bundled dep cache from @vitejs/plugin-react. Astro's
- * react() replaces the plugin's default `/node_modules/` exclude with just
- * `/\.astro$/`, so without this Babel re-parses every optimized dep chunk
- * served from `.vite/deps` — a 500KB+ vendor bundle per chunk, re-done on each
- * re-optimization. A blanket `/node_modules/` exclude would instead switch the
- * React Compiler off for Blume's own components in published installs (they
- * resolve under `node_modules/blume/src`, and exclude beats include in the
- * plugin's filter), so only the pre-bundle cache is excluded. The hidden runtime
- * relocates that cache to `<runtime>/.cache/vite` (see `cacheOptions`), so both
- * the default and the relocated path are excluded.
+ * Excludes the hidden runtime's pre-bundled dep cache from @vitejs/plugin-react.
+ * Astro's react() already excludes `/node_modules/`, which covers Vite's
+ * default `node_modules/.vite` cache, but the hidden runtime relocates that
+ * cache to `<runtime>/.cache/vite` (see `cacheOptions`). Without this the React
+ * Compiler re-transforms every optimized dep chunk served from there — a 500KB+
+ * vendor bundle per chunk, re-done on each re-optimization.
  */
-const REACT_EXCLUDE = String.raw`exclude: [/\/node_modules\/\.vite\//, /\/\.cache\/vite\//]`;
+const REACT_EXCLUDE = String.raw`exclude: [/\/\.cache\/vite\//]`;
 
 /**
  * The `cacheDir` entries for the generated config's top level and its `vite`
@@ -314,17 +328,14 @@ const runtimeCacheOptions = (
 };
 
 /**
- * The `react()` integration call. When `compilerPath` is set (the resolved
- * absolute path to `babel-plugin-react-compiler`), react() carries the compiler
- * as the first babel plugin — an absolute path, because @vitejs/plugin-react
- * resolves babel plugins from the *project* root, not `.blume/`, so a bare
- * specifier wouldn't resolve in a user project. `target: "19"` matches Blume's
- * React pin. `null`/`undefined` (compiler off or unresolvable) omits the babel
- * block. Both variants carry the pre-bundle exclude above.
+ * The `react()` integration call. `compiler` turns on @astrojs/react's React
+ * Compiler, which runs on `oxc-transform-react` and targets the installed
+ * React major; false/absent (compiler off or unresolvable) leaves it out. Both
+ * variants carry the pre-bundle exclude above.
  */
-const reactIntegration = (compilerPath: string | null | undefined): string =>
-  compilerPath
-    ? `react({ babel: { plugins: [[${JSON.stringify(compilerPath)}, { target: "19" }]] }, ${REACT_EXCLUDE} })`
+const reactIntegration = (compiler: boolean | undefined): string =>
+  compiler
+    ? `react({ compiler: true, ${REACT_EXCLUDE} })`
     : `react({ ${REACT_EXCLUDE} })`;
 
 interface IntegrationBridgeOptions {
@@ -378,11 +389,10 @@ interface OptimizeDepsConfig {
  * the Vite root is the generated runtime, so user pages, convention islands,
  * and alias-reachable components all live outside it and are otherwise only
  * crawled when first requested. The compiler runtime rides the include list
- * because it is Babel-injected and no source scan can see it. @vitejs/plugin-react
- * would add it itself, but only when the babel plugin is passed by its bare
- * name (`getReactCompilerPlugin` is an exact string match) — Blume passes an
- * absolute path (see `reactIntegration`), which that check never matches. See
- * the optimizeDeps comment in the generated config for the failure this prevents.
+ * because the compiler injects its import and no source scan can see it. The
+ * compiler plugin in `@vitejs/plugin-react` lists it too; Blume keeps it
+ * explicit so the guard doesn't hinge on that plugin's internals. See the
+ * optimizeDeps comment in the generated config for the failure this prevents.
  */
 /**
  * The client-side libraries a site needs, decided at generation time. A
@@ -422,7 +432,7 @@ const resolveOptimizeDeps = (options: {
   context: ProjectContext;
   features: ClientFeatures;
   needsReact: boolean;
-  reactCompilerPath: string | null | undefined;
+  reactCompiler: boolean | undefined;
   searchKind: SearchAdapterKind;
 }): OptimizeDepsConfig => {
   const { context, features } = options;
@@ -446,7 +456,7 @@ const resolveOptimizeDeps = (options: {
     // (__PREFETCH_PREFETCH_ALL__ and friends) that a pre-bundled copy loses,
     // throwing ReferenceError on every page. Astro manages their optimization
     // itself, without a mid-session reload.
-    ...(options.needsReact && options.reactCompilerPath
+    ...(options.needsReact && options.reactCompiler
       ? ["react/compiler-runtime"]
       : []),
   ];
@@ -555,17 +565,23 @@ const blumeIntegrationOptions = (options: {
   contentRoutes: string[];
   ejected: boolean;
   pages: BlumePageRoute[];
-}): BlumeIntegrationOptions =>
-  options.ejected
+  redirects: CompiledRedirect[];
+}): BlumeIntegrationOptions => {
+  const shared: BlumeIntegrationOptions = { pages: options.pages };
+  if (options.redirects.length > 0) {
+    shared.redirects = options.redirects;
+  }
+  return options.ejected
     ? {
+        ...shared,
         buildArtifactsRoot: ".",
         contentRoutes: options.contentRoutes,
         homeLinkHeader:
           buildHomeLinkHeader(options.config, options.contentRoutes, "dev") ??
           undefined,
-        pages: options.pages,
       }
-    : { pages: options.pages };
+    : shared;
+};
 
 export const astroConfigTemplate = (options: {
   context: ProjectContext;
@@ -581,6 +597,8 @@ export const astroConfigTemplate = (options: {
   /** The example-preview Tailwind entry (`blume:examples-theme`). */
   examplesThemePath: string;
   themePath: string;
+  /** The configured consent adapter's browser module (`blume:consent-client`). */
+  consentClientPath: string;
   searchClientPath: string;
   /** The generated client-feature loaders (`blume:features`). */
   featuresPath: string;
@@ -594,11 +612,10 @@ export const astroConfigTemplate = (options: {
    */
   generatedModulesDir?: string;
   /**
-   * Absolute path to `babel-plugin-react-compiler` when the React Compiler is
-   * enabled (resolved from Blume's package root by the caller); null/absent
-   * disables the compiler and emits a bare `react()`.
+   * Turn on the React Compiler (the caller checked that `oxc-transform-react`
+   * resolves); false/absent emits `react()` without it.
    */
-  reactCompilerPath?: string | null;
+  reactCompiler?: boolean;
   /** Project tsconfig path aliases (`find` -> absolute dir), e.g. `@` -> src. */
   aliases?: Record<string, string>;
   /**
@@ -617,6 +634,7 @@ export const astroConfigTemplate = (options: {
   );
   const {
     askPath,
+    consentClientPath,
     contentRoutes,
     examplesPath,
     examplesThemePath,
@@ -645,7 +663,7 @@ export const astroConfigTemplate = (options: {
     context,
     features,
     needsReact,
-    reactCompilerPath: options.reactCompilerPath,
+    reactCompiler: options.reactCompiler,
     searchKind: config.search.provider.kind,
   });
 
@@ -681,17 +699,29 @@ export const astroConfigTemplate = (options: {
   // Base the redirect paths the same way routes are based, so a redirect lands
   // under `basePath` too. Astro layers its own `base` (deployment.base) onto
   // `from` when matching, but never onto `to` — see applyBaseToAstroRedirects.
-  const basedRedirects = applyBaseToAstroRedirects(
-    config.redirects,
-    config.basePath,
-    deployment.options.base ?? "",
-    new Set(contentRoutes)
+  // A moved page's Markdown copies move with it (see withMirrorRedirects).
+  const redirectPages = new Set(contentRoutes);
+  const basedRedirects = withMirrorRedirects(
+    applyBaseToAstroRedirects(
+      config.redirects,
+      config.basePath,
+      deployment.options.base ?? "",
+      redirectPages
+    ),
+    redirectPages,
+    { from: "", to: normalizeBasePath(deployment.options.base) }
+  );
+  // Only exact redirects: Astro can't prerender a pattern's redirect pages
+  // (it would need every path the pattern covers), so a pattern reaches the
+  // dev server through the integration and each host through its own rules.
+  const exactRedirects = basedRedirects.filter(
+    (redirect) => !isPatternPath(redirect.from)
   );
   const redirectsOption =
-    basedRedirects.length > 0
+    exactRedirects.length > 0
       ? `\n  redirects: ${JSON.stringify(
           Object.fromEntries(
-            basedRedirects.map((redirect) => [
+            exactRedirects.map((redirect) => [
               redirect.from,
               { destination: redirect.to, status: redirect.status },
             ])
@@ -759,12 +789,19 @@ export const astroConfigTemplate = (options: {
   const svelteImport = needsSvelte
     ? `import svelte from "@astrojs/svelte";\n`
     : "";
+  // Content variables in `.mdx` are replaced before the MDX compiler parses
+  // the source, which reads `{{name}}` as a JavaScript expression.
+  const substitutesVariables = hasVariables(config.variables);
+  const variablesPluginEntry = substitutesVariables
+    ? `variablesVitePlugin(${JSON.stringify(config.variables)}), `
+    : "";
   const blumeImports = [
     "blumeIntegration",
     "includeHmrPlugin",
     "prerenderDepsPlugin",
     ...runtimeModuleImports,
     ...(adapterOption.includes("withAdapterRoot") ? ["withAdapterRoot"] : []),
+    ...(substitutesVariables ? ["variablesVitePlugin"] : []),
   ];
   const blumeImport = `import { ${blumeImports.join(", ")} } from "blume/astro";\n`;
 
@@ -794,6 +831,7 @@ export const astroConfigTemplate = (options: {
     deployBase,
     externalLinks: config.markdown.externalLinks,
     headingAnchors: config.markdown.headingAnchors,
+    variables: config.variables,
   });
   const processorOptions =
     options.generatedModulesDir === undefined
@@ -804,7 +842,7 @@ export const astroConfigTemplate = (options: {
     `mdx({ processor: blumeMdxProcessor(${processorOptions}) })`,
   ];
   if (needsReact) {
-    integrations.push(reactIntegration(options.reactCompilerPath));
+    integrations.push(reactIntegration(options.reactCompiler));
   }
   if (needsVue) {
     integrations.push("vue()");
@@ -822,6 +860,7 @@ export const astroConfigTemplate = (options: {
         contentRoutes,
         ejected,
         pages,
+        redirects: compileEveryRedirect(basedRedirects),
       })
     )})`
   );
@@ -885,7 +924,7 @@ ${userConfigSetup}export default defineConfig({
   // the overlap only adds memory.
   build: { concurrency: Math.min(8, availableParallelism()) },
   vite: {${viteCacheOption}
-    plugins: [${runtimeModulesPluginEntry}tailwindcss(), includeHmrPlugin(${configPath(
+    plugins: [${runtimeModulesPluginEntry}${variablesPluginEntry}tailwindcss(), includeHmrPlugin(${configPath(
       `${context.outDir}/src/generated/includes.json`,
       ejected
     )}), prerenderDepsPlugin()],
@@ -897,8 +936,8 @@ ${userConfigSetup}export default defineConfig({
     // Everything hydration can reach must be part of the dev dep optimizer's
     // FIRST run. The Vite root is the generated runtime, so user pages,
     // islands, and aliased components live outside it and are only crawled
-    // when first requested — and \`react/compiler-runtime\` is Babel-injected,
-    // so no source scan can ever see it. A dependency discovered after
+    // when first requested — and \`react/compiler-runtime\` is injected by the
+    // React Compiler, so no source scan can ever see it. A dependency discovered after
     // hydration begins triggers a mid-session re-optimization whose new
     // generation imports React through new \`?v=\` URLs; the browser then
     // evaluates a second React copy and every island tears down with
@@ -944,6 +983,7 @@ ${userConfigSetup}export default defineConfig({
     resolve: {
       alias: {
         "blume:ask": ${configPath(askPath, ejected)},
+        "blume:consent-client": ${configPath(consentClientPath, ejected)},
         "blume:examples": ${configPath(examplesPath, ejected)},
         "blume:examples-theme": ${configPath(examplesThemePath, ejected)},
         "blume:features": ${configPath(featuresPath, ejected)},
@@ -1095,12 +1135,21 @@ const ASK_FALLBACK_PROMPT =
 
 /** The `ai.assistant` values the generated endpoint has to carry with it. */
 export interface AskEndpointOptions {
+  /** `ai.assistant.captcha` — the bot check the route verifies first. */
+  captcha?: CaptchaAdapter;
   /** `ai.assistant.cors` — origins allowed to call the route from another site. */
   cors?: string[];
+  /** `rateLimit` — the limiter the route checks before any work. */
+  rateLimit?: RateLimitAdapter | null;
   /** `ai.assistant.instructions` — extra system-prompt text. */
   instructions?: string;
   /** `ai.assistant.retrieval` — how much documentation each question carries. */
   retrieval?: AskRetrievalOptions;
+  /**
+   * `ai.assistant.tools`, resolved against the adapter's default: give the
+   * model the docs search and read-page tools.
+   */
+  tools?: boolean;
 }
 
 /** The pieces `askEndpointTemplate` splices in for `ai.assistant.cors`. */
@@ -1132,7 +1181,7 @@ const askCorsTemplate = (cors: readonly string[] = []): AskCorsTemplate =>
         imports: [
           'import { preflightResponse, withCors } from "blume/ai/cors.ts";',
         ],
-        open: "withCors(ALLOWED_ORIGINS, async ({ request }) => {",
+        open: "withCors(ALLOWED_ORIGINS, async (context) => {",
         setup: `
 const ALLOWED_ORIGINS = ${JSON.stringify(cors)};
 
@@ -1140,12 +1189,94 @@ export const OPTIONS: APIRoute = ({ request }) =>
   preflightResponse(request, ALLOWED_ORIGINS);
 `,
       }
-    : { close: "};", imports: [], open: "async ({ request }) => {", setup: "" };
+    : { close: "};", imports: [], open: "async (context) => {", setup: "" };
+
+/** The pieces a server route splices in to check `rateLimit` first. */
+interface RateLimitTemplate {
+  /** The check at the top of the handler; reads `context`. */
+  check: string;
+  /** The runtime import, plus what the adapter's store needs. */
+  imports: string[];
+  /** The route's limiter, built once at module scope. */
+  setup: string;
+}
+
+/**
+ * `rateLimit` for one server route: a limiter built at module scope from the
+ * configured adapter, checked against every request, keyed by the reader's
+ * address and `scope` so each route keeps its own budget (see
+ * `ratelimit/runtime.ts`). Upstash reads its secrets through `getSecret`;
+ * Cloudflare's binding comes from the Worker's env. Nothing at all when
+ * rate limiting is off.
+ */
+export const rateLimitTemplate = (
+  adapter: RateLimitAdapter | null | undefined,
+  scope: string
+): RateLimitTemplate => {
+  if (!adapter) {
+    return { check: "", imports: [], setup: "" };
+  }
+  const imports = [
+    'import { createLimiter, rateLimited } from "blume/ratelimit/runtime.ts";',
+  ];
+  let runtime = "";
+  if (adapter.kind === "upstash") {
+    imports.push('import { getSecret } from "astro:env/server";');
+    runtime = ", { secret: getSecret }";
+  } else if (adapter.kind === "cloudflare") {
+    imports.push(
+      "// @ts-ignore `cloudflare:workers` is typed once `wrangler types` has run.",
+      'import { env } from "cloudflare:workers";'
+    );
+    runtime = `, { binding: Reflect.get(env, ${JSON.stringify(RATE_LIMIT_BINDING)}) }`;
+  }
+  return {
+    check: `  const limited = await rateLimited(limiter, context, ${JSON.stringify(scope)});
+  if (limited) {
+    return limited;
+  }
+`,
+    imports,
+    setup: `\nconst limiter = createLimiter(${JSON.stringify(adapter)}${runtime});\n`,
+  };
+};
+
+/**
+ * `ai.assistant.captcha` for the ask route: verify the question's token with
+ * the provider before the model runs (see `captcha/verify.ts`). A missing
+ * secret answers with the same "not configured" notice as a missing
+ * provider key, which the panel shows as is; a failed check answers `403`.
+ */
+const askCaptchaTemplate = (adapter?: CaptchaAdapter): RateLimitTemplate => {
+  if (!adapter) {
+    return { check: "", imports: [], setup: "" };
+  }
+  const [secret = ""] = adapter.requiredSecrets;
+  return {
+    check: `  const captchaSecret = getSecret(${JSON.stringify(secret)});
+  if (!captchaSecret) {
+    return new Response(
+      ${JSON.stringify(`The assistant is not configured: set ${secret}.`)},
+      { status: 503 }
+    );
+  }
+  const captchaToken =
+    typeof body.captcha === "string" ? body.captcha : undefined;
+  if (!(await verifyCaptcha(CAPTCHA, captchaToken, context, { secret: captchaSecret }))) {
+    return new Response("Verification failed: the bot check didn't pass.", {
+      status: 403,
+    });
+  }
+`,
+    imports: ['import { verifyCaptcha } from "blume/captcha/verify.ts";'],
+    setup: `\nconst CAPTCHA = ${JSON.stringify(adapter)};\n`,
+  };
+};
 
 /**
  * Largest request body the assistant route reads: 64 KB, well above the
- * 24,000-character message budget it validates next, so a real conversation
- * never meets it.
+ * message budget it validates next (`ai/ask-limits.ts`), so a real
+ * conversation never meets it.
  */
 const ASK_BODY_LIMIT_BYTES = 65_536;
 
@@ -1174,6 +1305,8 @@ export const askEndpointTemplate = (
 ): string => {
   const { instructions, retrieval } = options ?? {};
   const { grounded } = backend;
+  // The tools read the grounding snapshot, so an ungrounded backend has none.
+  const tools = grounded && Boolean(options?.tools);
   const fallbackPrompt = instructions
     ? `${ASK_FALLBACK_PROMPT}\n\n${instructions}`
     : ASK_FALLBACK_PROMPT;
@@ -1201,12 +1334,32 @@ export const askEndpointTemplate = (
     if (retrieval) {
       groundFields.push(`retrieval: ${JSON.stringify(retrieval)}`);
     }
+    if (tools) {
+      groundFields.push("tools: true");
+    }
     const groundOptions =
       groundFields.length > 0 ? `, { ${groundFields.join(", ")} }` : "";
     setup += `\nconst ground = createAskContext(askData${groundOptions});\n`;
+    if (tools) {
+      imports.push(
+        'import { stepCountIs } from "ai";',
+        'import { ASK_MAX_STEPS, createAskTools } from "blume/ai/ask-tools.ts";'
+      );
+      setup += "const askTools = createAskTools(askData);\n";
+    }
   }
   const cors = askCorsTemplate(options?.cors);
   imports.push(...cors.imports);
+  const limit = rateLimitTemplate(options?.rateLimit, "ask");
+  for (const line of limit.imports) {
+    if (!imports.includes(line)) {
+      imports.push(line);
+    }
+  }
+  setup += limit.setup;
+  const captcha = askCaptchaTemplate(options?.captcha);
+  imports.push(...captcha.imports);
+  setup += captcha.setup;
   // Validate the client-supplied body and cap its size. The endpoint is
   // unauthenticated, so bounding message count/length limits how much a caller
   // can spend against the model per request, and restricting roles to
@@ -1215,7 +1368,8 @@ export const askEndpointTemplate = (
   // limiter (or your provider's limits) for stronger protection. The body is
   // read under a 64 KB cap before any parsing, since a self-hosted Node server
   // would otherwise buffer an arbitrarily large POST in memory first.
-  const validate = `  const text = await readCappedText(request, ${ASK_BODY_LIMIT_BYTES});
+  const validate = `  const { request } = context;
+${limit.check}  const text = await readCappedText(request, ${ASK_BODY_LIMIT_BYTES});
   if (text === undefined) {
     return new Response("Request too large: the body must be at most 64 KB.", {
       status: 413,
@@ -1231,7 +1385,7 @@ export const askEndpointTemplate = (
   const valid =
     Array.isArray(raw) &&
     raw.length > 0 &&
-    raw.length <= 40 &&
+    raw.length <= ${ASK_MAX_MESSAGES} &&
     raw.every(
       (m: unknown) =>
         typeof m === "object" &&
@@ -1239,10 +1393,10 @@ export const askEndpointTemplate = (
         ("role" in m && (m.role === "user" || m.role === "assistant")) &&
         ("content" in m && typeof m.content === "string")
     ) &&
-    JSON.stringify(raw).length <= 24_000;
+    JSON.stringify(raw).length <= ${ASK_MAX_MESSAGES_CHARS};
   if (!valid) {
     return new Response(
-      "Invalid request: send 1-40 user/assistant messages with string content.",
+      "Invalid request: send 1-${ASK_MAX_MESSAGES} user/assistant messages with string content.",
       { status: 400 }
     );
   }
@@ -1273,6 +1427,11 @@ export const askEndpointTemplate = (
       ? "instructions"
       : `instructions:\n        ${JSON.stringify(fallbackPrompt)}`,
     "messages",
+    // The model may search and read pages, then answer, within one request:
+    // tool calls run here on the server and only the text reaches the reader.
+    ...(tools
+      ? ["tools: askTools(body.page)", "stopWhen: stepCountIs(ASK_MAX_STEPS)"]
+      : []),
     ...backend.template.fields,
   ];
   // The request's signal aborts when the reader closes the panel mid-answer
@@ -1294,7 +1453,7 @@ ${call}`
   const handler = `export const POST: APIRoute = ${cors.open}
 ${validate}
 ${keyCheck}
-  try {
+${captcha.check}  try {
 ${stream}
     return createTextStreamResponse({
       stream: toTextStream({ stream: result.stream }),
@@ -1339,9 +1498,11 @@ const { strings } = Astro.props;
 ---
 
 <Assistant
+  captcha={data.config.assistant?.captcha ?? undefined}
   endpoint={data.config.assistant?.endpoint ?? undefined}
   strings={strings ?? data.ui.assistant}
   suggestions={data.config.assistant?.suggestions ?? []}
+  support={data.config.assistant?.support ?? undefined}
 />
 `
     : `---
@@ -1442,6 +1603,36 @@ ${
 `;
 
 /**
+ * Generate `.blume/src/generated/consent-client.ts`, behind the
+ * `blume:consent-client` alias: the configured consent adapter's browser
+ * module (see `consent/clients.ts`), started by `ConsentHead.astro` with the
+ * adapter's options baked in. Only that adapter's module is referenced, so a
+ * site bundles no other adapter's code. An adapter without one (a hosted
+ * manager), or no `consent` at all, gets a no-op so the alias always resolves.
+ */
+export const consentClientTemplate = (
+  consent: ResolvedConfig["consent"]
+): string => {
+  const module = consent ? CONSENT_CLIENT_MODULES.get(consent.kind) : undefined;
+  if (!(consent && module)) {
+    return `// Generated by Blume. Do not edit.
+// The consent adapter has no browser module, or consent is off.
+export const startConsentClient = (): void => {};
+`;
+  }
+  return `// Generated by Blume. Do not edit.
+// The \`${consent.kind}\` consent adapter's browser module, with its options.
+import { start } from ${JSON.stringify(module)};
+
+export const startConsentClient = (
+  consent: Parameters<typeof start>[0]
+): void => {
+  start(consent, ${JSON.stringify(consent.options)});
+};
+`;
+};
+
+/**
  * Generate `.blume/src/generated/search-client.ts` — the provider-specific
  * loader the `<Search>` component lazy-imports via the `blume:search-client`
  * alias. Only the configured provider's module (and therefore its SDK) is
@@ -1463,10 +1654,12 @@ export const searchClientTemplate = (config: ResolvedConfig): string => {
       return hostedSearchClient(provider);
     }
     case "server": {
-      return `${SEARCH_CLIENT_HEADER}${searchClientImport("endpoint")}${SEARCH_BASE_IMPORT}
+      // The dialog passes `typing`, which paces its queries (see endpoint.ts).
+      return `${SEARCH_CLIENT_HEADER}${searchClientImport("endpoint")}${SEARCH_BASE_IMPORT}import type { SearchClientOptions } from "blume/components/layout/search/types.ts";
 const api = joinBase(import.meta.env.BASE_URL, "api/search");
 
-export const createSearch = () => create({ api });
+export const createSearch = (options: SearchClientOptions = {}) =>
+  create({ ...options, api });
 `;
     }
     case "pagefind": {
@@ -1488,28 +1681,55 @@ export const createSearch = () => create({ url });
 /**
  * Generate the Mixedbread search endpoint (`/api/search`). It holds the secret
  * key server-side and proxies semantic queries to the configured store. The
- * adapter's options are inlined as a literal so the route never imports the
- * config. The result mapping is best-effort and may need tuning to how your
- * content was synced (see the Mixedbread sync step / \`mxbai vs sync\`).
+ * adapter's options are inlined as literals so the route never imports the
+ * config. `pages` (see `sourcePages`) maps each source file to its page: a
+ * chunk links to the page whose file `mxbai store sync` uploaded it from,
+ * found by the longest trailing run of the path the CLI recorded.
  */
 export const mixedbreadSearchEndpointTemplate = (
-  options: MixedbreadOptions
-): string =>
-  `// Generated by Blume. Do not edit.
-import type { APIRoute } from "astro";
-import { getSecret } from "astro:env/server";
-import Mixedbread from "@mixedbread/sdk";
-import { readCappedText } from "blume/core/request-body.ts";
+  options: MixedbreadOptions,
+  pages: [string, SourcePage][],
+  rateLimit?: RateLimitAdapter | null
+): string => {
+  const { search_options: tuning, storeId, ...searchOptions } = options;
+  const limit = rateLimitTemplate(rateLimit, "search");
+  const imports = [
+    'import type { APIRoute } from "astro";',
+    'import { getSecret } from "astro:env/server";',
+    'import Mixedbread from "@mixedbread/sdk";',
+    'import { readCappedText } from "blume/core/request-body.ts";',
+    ...limit.imports.filter((line) => !line.includes('"astro:env/server"')),
+  ];
+  return `// Generated by Blume. Do not edit.
+${imports.join("\n")}
 
 export const prerender = false;
 
 const client = new Mixedbread({ apiKey: getSecret("MIXEDBREAD_API_KEY") ?? "" });
-const OPTIONS = ${JSON.stringify(options)};
-// Every option besides the store reaches the search call verbatim.
-const { storeId: STORE_ID, ...SEARCH_OPTIONS } = OPTIONS;
+const STORE_ID = ${JSON.stringify(storeId)};
+// Every other option reaches the search call verbatim.
+const SEARCH_OPTIONS = ${JSON.stringify(searchOptions)};
+const SEARCH_TUNING = ${JSON.stringify(tuning ?? {})};
+// Each page's source file, relative to the project root, and the page it renders.
+const PAGES = new Map<string, { title: string; url: string }>(${JSON.stringify(pages)});
 
-export const POST: APIRoute = async ({ request }) => {
-  // A search body is one short query: read it under a 16 KB cap, so a
+// The page a synced file renders. \`mxbai store sync\` records the path
+// relative to where it ran (the project root, or a monorepo root above it), so
+// the longest trailing run of that path that names a page's file wins.
+const pageFor = (path: string) => {
+  const segments = path.replaceAll("\\\\", "/").split("/");
+  for (let start = 0; start < segments.length; start += 1) {
+    const page = PAGES.get(segments.slice(start).join("/"));
+    if (page) {
+      return page;
+    }
+  }
+  return undefined;
+};
+${limit.setup}
+export const POST: APIRoute = async (context) => {
+  const { request } = context;
+${limit.check}  // A search body is one short query: read it under a 16 KB cap, so a
   // self-hosted server never buffers an arbitrarily large POST first.
   const text = await readCappedText(request, 16_384);
   if (text === undefined) {
@@ -1531,29 +1751,39 @@ export const POST: APIRoute = async ({ request }) => {
     });
   }
   // \`top_k\` defaults to 8 unless an option sets it; the query and store
-  // always come from the request and \`storeId\`.
+  // always come from the request and \`storeId\`. File metadata is always
+  // returned: it holds the path \`mxbai store sync\` recorded for the file.
   const response = await client.stores.search({
     top_k: 8,
     ...SEARCH_OPTIONS,
     query,
+    search_options: { ...SEARCH_TUNING, return_metadata: true },
     store_identifiers: [STORE_ID],
   });
-  const hits = (response.data ?? []).map((chunk) => {
+  const seen = new Set<string>();
+  const hits = (response.data ?? []).flatMap((chunk) => {
+    const { file_path: path } = (chunk.metadata ?? {}) as { file_path?: unknown };
+    const page = typeof path === "string" ? pageFor(path) : undefined;
+    // A file no page renders has nowhere to link, and a page's later chunks
+    // would repeat it: one hit per page, at its best chunk.
+    if (!page || seen.has(page.url)) {
+      return [];
+    }
+    seen.add(page.url);
     const meta = chunk.generated_metadata ?? {};
     // Only a text chunk carries \`text\`; image, audio, and video chunks fall
     // back to the excerpt the store generated for them.
     const text = "text" in chunk ? chunk.text : undefined;
-    return {
-      excerpt: text ?? meta.excerpt ?? "",
-      title: meta.title ?? chunk.filename ?? "",
-      url: meta.url ?? "",
-    };
+    return [
+      { excerpt: text ?? meta.excerpt ?? "", title: page.title, url: page.url },
+    ];
   });
   return new Response(JSON.stringify(hits), {
     headers: { "Content-Type": "application/json" },
   });
 };
 `;
+};
 
 /**
  * Generate the raw-Markdown endpoints (`[...slug].md.ts` and `[...slug].mdx.ts`).
@@ -1756,17 +1986,26 @@ export const ALL: APIRoute = ({ request }) => handler(request);
  * client-side data: that is the whole trust boundary keeping the endpoint from
  * being an open proxy onto the deployment's own network.
  */
-export const playgroundProxyTemplate = (origins: string[]): string =>
-  `// Generated by Blume. Do not edit.
-import type { APIRoute } from "astro";
-import { createPlaygroundProxyHandler } from "blume/openapi/proxy.ts";
+export const playgroundProxyTemplate = (
+  origins: string[],
+  rateLimit?: RateLimitAdapter | null
+): string => {
+  const limit = rateLimitTemplate(rateLimit, "api-proxy");
+  const route = limit.check
+    ? `export const ALL: APIRoute = async (context) => {
+${limit.check}  return handler(context.request);
+};`
+    : "export const ALL: APIRoute = ({ request }) => handler(request);";
+  return `// Generated by Blume. Do not edit.
+${['import type { APIRoute } from "astro";', 'import { createPlaygroundProxyHandler } from "blume/openapi/proxy.ts";', ...limit.imports].join("\n")}
 
 export const prerender = false;
 
 const handler = createPlaygroundProxyHandler(${JSON.stringify(origins)});
-
-export const ALL: APIRoute = ({ request }) => handler(request);
+${limit.setup}
+${route}
 `;
+};
 
 /** Generate a prerendered endpoint that serves a fixed JSON payload. */
 export const staticJsonEndpointTemplate = <Payload extends object>(
@@ -2090,6 +2329,9 @@ const contentComponentsSource = (mathEnabled: boolean) => {
   return {
     imports: `import Accordion from "blume/components/content/Accordion.astro";
 import AccordionItem from "blume/components/content/AccordionItem.astro";
+import ApiEndpoint from "blume/components/content/ApiEndpoint.astro";
+import ApiPlayground from "blume/components/content/ApiPlayground.astro";
+import ApiRail from "blume/components/content/ApiRail.astro";
 import AutoTypeTable from "blume/components/content/AutoTypeTable.astro";
 import Badge from "blume/components/content/Badge.astro";
 import Callout from "blume/components/content/Callout.astro";
@@ -2109,7 +2351,11 @@ import FileTree from "blume/components/content/FileTree.astro";
 import Frame from "blume/components/content/Frame.astro";
 import GithubInfo from "blume/components/content/GithubInfo.astro";
 import Panel from "blume/components/content/Panel.astro";
+import ParamField from "blume/components/content/ParamField.astro";
 import Prompt from "blume/components/content/Prompt.astro";
+import RequestExample from "blume/components/content/RequestExample.astro";
+import ResponseExample from "blume/components/content/ResponseExample.astro";
+import ResponseField from "blume/components/content/ResponseField.astro";
 import Step from "blume/components/content/Step.astro";
 import Steps from "blume/components/content/Steps.astro";
 import Tab from "blume/components/content/Tab.astro";
@@ -2120,10 +2366,13 @@ import TreeRoot from "blume/components/content/Tree.astro";
 import TreeFile from "blume/components/content/TreeFile.astro";
 import TreeFolder from "blume/components/content/TreeFolder.astro";
 import TypeTable from "blume/components/content/TypeTable.astro";
+import View from "blume/components/content/View.astro";
 import Visibility from "blume/components/content/Visibility.astro";
 import YouTube from "blume/components/content/YouTube.astro";
 import Icon from "blume/components/Icon.astro";
 import LocaleLinks from "blume/components/layout/LocaleLinks.astro";
+import NarrationPlayer from "blume/components/layout/NarrationPlayer.astro";
+import ViewSwitcher from "blume/components/content/ViewSwitcher.astro";
 import ApiOverview from "blume/components/openapi/ApiOverview.astro";
 import ApiTagOperations from "blume/components/openapi/ApiTagOperations.astro";
 import Operation from "blume/components/openapi/Operation.astro";
@@ -2131,7 +2380,10 @@ ${mathImport}import { mdxComponents as userMdx, layoutOverrides } from "../gener
     map: `{
   Accordion,
   AccordionItem,
+  ApiEndpoint,
   ApiOverview,
+  ApiPlayground,
+  ApiRail,
   ApiTagOperations,
   AutoTypeTable,
   Badge,
@@ -2152,7 +2404,11 @@ ${mathImport}import { mdxComponents as userMdx, layoutOverrides } from "../gener
   Icon,
   Operation,
   Panel,
+  ParamField,
   Prompt,
+  RequestExample,
+  ResponseExample,
+  ResponseField,
   Step,
   Steps,
   Tab,
@@ -2161,6 +2417,7 @@ ${mathImport}import { mdxComponents as userMdx, layoutOverrides } from "../gener
   Tooltip,
   Tree,
   TypeTable,
+  View,
   Visibility,
   YouTube,
   ${mathEntry}...userMdx,
@@ -2191,10 +2448,12 @@ export const catchAllPageTemplate = (options: {
   return `---
 // Generated by Blume. Do not edit.
 import { getEntry, render } from "astro:content";
+import { pageModeLayout } from "blume/core/page-modes.ts";
 import type { CollectionKey } from "astro:content";
 import RootLayout from "blume/components/layout/RootLayout.astro";
 import { withBase, withMountedBase } from "blume/components/islands/base-path.ts";
 import { mountBasePath, stripBasePath } from "blume/core/base-path.ts";
+import { routeSetFor, servesRoute } from "blume/core/locale-links.ts";
 import { resolveSlot } from "blume/components/layout/overrides.ts";
 ${componentImports}
 import data from "blume:data";
@@ -2242,6 +2501,13 @@ const { Content, headings: allHeadings, remarkPluginFrontmatter } = await render
 // frontmatter (see markdown/heading-anchors.ts). Only the plugin's array
 // counts: \`frontmatter.extend\` can declare the same key, and on a page with
 // no headings that user-supplied value would pass straight through.
+// A page written in \`<View>\` blocks gets their picker above the content;
+// the views plugin lists them through the render's frontmatter (see
+// markdown/views.ts), and only a list of titled entries counts.
+const viewsRaw = remarkPluginFrontmatter?.${VIEWS_KEY};
+const views = Array.isArray(viewsRaw)
+  ? viewsRaw.filter((view) => typeof view?.title === "string")
+  : [];
 const tocHiddenRaw = remarkPluginFrontmatter?.${TOC_HIDDEN_KEY};
 const tocHidden = new Set(Array.isArray(tocHiddenRaw) ? tocHiddenRaw : []);
 const headings =
@@ -2320,6 +2586,14 @@ const htmlLang = i18n ? locale : "en";
 // follows that language — not the (mirrored) page locale.
 const contentLocale =
   fallback && i18n?.fallbackLocale ? i18n.fallbackLocale : locale;
+// "Listen to this page", unless the page opts out. The spoken cues are read
+// between the content's own sentences, so they come from the content's
+// language (a fallback page's), while the player's labels follow the page.
+// A \`custom\` or \`frame\` page brings its own heading: no title, description,
+// or narration player above its content.
+const pageChrome = pageModeLayout(frontmatter.mode).chrome;
+const narration = pageChrome && frontmatter.narration ? data.config.narration : null;
+const narrationCues = (i18n ? (data.uiByLocale[contentLocale] ?? data.ui) : data.ui).narration;
 const contentDir = i18n
   ? (i18n.locales.find((l) => l.code === contentLocale)?.dir ?? "ltr")
   : "ltr";
@@ -2383,18 +2657,24 @@ const logicalRoute = i18n
   ? stripLocale(stripBasePath(data.config.basePath, route), locale)
   : route;
 // A page from a one-language source (GitHub Releases) gets no switcher: every
-// other locale would only repeat the same text.
+// other locale would only repeat the same text. A locale with no real
+// translation links the page's fallback copy, which exists only while
+// fallbacks are on; where nothing is served at that URL (\`fallbackLocale:
+// null\`), the locale is left out rather than linked to a 404.
 const localeSwitch = i18n && !monolingual
-  ? i18n.locales.map((l) => {
+  ? i18n.locales.flatMap((l) => {
       const alt = (alternates ?? []).find((x) => x.locale === l.code);
-      return {
-        code: l.code,
-        current: l.code === locale,
-        dir: l.dir,
-        href: alt ? alt.path : mountLocalized(logicalRoute, l.code),
-        label: l.label,
-        untranslated: !alt,
-      };
+      const href = alt ? alt.path : mountLocalized(logicalRoute, l.code);
+      return alt || servesRoute(routeSetFor(data.routes), href)
+        ? [{
+            code: l.code,
+            current: l.code === locale,
+            dir: l.dir,
+            href,
+            label: l.label,
+            untranslated: !alt,
+          }]
+        : [];
     })
   : [];
 
@@ -2503,6 +2783,10 @@ const LayoutComponent = resolveSlot(layoutOverrides.Layout, RootLayout);
   canonical={canonical}
   editUrl={editUrl}
   feedback={data.config.feedback}
+  feedbackComments={data.config.feedbackComments}
+  pagination={frontmatter.pagination}
+  related={frontmatter.related}
+  search={frontmatter.search}
   exportPdf={${options.exportPdf}}
   exportEpub={${options.exportEpub}}${
     options.navFragments
@@ -2515,13 +2799,25 @@ const LayoutComponent = resolveSlot(layoutOverrides.Layout, RootLayout);
   discovery={data.config.discovery}
   siteUrl={data.config.site}
   pageType={frontmatter.type}
+  apiRail={remarkPluginFrontmatter?.${API_RAIL_KEY} === true}
+  pageMode={frontmatter.mode}
   published={frontmatter.date ?? frontmatter.changelog?.date ?? null}
   lastModified={lastModified}
   noindex={effectiveNoindex}
   structuredDataEnabled={data.config.structuredData}
 >
-  <h1>{title}</h1>
-  {frontmatter.description && <p class="text-lg text-muted-foreground">{frontmatter.description}</p>}
+  {pageChrome && <h1>{title}</h1>}
+  {pageChrome && frontmatter.description && <p class="text-lg text-muted-foreground">{frontmatter.description}</p>}
+  {narration && (
+    <NarrationPlayer
+      audioBase={narration.generated ? withMountedBase("/blume-narration/audio/") : undefined}
+      cues={narrationCues}
+      lang={i18n ? contentLocale : htmlLang}
+      manifest={narration.generated ? withMountedBase(encodeURI(\`/blume-narration/\${route === "/" ? "index" : route.slice(1)}.json\`)) : undefined}
+      strings={ui.narration}
+    />
+  )}
+  {views.length > 1 && <ViewSwitcher label={ui.content.selectView} views={views} />}
   <LocaleLinks locale={locale}>
     <Content components={components} />
   </LocaleLinks>
@@ -2705,13 +3001,15 @@ const canonical = base ? base + basedRoute : null;
 const ogPath = data.config.og.enabled ? withMountedBase("/og/changelog.png") : null;
 const ogImage = ogPath && base ? base + ogPath : ogPath;
 
-// The page chrome (h1, title, description) comes from the translatable
-// \`changelog\` group; optional chaining tolerates a not-yet-regenerated data
-// snapshot from before these keys existed.
+// The page chrome (h1, title, description, empty state) comes from the
+// translatable \`changelog\` group, which carries the \`changelog\` config's title and
+// description when it sets them; optional chaining tolerates a
+// not-yet-regenerated data snapshot from before these keys existed.
 const changelogTitle = data.ui.changelog?.title ?? "Changelog";
 const changelogDescription =
   data.ui.changelog?.description ??
   "Product updates, new features, and fixes from every release.";
+const changelogEmpty = data.ui.changelog?.empty ?? "No changelog entries yet.";
 // The layout suffixes "- {site title}" itself, so the page title is just the
 // changelog's own name — prefixing the site title too would double it
 // ("Acme Changelog - Acme").
@@ -2764,7 +3062,7 @@ const LayoutComponent = resolveSlot(layoutOverrides.Layout, RootLayout);
   <p class="text-lg text-muted-foreground">{changelogDescription}</p>
   {
     items.length === 0 ? (
-      <p>No changelog entries yet.</p>
+      <p>{changelogEmpty}</p>
     ) : (
       <div class="not-prose mt-10 divide-y divide-border border-border border-y">
         {groups.map((group) => (

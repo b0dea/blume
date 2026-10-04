@@ -9,6 +9,7 @@ import { inkeep, openrouter, resolveAskBackend } from "../src/ai/ask.ts";
 import { askEndpointTemplate } from "../src/astro/templates.ts";
 import { packageRoot } from "../src/core/package-root.ts";
 import { blumeConfigSchema } from "../src/core/schema.ts";
+import { memory } from "../src/ratelimit/index.ts";
 import { blumeSourceGlob, eject } from "../src/registry/eject.ts";
 import { findItem, packageSrc, registry } from "../src/registry/registry.ts";
 import { rewriteImports } from "../src/registry/rewrite-imports.ts";
@@ -300,11 +301,15 @@ export default defineComponents({
         },
       },
     }).ai.assistant;
+    const askBackend = resolveAskBackend(parsedAsk?.provider);
     expect(ejectedAsk).toBe(
-      askEndpointTemplate(resolveAskBackend(parsedAsk?.provider), {
+      askEndpointTemplate(askBackend, {
         cors: parsedAsk?.cors,
         instructions: parsedAsk?.instructions,
+        // Rate limiting is on by default.
+        rateLimit: memory(),
         retrieval: parsedAsk?.retrieval,
+        tools: parsedAsk?.tools ?? askBackend.toolsByDefault,
       })
     );
     expect(has("src/generated/ask-data.json")).toBe(true);
@@ -356,6 +361,9 @@ export default defineComponents({
     expect(appCss).toContain(
       `@source "${relative(join(root, "src/generated"), join(packageRoot(), "src"))}/**/*.{astro,ts,tsx}";`
     );
+    // The project scan covers `.jsx` islands too: the scan is a file glob,
+    // so a class used only in one would otherwise never be generated.
+    expect(appCss).toContain('@source "../../**/*.{astro,jsx,mdx,ts,tsx}";');
 
     // Every returned path was actually written; the local spec resolved, so no
     // reference warnings surface.
@@ -415,7 +423,7 @@ export default defineComponents({
             },
           }).ai.assistant?.provider
         ),
-        {}
+        { rateLimit: memory() }
       )
     );
     expect(ejectedAsk).not.toContain("createAskContext");
@@ -643,6 +651,7 @@ describe("registry", () => {
       "breadcrumbs",
       "table-of-contents",
       "pagination",
+      "footer",
     ]) {
       expect(findItem(name)?.files[0]?.rewrite).toBe(true);
     }

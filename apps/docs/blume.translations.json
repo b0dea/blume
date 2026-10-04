@@ -1,28 +1,28 @@
 {
   "files": {
     "content/docs/01-quickstart.mdx": {
-      "de": "76f2443067e01cf3",
-      "hi": "76f2443067e01cf3",
-      "ja": "76f2443067e01cf3",
-      "pt": "76f2443067e01cf3"
+      "de": "f2fb92bf3f4b532f",
+      "hi": "f2fb92bf3f4b532f",
+      "ja": "f2fb92bf3f4b532f",
+      "pt": "f2fb92bf3f4b532f"
     },
     "content/docs/02-deployment.mdx": {
-      "de": "05deaf1cfde9ba09",
-      "hi": "05deaf1cfde9ba09",
-      "ja": "05deaf1cfde9ba09",
-      "pt": "05deaf1cfde9ba09"
+      "de": "d3801b9cdc6532ca",
+      "hi": "d3801b9cdc6532ca",
+      "ja": "d3801b9cdc6532ca",
+      "pt": "d3801b9cdc6532ca"
     },
     "content/docs/03-upgrading.mdx": {
-      "de": "c8255521bdd079e1",
-      "hi": "c8255521bdd079e1",
-      "ja": "c8255521bdd079e1",
-      "pt": "c8255521bdd079e1"
+      "de": "8c7a59fb43f67f52",
+      "hi": "8c7a59fb43f67f52",
+      "ja": "8c7a59fb43f67f52",
+      "pt": "8c7a59fb43f67f52"
     },
     "content/docs/04-migrating.mdx": {
-      "de": "7df565f27803ae57",
-      "hi": "7df565f27803ae57",
-      "ja": "7df565f27803ae57",
-      "pt": "7df565f27803ae57"
+      "de": "00a37a3091b4c1dc",
+      "hi": "00a37a3091b4c1dc",
+      "ja": "00a37a3091b4c1dc",
+      "pt": "00a37a3091b4c1dc"
     },
     "content/docs/08-faq.mdx": {
       "de": "b645466515566e97",
@@ -43,10 +43,10 @@
       "pt": "286839d1a8d09987"
     },
     "content/docs/advanced/changelog.mdx": {
-      "de": "a5561b010caf359c",
-      "hi": "a5561b010caf359c",
-      "ja": "a5561b010caf359c",
-      "pt": "a5561b010caf359c"
+      "de": "8963f06639ed1251",
+      "hi": "8963f06639ed1251",
+      "ja": "8963f06639ed1251",
+      "pt": "8963f06639ed1251"
     },
     "content/docs/advanced/custom-pages.mdx": {
       "de": "925f2fe324fdca38",
@@ -61,34 +61,34 @@
       "pt": "0117b60783ac158d"
     },
     "content/docs/advanced/skills.mdx": {
-      "de": "231b25c6e05e861f",
-      "hi": "231b25c6e05e861f",
-      "ja": "231b25c6e05e861f",
-      "pt": "231b25c6e05e861f"
+      "de": "b45094bb9bb699b1",
+      "hi": "b45094bb9bb699b1",
+      "ja": "b45094bb9bb699b1",
+      "pt": "b45094bb9bb699b1"
     },
     "content/docs/cli/audit.mdx": {
-      "de": "755f0b219850912b",
-      "hi": "755f0b219850912b",
-      "ja": "755f0b219850912b",
-      "pt": "755f0b219850912b"
+      "de": "70a2a41a972c2190",
+      "hi": "70a2a41a972c2190",
+      "ja": "70a2a41a972c2190",
+      "pt": "70a2a41a972c2190"
     },
     "content/docs/cli/doctor.mdx": {
-      "de": "f4eaff504cb99a68",
-      "hi": "f4eaff504cb99a68",
-      "ja": "f4eaff504cb99a68",
-      "pt": "f4eaff504cb99a68"
+      "de": "ffc016c608630557",
+      "hi": "ffc016c608630557",
+      "ja": "ffc016c608630557",
+      "pt": "ffc016c608630557"
     },
     "content/docs/cli/evals.mdx": {
-      "de": "1404c2a886545864",
-      "hi": "1404c2a886545864",
-      "ja": "1404c2a886545864",
-      "pt": "1404c2a886545864"
+      "de": "ac194a5c2acd1f8d",
+      "hi": "ac194a5c2acd1f8d",
+      "ja": "ac194a5c2acd1f8d",
+      "pt": "ac194a5c2acd1f8d"
     },
     "content/docs/cli/index.mdx": {
-      "de": "c602eb7ff116ea72",
-      "hi": "c602eb7ff116ea72",
-      "ja": "c602eb7ff116ea72",
-      "pt": "c602eb7ff116ea72"
+      "de": "9f946d25325ad66c",
+      "hi": "9f946d25325ad66c",
+      "ja": "9f946d25325ad66c",
+      "pt": "9f946d25325ad66c"
     },
     "content/docs/cli/meta.ts": {
       "de": "a62f46ebfeb96bb5",
@@ -97,16 +97,16 @@
       "pt": "a62f46ebfeb96bb5"
     },
     "content/docs/cli/translate.mdx": {
-      "de": "be1fad4b32165f46",
-      "hi": "be1fad4b32165f46",
-      "ja": "be1fad4b32165f46",
-      "pt": "be1fad4b32165f46"
+      "de": "f0237edb52ea4321",
+      "hi": "f0237edb52ea4321",
+      "ja": "f0237edb52ea4321",
+      "pt": "f0237edb52ea4321"
     },
     "content/docs/cli/validate.mdx": {
-      "de": "7423fa80226ecffd",
-      "hi": "7423fa80226ecffd",
-      "ja": "7423fa80226ecffd",
-      "pt": "7423fa80226ecffd"
+      "de": "f444e9375e580616",
+      "hi": "f444e9375e580616",
+      "ja": "f444e9375e580616",
+      "pt": "f444e9375e580616"
     },
     "content/docs/cli/version.mdx": {
       "de": "45c8668a0aed93c6",
@@ -115,76 +115,94 @@
       "pt": "45c8668a0aed93c6"
     },
     "content/docs/configuration/analytics.mdx": {
-      "de": "33f47bb3114d9975",
-      "hi": "33f47bb3114d9975",
-      "ja": "33f47bb3114d9975",
-      "pt": "33f47bb3114d9975"
+      "de": "2d6f6faf9df2110d",
+      "hi": "2d6f6faf9df2110d",
+      "ja": "2d6f6faf9df2110d",
+      "pt": "2d6f6faf9df2110d"
     },
     "content/docs/configuration/assistant.mdx": {
-      "de": "ea33a9b65d0336ba",
-      "hi": "ea33a9b65d0336ba",
-      "ja": "ea33a9b65d0336ba",
-      "pt": "ea33a9b65d0336ba"
+      "de": "5931c2143c494319",
+      "hi": "5931c2143c494319",
+      "ja": "5931c2143c494319",
+      "pt": "5931c2143c494319"
+    },
+    "content/docs/configuration/consent.mdx": {
+      "de": "67b5ef112c1cb097",
+      "hi": "67b5ef112c1cb097",
+      "ja": "67b5ef112c1cb097",
+      "pt": "67b5ef112c1cb097"
     },
     "content/docs/configuration/customization.mdx": {
-      "de": "4bbce8c64799d995",
-      "hi": "4bbce8c64799d995",
-      "ja": "4bbce8c64799d995",
-      "pt": "4bbce8c64799d995"
+      "de": "3ad1087cf47f2e9b",
+      "hi": "3ad1087cf47f2e9b",
+      "ja": "3ad1087cf47f2e9b",
+      "pt": "3ad1087cf47f2e9b"
     },
     "content/docs/configuration/export.mdx": {
-      "de": "c8a86983704d7ad4",
-      "hi": "c8a86983704d7ad4",
-      "ja": "c8a86983704d7ad4",
-      "pt": "c8a86983704d7ad4"
+      "de": "f33e2b6fb4e90124",
+      "hi": "f33e2b6fb4e90124",
+      "ja": "f33e2b6fb4e90124",
+      "pt": "f33e2b6fb4e90124"
     },
     "content/docs/configuration/index.mdx": {
-      "de": "c312f597660038c3",
-      "hi": "c312f597660038c3",
-      "ja": "c312f597660038c3",
-      "pt": "c312f597660038c3"
+      "de": "397abd827be16873",
+      "hi": "397abd827be16873",
+      "ja": "397abd827be16873",
+      "pt": "397abd827be16873"
     },
     "content/docs/configuration/meta.ts": {
-      "de": "b552d8a504d5ca40",
-      "hi": "b552d8a504d5ca40",
-      "ja": "b552d8a504d5ca40",
-      "pt": "b552d8a504d5ca40"
+      "de": "b3ac4345e70be8bd",
+      "hi": "b3ac4345e70be8bd",
+      "ja": "b3ac4345e70be8bd",
+      "pt": "b3ac4345e70be8bd"
+    },
+    "content/docs/configuration/narration.mdx": {
+      "de": "7ea646d65b9e284a",
+      "hi": "7ea646d65b9e284a",
+      "ja": "7ea646d65b9e284a",
+      "pt": "7ea646d65b9e284a"
+    },
+    "content/docs/configuration/rate-limiting.mdx": {
+      "de": "c33dc864c4a18ae3",
+      "hi": "c33dc864c4a18ae3",
+      "ja": "c33dc864c4a18ae3",
+      "pt": "c33dc864c4a18ae3"
     },
     "content/docs/configuration/search.mdx": {
-      "de": "399dd25ff828b51f",
-      "hi": "399dd25ff828b51f",
-      "ja": "399dd25ff828b51f",
-      "pt": "399dd25ff828b51f"
+      "de": "31abaafcf99873f3",
+      "hi": "31abaafcf99873f3",
+      "ja": "31abaafcf99873f3",
+      "pt": "31abaafcf99873f3"
     },
     "content/docs/configuration/theming.mdx": {
-      "de": "f2e83c7c82e8f146",
-      "hi": "f2e83c7c82e8f146",
-      "ja": "f2e83c7c82e8f146",
-      "pt": "f2e83c7c82e8f146"
+      "de": "1c1727feeb2f3550",
+      "hi": "1c1727feeb2f3550",
+      "ja": "1c1727feeb2f3550",
+      "pt": "1c1727feeb2f3550"
     },
     "content/docs/content/components.mdx": {
-      "de": "ebdc76b9881d9e68",
-      "hi": "ebdc76b9881d9e68",
-      "ja": "ebdc76b9881d9e68",
-      "pt": "ebdc76b9881d9e68"
+      "de": "2048118595f2469b",
+      "hi": "2048118595f2469b",
+      "ja": "2048118595f2469b",
+      "pt": "2048118595f2469b"
     },
     "content/docs/content/frontmatter.mdx": {
-      "de": "ed85889df43574dd",
-      "hi": "ed85889df43574dd",
-      "ja": "ed85889df43574dd",
-      "pt": "ed85889df43574dd"
+      "de": "ce7ca7a8d916399e",
+      "hi": "ce7ca7a8d916399e",
+      "ja": "ce7ca7a8d916399e",
+      "pt": "ce7ca7a8d916399e"
     },
     "content/docs/content/i18n.mdx": {
-      "de": "fe7e21b5dc957a84",
-      "hi": "fe7e21b5dc957a84",
-      "ja": "fe7e21b5dc957a84",
-      "pt": "fe7e21b5dc957a84"
+      "de": "c7ba8b37e092b80c",
+      "hi": "c7ba8b37e092b80c",
+      "ja": "c7ba8b37e092b80c",
+      "pt": "c7ba8b37e092b80c"
     },
     "content/docs/content/includes.mdx": {
-      "de": "8b45f69c93f04c6c",
-      "hi": "8b45f69c93f04c6c",
-      "ja": "8b45f69c93f04c6c",
-      "pt": "8b45f69c93f04c6c"
+      "de": "fd88745fe2179086",
+      "hi": "fd88745fe2179086",
+      "ja": "fd88745fe2179086",
+      "pt": "fd88745fe2179086"
     },
     "content/docs/content/index.mdx": {
       "de": "88f6f2cb5e237f35",
@@ -199,34 +217,100 @@
       "pt": "b75172af2d0e8708"
     },
     "content/docs/content/meta.mdx": {
-      "de": "7f60895eccec2550",
-      "hi": "7f60895eccec2550",
-      "ja": "7f60895eccec2550",
-      "pt": "7f60895eccec2550"
+      "de": "22360ff7a20218a7",
+      "hi": "22360ff7a20218a7",
+      "ja": "22360ff7a20218a7",
+      "pt": "22360ff7a20218a7"
     },
     "content/docs/content/meta.ts": {
-      "de": "90f1de1cc3fa5c30",
-      "hi": "90f1de1cc3fa5c30",
-      "ja": "90f1de1cc3fa5c30",
-      "pt": "90f1de1cc3fa5c30"
+      "de": "e3d27992808a1bbe",
+      "hi": "e3d27992808a1bbe",
+      "ja": "e3d27992808a1bbe",
+      "pt": "e3d27992808a1bbe"
     },
     "content/docs/content/navigation.mdx": {
-      "de": "ca73dfc38c5552a5",
-      "hi": "ca73dfc38c5552a5",
-      "ja": "ca73dfc38c5552a5",
-      "pt": "ca73dfc38c5552a5"
+      "de": "851194058666d2f1",
+      "hi": "851194058666d2f1",
+      "ja": "851194058666d2f1",
+      "pt": "851194058666d2f1"
     },
-    "content/docs/content/sources.mdx": {
-      "de": "b0de539c9ee2dadb",
-      "hi": "b0de539c9ee2dadb",
-      "ja": "b0de539c9ee2dadb",
-      "pt": "b0de539c9ee2dadb"
+    "content/docs/content/sources/contentful.mdx": {
+      "de": "a2a9365f8b5bc798",
+      "hi": "a2a9365f8b5bc798",
+      "ja": "a2a9365f8b5bc798",
+      "pt": "a2a9365f8b5bc798"
+    },
+    "content/docs/content/sources/custom.mdx": {
+      "de": "b91361ffda692053",
+      "hi": "b91361ffda692053",
+      "ja": "b91361ffda692053",
+      "pt": "b91361ffda692053"
+    },
+    "content/docs/content/sources/github-releases.mdx": {
+      "de": "eec96f41f6f5780e",
+      "hi": "eec96f41f6f5780e",
+      "ja": "eec96f41f6f5780e",
+      "pt": "eec96f41f6f5780e"
+    },
+    "content/docs/content/sources/index.mdx": {
+      "de": "1253e6df46fc2149",
+      "hi": "1253e6df46fc2149",
+      "ja": "1253e6df46fc2149",
+      "pt": "1253e6df46fc2149"
+    },
+    "content/docs/content/sources/meta.ts": {
+      "de": "2a3845167c74bc8d",
+      "hi": "2a3845167c74bc8d",
+      "ja": "2a3845167c74bc8d",
+      "pt": "2a3845167c74bc8d"
+    },
+    "content/docs/content/sources/notion.mdx": {
+      "de": "07fbde7295ada371",
+      "hi": "07fbde7295ada371",
+      "ja": "07fbde7295ada371",
+      "pt": "07fbde7295ada371"
+    },
+    "content/docs/content/sources/obsidian.mdx": {
+      "de": "bd99d1f8d9b1763e",
+      "hi": "bd99d1f8d9b1763e",
+      "ja": "bd99d1f8d9b1763e",
+      "pt": "bd99d1f8d9b1763e"
+    },
+    "content/docs/content/sources/payload.mdx": {
+      "de": "ce37b72df622d3bd",
+      "hi": "ce37b72df622d3bd",
+      "ja": "ce37b72df622d3bd",
+      "pt": "ce37b72df622d3bd"
+    },
+    "content/docs/content/sources/remote-mdx.mdx": {
+      "de": "05bb8ef455de27a2",
+      "hi": "05bb8ef455de27a2",
+      "ja": "05bb8ef455de27a2",
+      "pt": "05bb8ef455de27a2"
+    },
+    "content/docs/content/sources/sanity.mdx": {
+      "de": "c330b5b21679c76f",
+      "hi": "c330b5b21679c76f",
+      "ja": "c330b5b21679c76f",
+      "pt": "c330b5b21679c76f"
+    },
+    "content/docs/content/sources/strapi.mdx": {
+      "de": "bf626b8906bf7e86",
+      "hi": "bf626b8906bf7e86",
+      "ja": "bf626b8906bf7e86",
+      "pt": "bf626b8906bf7e86"
     },
     "content/docs/content/syntax.mdx": {
-      "de": "a26356425528392b",
-      "hi": "a26356425528392b",
-      "ja": "a26356425528392b",
-      "pt": "a26356425528392b"
+      "de": "f11e80c1a4a59af6",
+      "hi": "f11e80c1a4a59af6",
+      "ja": "f11e80c1a4a59af6",
+      "pt": "f11e80c1a4a59af6"
+    },
+    "content/docs/content/variables.mdx": {
+      "de": "bff3decdd4fa960f",
+      "hi": "bff3decdd4fa960f",
+      "ja": "bff3decdd4fa960f",
+      "pt": "bff3decdd4fa960f"
     },
     "content/docs/content/versioning.mdx": {
       "de": "7efcd48d0b78ad81",
@@ -235,40 +319,40 @@
       "pt": "7efcd48d0b78ad81"
     },
     "content/docs/discoverability/agent-discovery.mdx": {
-      "de": "467fbd8258edd09e",
-      "hi": "467fbd8258edd09e",
-      "ja": "467fbd8258edd09e",
-      "pt": "467fbd8258edd09e"
+      "de": "530af7320dbb10a5",
+      "hi": "530af7320dbb10a5",
+      "ja": "530af7320dbb10a5",
+      "pt": "530af7320dbb10a5"
     },
     "content/docs/discoverability/index.mdx": {
-      "de": "e257cd5adcf8aaa3",
-      "hi": "e257cd5adcf8aaa3",
-      "ja": "e257cd5adcf8aaa3",
-      "pt": "e257cd5adcf8aaa3"
+      "de": "ee254a94bac58c4a",
+      "hi": "ee254a94bac58c4a",
+      "ja": "ee254a94bac58c4a",
+      "pt": "ee254a94bac58c4a"
     },
     "content/docs/discoverability/json-api.mdx": {
-      "de": "13aa9449535e1c64",
-      "hi": "13aa9449535e1c64",
-      "ja": "13aa9449535e1c64",
-      "pt": "13aa9449535e1c64"
+      "de": "720a918fa33b8cf8",
+      "hi": "720a918fa33b8cf8",
+      "ja": "720a918fa33b8cf8",
+      "pt": "720a918fa33b8cf8"
     },
     "content/docs/discoverability/llms-txt.mdx": {
-      "de": "7e23755b374bf858",
-      "hi": "7e23755b374bf858",
-      "ja": "7e23755b374bf858",
-      "pt": "7e23755b374bf858"
+      "de": "3b9ede5f997c9bc3",
+      "hi": "3b9ede5f997c9bc3",
+      "ja": "3b9ede5f997c9bc3",
+      "pt": "3b9ede5f997c9bc3"
     },
     "content/docs/discoverability/markdown.mdx": {
-      "de": "39a8c8021e68dafd",
-      "hi": "39a8c8021e68dafd",
-      "ja": "39a8c8021e68dafd",
-      "pt": "39a8c8021e68dafd"
+      "de": "76af7a3de40bdbf0",
+      "hi": "76af7a3de40bdbf0",
+      "ja": "76af7a3de40bdbf0",
+      "pt": "76af7a3de40bdbf0"
     },
     "content/docs/discoverability/mcp.mdx": {
-      "de": "bf43ed42798e9bfc",
-      "hi": "bf43ed42798e9bfc",
-      "ja": "bf43ed42798e9bfc",
-      "pt": "bf43ed42798e9bfc"
+      "de": "ba7b42bab8c70c02",
+      "hi": "ba7b42bab8c70c02",
+      "ja": "ba7b42bab8c70c02",
+      "pt": "ba7b42bab8c70c02"
     },
     "content/docs/discoverability/meta.ts": {
       "de": "78563a4ee16659c4",
@@ -277,10 +361,10 @@
       "pt": "78563a4ee16659c4"
     },
     "content/docs/discoverability/metadata.mdx": {
-      "de": "b5672c876d11d944",
-      "hi": "b5672c876d11d944",
-      "ja": "b5672c876d11d944",
-      "pt": "b5672c876d11d944"
+      "de": "994f7f2d9842179e",
+      "hi": "994f7f2d9842179e",
+      "ja": "994f7f2d9842179e",
+      "pt": "994f7f2d9842179e"
     },
     "content/docs/discoverability/open-graph.mdx": {
       "de": "72c8382a9166e765",
@@ -295,10 +379,10 @@
       "pt": "ae2f5f7fd5365ced"
     },
     "content/docs/discoverability/sitemap-and-robots.mdx": {
-      "de": "71a1dff44f5ec04c",
-      "hi": "71a1dff44f5ec04c",
-      "ja": "71a1dff44f5ec04c",
-      "pt": "71a1dff44f5ec04c"
+      "de": "330f02504e86f099",
+      "hi": "330f02504e86f099",
+      "ja": "330f02504e86f099",
+      "pt": "330f02504e86f099"
     },
     "content/docs/discoverability/structured-data.mdx": {
       "de": "ee0406662657e0ab",
@@ -312,35 +396,41 @@
       "ja": "181a734d7050b4fd",
       "pt": "181a734d7050b4fd"
     },
+    "content/docs/references/api-pages.mdx": {
+      "de": "8e7b0cbaeac4193a",
+      "hi": "8e7b0cbaeac4193a",
+      "ja": "8e7b0cbaeac4193a",
+      "pt": "8e7b0cbaeac4193a"
+    },
     "content/docs/references/asyncapi.mdx": {
-      "de": "5ea4db516a5f63b2",
-      "hi": "5ea4db516a5f63b2",
-      "ja": "5ea4db516a5f63b2",
-      "pt": "5ea4db516a5f63b2"
+      "de": "43c60d71015c422d",
+      "hi": "43c60d71015c422d",
+      "ja": "43c60d71015c422d",
+      "pt": "43c60d71015c422d"
     },
     "content/docs/references/graphql.mdx": {
-      "de": "efa5f7da81632fe8",
-      "hi": "efa5f7da81632fe8",
-      "ja": "efa5f7da81632fe8",
-      "pt": "efa5f7da81632fe8"
+      "de": "e3a554d72e9238cd",
+      "hi": "e3a554d72e9238cd",
+      "ja": "e3a554d72e9238cd",
+      "pt": "e3a554d72e9238cd"
     },
     "content/docs/references/meta.ts": {
-      "de": "2ff19d1d92c90154",
-      "hi": "2ff19d1d92c90154",
-      "ja": "2ff19d1d92c90154",
-      "pt": "2ff19d1d92c90154"
+      "de": "49136e4927ebfe8e",
+      "hi": "49136e4927ebfe8e",
+      "ja": "49136e4927ebfe8e",
+      "pt": "49136e4927ebfe8e"
     },
     "content/docs/references/openapi.mdx": {
-      "de": "e14acbfc754efed7",
-      "hi": "e14acbfc754efed7",
-      "ja": "e14acbfc754efed7",
-      "pt": "e14acbfc754efed7"
+      "de": "fd52fb1f1b2088e0",
+      "hi": "fd52fb1f1b2088e0",
+      "ja": "fd52fb1f1b2088e0",
+      "pt": "fd52fb1f1b2088e0"
     },
     "content/docs/references/scalar.mdx": {
-      "de": "cb7d66b2aa333882",
-      "hi": "cb7d66b2aa333882",
-      "ja": "cb7d66b2aa333882",
-      "pt": "cb7d66b2aa333882"
+      "de": "db386eb65cb546c9",
+      "hi": "db386eb65cb546c9",
+      "ja": "db386eb65cb546c9",
+      "pt": "db386eb65cb546c9"
     }
   },
   "version": 1

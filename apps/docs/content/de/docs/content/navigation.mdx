@@ -107,20 +107,38 @@ Das `display` einer Gruppe gilt nur für diese Gruppe – verschachtelte Untergr
 
 Eine Gruppe in einer [expliziten Seitenleiste](#explicit-sidebar) überschreibt den globalen Modus mit einem eigenen `display`, genau wie zuvor.
 
+## Verzeichnislisten [#directory-listings]
+
+Die eigene Seite einer Gruppe kann die übrigen Seiten der Gruppe unterhalb ihres Inhalts auflisten, sodass die Landing-Page eines Abschnitts zugleich als dessen Inhaltsverzeichnis dient. Setze `directory` in der [`meta.ts`](/docs/content/meta) des Ordners:
+
+```ts guides/meta.ts lineNumbers
+import { defineMeta } from "blume";
+
+export default defineMeta({
+  directory: "card",
+});
+```
+
+- **`card`** zeigt jede Seite und jede Untergruppe als Karte mit ihrem Symbol und ihrer Beschreibung.
+- **`accordion`** listet die Seiten als Zeilen auf und jede Untergruppe als Abschnitt, der sich zu ihren Seiten aufklappen lässt.
+- **`none`** listet nichts auf. Das ist der Standard.
+
+Nur eine Gruppe mit eigener Seite hat einen Ort, an dem die Liste erscheinen kann: die `index`-Seite eines Ordners oder das `root` einer expliziten Gruppe. Die Einstellung wird an verschachtelte Ordner vererbt, sodass ein einziges `directory` in der `meta.ts` des Inhalts-Roots jedem Abschnitt eine Liste gibt, und ein Ordner kann einen eigenen Wert setzen (einschließlich `none`), um den geerbten zu überschreiben. Eine [explizite Seitenleiste](#explicit-sidebar) setzt `directory` auf die gleiche Weise für ihre Gruppen.
+
 ## Reihenfolge [#ordering]
 
 Wenn die Seitenleiste generiert wird, wird die Reihenfolge nach absteigender Priorität aufgelöst:
 
 <Steps>
-  <Step title="Konfigurierte Seitenleiste">
+  <Step title="Config sidebar">
     Eine explizite `navigation.sidebar` ersetzt den generierten Baum
     vollständig.
   </Step>
-  <Step title="Ordner-Meta">
+  <Step title="Folder meta">
     Das `pages`-Array in `meta.ts` bestimmt die Reihenfolge einer Gruppe.
   </Step>
   <Step title="Frontmatter">`sidebar.order` auf einer Seite.</Step>
-  <Step title="Dateisystem">
+  <Step title="File system">
     Zuerst eine `index`-Seite, dann numerische Präfixe, dann alphabetisch nach
     Beschriftung.
   </Step>
@@ -237,6 +255,8 @@ Jeder Eintrag nimmt ein `label`, einen `path` sowie optional `icon`, `descriptio
 
 Ist [Versionierung](/docs/content/versioning) konfiguriert, stellt Blume automatisch einen Versions-Selektor dar – deklarierst du hier einen eigenen `kind: "version"`-Selektor, ersetzt er den automatischen, sodass selbstgebaute Setups weiterhin funktionieren.
 
+Auf Bildschirmen, die zu schmal für die Desktop-Seitenleiste sind, wandern Selektoren, der Versions-Selektor und der [Sprachumschalter](/docs/content/i18n#the-language-switcher) aus dem Header an den oberen Rand des mobilen Navigationsmenüs, wo jeder die volle Breite des Menüs einnimmt.
+
 ## Hervorgehobene Links [#featured-links]
 
 Hefte Links an den oberen Rand der Seitenleiste, über alle Abschnitte – ein Blog, ein Changelog, eine Kontakt- oder Supportseite, die immer nur einen Klick entfernt sein sollte. Anders als der generierte Baum sind hervorgehobene Links **nicht nach Tab eingegrenzt**: Sie erscheinen auf jeder Route und bei jedem Breakpoint.
@@ -250,7 +270,7 @@ navigation: {
 }
 ```
 
-Jeder Link nimmt ein `label`, ein `href` und optional ein `icon` entgegen (ein Name eines [eingebauten Symbols](/docs/content/components#icon), ein Bildpfad bzw. eine Bild-URL oder ein Inline-SVG – wie überall sonst auch). Ein `href` kann überallhin verweisen: Eine externe URL öffnet sich in einem neuen Tab, während eine interne Route (`/contact`) zur Build-Zeit gegen deine Seiten geprüft wird und dich warnt, wenn nichts übereinstimmt.
+Jeder Link nimmt ein `label`, ein `href` und optional ein `icon` entgegen (ein Name eines [eingebauten Symbols](/docs/content/components#icon), ein Bildpfad bzw. eine Bild-URL oder ein Inline-SVG – wie überall sonst auch). Ein `href` kann überallhin verweisen: Eine externe URL öffnet sich in einem neuen Tab, während eine interne Route (`/contact`) zur Build-Zeit und von [`blume doctor`](/docs/cli/doctor) gegen deine Seiten geprüft wird und dich warnt, wenn nichts übereinstimmt.
 
 ## Explizite Seitenleiste [#explicit-sidebar]
 
@@ -270,7 +290,7 @@ navigation: {
 }
 ```
 
-Jeder Eintrag ist eine Seitenroute (eine Zeichenkette), eine Gruppe (`label` + `items`) oder ein Link (`label` + `href`). Gruppen können verschachtelt werden, den globalen [`display`-Modus](#display-modes) überschreiben und `collapsed` starten.
+Jeder Eintrag ist eine Seitenroute (eine Zeichenkette), eine Gruppe (`label` + `items`) oder ein Link (`label` + `href`). Gruppen können verschachtelt werden, den globalen [`display`-Modus](#display-modes) überschreiben, `collapsed` starten und eine `root`-Seite verlinken, welche die Seiten der Gruppe mit einem [`directory`](#directory-listings) auflisten kann.
 
 Blume warnt dich bei einem Eintrag, den es nicht so darstellen kann, wie er geschrieben ist: bei einer Route, die zu keiner Seite passt (der Eintrag wird weggelassen), bei einem `root`, das zu keiner Seite passt (sein Link würde auf einen 404 verweisen), oder bei einem Eintrag ohne Route, `href`, `root` oder `items` (wird weggelassen).
 
@@ -285,23 +305,25 @@ navigation: {
 }
 ```
 
+Wie bei Tab-Beschriftungen kann ein `label` hier auf einer [mehrsprachigen](/docs/content/i18n#per-locale-navigation) Website eine Zuordnung von Sprachcode zu Text sein.
+
 `cta` ist mit Absicht Singular – ein Doku-Header hat Platz für genau eine Sache, zu der Lesende aufgefordert werden, und eine Reihe von Buttons fordert zu gar nichts auf. Sekundäre Links gehören in `actions` – oder in [`featured`](#featured-links), wenn sie stattdessen bei der Seitenleiste sitzen sollen.
 
 Ein `http(s)`- oder protokollrelatives href öffnet sich in einem neuen Tab; eine Route bleibt im Tab und wird – wie ein `featured`-Link – zur Build-Zeit gegen deine Seiten geprüft. Eine Seite, die von einer anderen App auf demselben Host ausgeliefert wird (etwa `/signup` auf dem Produkt), solltest du daher als absolute URL schreiben. `actions` werden unterhalb des `sm`-Breakpoints ausgeblendet, wo der Header nur noch Platz für das Logo und den Navigations-Umschalter hat. `cta` wird dort ebenfalls ausgeblendet – außer auf einer Seite ohne Navigations-Umschalter, etwa einer Landing-Page mit `PageLayout` ohne Tabs, wo er bleibt, da ihn auf einem Smartphone sonst nichts sichtbar machen kann.
 
 ## Repository-Link
 
-Wenn du [`github`](/docs/configuration) in deiner Konfiguration setzt, zeigt Blume ein GitHub-Symbol im Header – neben dem Theme-Umschalter –, das auf dein Repository verlinkt. Es ist standardmäßig aktiviert; blende es mit `navigation.repo` aus:
+Wenn du [`github`](/docs/configuration) in deiner Konfiguration setzt, zeigt Blume ein GitHub-Symbol im [Footer](/docs/configuration#footer) – vor deinen Social-Media-Profilen –, das auf dein Repository verlinkt. Es ist standardmäßig aktiviert; blende es mit `navigation.repo` aus:
 
 ```ts blume.config.ts lineNumbers
 navigation: {
-  repo: false, // hide the header GitHub link (default: true)
+  repo: false, // hide the footer's GitHub link (default: true)
 }
 ```
 
 Der Link erscheint nur, wenn `github` konfiguriert ist, sodass Projekte ohne Repository so oder so nicht betroffen sind.
 
-`repo` nimmt außerdem eine absolute URL entgegen, die das Zeichen im Header auf einen beliebigen Ort auf GitHub verweisen lässt:
+`repo` nimmt außerdem eine absolute URL entgegen, die das GitHub-Zeichen auf einen beliebigen Ort auf GitHub verweisen lässt:
 
 ```ts blume.config.ts lineNumbers
 navigation: {
@@ -309,25 +331,25 @@ navigation: {
 }
 ```
 
-Das ist für ein Projekt gedacht, dessen Doku-Repository privat ist. `github` steuert den Bearbeiten-Link pro Seite, das Zeichen im Header und das Repository im [Agenten-Manifest](/docs/discoverability/agent-discovery) gemeinsam, sodass ein solches Projekt `github` ungesetzt lassen muss – und eine URL sorgt dafür, dass trotzdem ein Zeichen angezeigt wird, das auf etwas Öffentliches verweist. Das Symbol bleibt das GitHub-Zeichen, ein Link auf einen anderen Host gehört daher in [`actions`](#header-actions).
+Das ist für ein Projekt gedacht, dessen Doku-Repository privat ist. `github` steuert den Bearbeiten-Link pro Seite, das GitHub-Zeichen und das Repository im [Agenten-Manifest](/docs/discoverability/agent-discovery) gemeinsam, sodass ein solches Projekt `github` ungesetzt lassen muss – und eine URL sorgt dafür, dass trotzdem ein Zeichen angezeigt wird, das auf etwas Öffentliches verweist. Eine `footer.socials.github`-URL tritt an die Stelle des Zeichens, und ein Link auf einen anderen Host gehört in die `links` des Footers oder in [`actions`](#header-actions).
 
 ## Breadcrumbs und Seitennavigation [#breadcrumbs-and-pagination]
 
 Diese ergeben sich kostenlos aus dem Seitenleistenbaum – ohne Konfiguration:
 
 - **Breadcrumbs** zeigen die übergeordnete Gruppe der aktuellen Seite über dem Titel.
-- **Zurück- und Weiter-Links** am Fuß jeder Seite folgen der Reihenfolge in der Seitenleiste und überspringen ausgeblendete Seiten.
+- **Zurück- und Weiter-Links** am Fuß jeder Seite folgen der Reihenfolge in der Seitenleiste und überspringen ausgeblendete Seiten. Setze [`pagination: false`](/docs/content/frontmatter) im Frontmatter einer Seite, um sie auf dieser Seite wegzulassen.
 
 ## Auf dieser Seite [#on-this-page]
 
-Aus den Überschriften jeder Seite – standardmäßig `##` und `###` – wird automatisch eine Gliederung in der rechten Spalte erzeugt, damit lange Seiten überschaubar bleiben. Setze [`toc`](/docs/configuration#table-of-contents), um den Bereich der Überschriftenebenen zu ändern oder die Gliederung auszuschalten. Auf schmaleren Bildschirmen, wo die rechte Spalte ausgeblendet ist, klappt sie zu einem „Auf dieser Seite“-Dropdown über dem Inhalt zusammen.
+Aus den Überschriften jeder Seite – standardmäßig `##` und `###` – wird automatisch eine Gliederung in der rechten Spalte erzeugt, damit lange Seiten überschaubar bleiben. Setze [`toc`](/docs/configuration#table-of-contents), um den Bereich der Überschriftenebenen zu ändern oder die Gliederung auszuschalten. Auf schmaleren Bildschirmen, wo die rechte Spalte ausgeblendet ist, klappt sie zu einem „Auf dieser Seite“-Dropdown über dem Inhalt zusammen, das auch die [Seitenaktionen](#page-actions) enthält.
 
 ## Seitenaktionen [#page-actions]
 
-Unter dem Inhaltsverzeichnis zeigt jede Seite eine Reihe von Schnellaktionen:
+Unter dem Inhaltsverzeichnis zeigt jede Seite eine Reihe von Schnellaktionen. In Fenstern ab 1.280px Breite stehen sie in der rechten Spalte bei der Gliederung. In schmaleren Fenstern und auf Smartphones stehen sie am Ende des „Auf dieser Seite“-Dropdowns über dem Inhalt, das auch auf einer Seite ohne Überschriften erscheint:
 
 - **Auf GitHub bearbeiten** – verlinkt direkt auf die Quelldatei. Erscheint, sobald du [`github`](/docs/configuration) in deiner Konfiguration setzt.
-- **Nach oben scrollen** – kehrt sanft an den Anfang langer Seiten zurück.
+- **Nach oben scrollen** – kehrt sanft an den Anfang langer Seiten zurück. Diese Aktion gibt es nur in der rechten Spalte, da das Dropdown ohnehin schon am Anfang der Seite sitzt.
 
 Andere übergeben die Seite an KI-Tools – **Als Markdown kopieren** und **Im Chat öffnen** – beschrieben unter [Markdown für Agenten](/docs/discoverability/markdown#copy-as-markdown).
 

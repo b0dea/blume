@@ -2,12 +2,15 @@
 import IconSprite from "./IconSprite.astro";
 import { createIconSprite } from "../icon-sprite.ts";
 import data from "blume:data";
+import { relatedLinks } from "../../core/related.ts";
+import type { RelatedEntry } from "../../core/related.ts";
 import { EN_UI } from "../../core/i18n-ui.ts";
 import type { UIStrings } from "../../core/i18n-ui.ts";
 import { resolveDateFormatOptions } from "../../core/date-format.ts";
 import type { ResolvedDateFormat } from "../../core/schema.ts";
 import type { OpenInChatProvider } from "../../core/open-in-chat.ts";
 import type {
+  BlumeBanner,
   BlumeClientData,
   BlumeDataConfig,
   BlumeFavicon,
@@ -40,14 +43,28 @@ import {
 import { buildStructuredData, toIso } from "../../seo/jsonld.ts";
 import { normalizeXHandle } from "../../seo/x-handle.ts";
 import { withBase, withMountedBase } from "../islands/base-path.ts";
+import { routeSetFor } from "../../core/locale-links.ts";
+import {
+  KEYWORDS_ATTRIBUTE,
+  pagefindRanking,
+} from "../../search/pagefind-ranking.ts";
+import {
+  browserLanguageTargets,
+  LOCALE_REDIRECT_SCRIPT,
+} from "./locale-redirect.ts";
 import { isExternalUrl } from "../../core/base-path.ts";
 import { NEW_TAB_HINT_ID, newTabAttrs } from "../../core/new-tab.ts";
 import Analytics from "./Analytics.astro";
+import ConsentBanner from "./ConsentBanner.astro";
+import ConsentHead from "./ConsentHead.astro";
 import WebMcp from "./WebMcp.astro";
 import Banner from "./Banner.astro";
 import Breadcrumbs from "./Breadcrumbs.astro";
 import Empty from "./Empty.astro";
+import Directory from "./Directory.astro";
+import RelatedPages from "./RelatedPages.astro";
 import DiscoveryLinks from "./DiscoveryLinks.astro";
+import DrawerSwitchers from "./DrawerSwitchers.astro";
 import Favicon from "./Favicon.astro";
 import Fonts from "./Fonts.astro";
 import {
@@ -62,6 +79,7 @@ import {
   currentTabForRoute,
   findBreadcrumbs,
   flattenPages,
+  directoryGroupForRoute,
   getPagination,
   navGroupIds,
   sidebarForRoute,
@@ -69,10 +87,14 @@ import {
 import NavTabMenu from "./NavTabMenu.astro";
 import NavTree from "./NavTree.astro";
 import { resolveSlot } from "./overrides.ts";
+import { pageModeLayout } from "../../core/page-modes.ts";
+import type { PageMode } from "../../core/page-modes.ts";
 import { pageDirection, pageLocale } from "./page-locale.ts";
 import { searchLocaleFor } from "./search-locale.ts";
 import PageActions from "./PageActions.astro";
 import PageFeedback from "./PageFeedback.astro";
+import SiteFooter from "./SiteFooter.astro";
+import SiteMetatags from "./SiteMetatags.astro";
 import Pagination from "./Pagination.astro";
 import TableOfContents from "./TableOfContents.astro";
 import VersionBanner from "./VersionBanner.astro";
@@ -89,12 +111,7 @@ interface Props {
   } | null;
   favicon?: BlumeFavicon | null;
   appleIcon?: BlumeFavicon | null;
-  banner?: {
-    content: string;
-    link?: { text: string; href: string };
-    dismissible: boolean;
-    key: string;
-  } | null;
+  banner?: BlumeBanner | null;
   analytics?: BlumeDataConfig["analytics"] | null;
   navigation: Navigation;
   mcp?: { name: string; route: string } | null;
@@ -129,6 +146,17 @@ interface Props {
   assistantEnabled?: boolean;
   /** Show the "Was this page helpful?" rating below the content. */
   feedback?: boolean;
+  /** Ask for a written comment after the rating. */
+  feedbackComments?: boolean;
+  /** Show the previous/next links at the foot of the page. */
+  pagination?: boolean;
+  /** The page's `related` frontmatter: pages to suggest at its foot. */
+  related?: RelatedEntry[] | false;
+  /**
+   * The page's `search.boost` and `search.keywords`, for Pagefind, which
+   * reads them from the built page (see search/pagefind-ranking.ts).
+   */
+  search?: { boost?: number; keywords?: string[] };
   exportPdf?: boolean;
   exportEpub?: boolean;
   /**
@@ -149,6 +177,14 @@ interface Props {
   discovery?: DiscoveryHeadLinks | null;
   siteUrl?: string | null;
   pageType?: string;
+  /**
+   * The page pins `<RequestExample>`/`<ResponseExample>` to a column beside
+   * its content (see `markdown/api-rail.ts`): it takes the API layout, with
+   * no table of contents, and the article makes room for the column.
+   */
+  apiRail?: boolean;
+  /** The page's `mode` frontmatter: what it shows around its content (see `core/page-modes.ts`). */
+  pageMode?: PageMode;
   published?: string | Date | null;
   lastModified?: string | null;
   noindex?: boolean;
@@ -201,9 +237,10 @@ interface Props {
    * User layout-slot overrides from `components.ts` (`defineComponents`). Each
    * key replaces the matching built-in; unknown keys are ignored. Wired slots:
    * `Header`, `Logo`, `Search`, `Sidebar`, `MobileNav`, `Breadcrumbs`,
-   * `TableOfContents`, `Pagination`, `Feedback`, plus the content-injection slots
-   * `PageHeader`, `PageFooter`, and `Footer` (which have no built-in and render
-   * only when overridden). `Layout` (replacing this whole component) is wired in
+   * `TableOfContents`, `Pagination`, `Feedback`, `Footer` (the built-in renders
+   * only when `footer` is configured), plus the content-injection slots
+   * `PageHeader` and `PageFooter` (which have no built-in and render only when
+   * overridden). `Layout` (replacing this whole component) is wired in
    * the generated page templates, not here.
    */
   layout?: Record<string, ComponentOverride>;
@@ -251,6 +288,10 @@ const {
   editUrl,
   assistantEnabled,
   feedback = false,
+  feedbackComments = false,
+  pagination = true,
+  related,
+  search,
   exportPdf,
   exportEpub,
   openInChat,
@@ -258,6 +299,8 @@ const {
   discovery = data.config.discovery,
   siteUrl,
   pageType,
+  apiRail = false,
+  pageMode,
   published,
   lastModified,
   noindex,
@@ -304,15 +347,21 @@ const PaginationSlot = resolveSlot(layout.Pagination, Pagination);
 const MobileNavSlot = layout.MobileNav
   ? resolveSlot(layout.MobileNav, NavTree)
   : null;
+// The site footer renders nothing when `footer` is unset.
+const FooterSlot = resolveSlot(layout.Footer, SiteFooter);
 // Content-injection slots with no built-in: the `Empty` fallback renders nothing
 // when unconfigured, so these are safe to render unconditionally.
-const FooterSlot = resolveSlot(layout.Footer, Empty);
 const PageHeaderSlot = resolveSlot(layout.PageHeader, Empty);
 const PageFooterSlot = resolveSlot(layout.PageFooter, Empty);
 // The "Was this page helpful?" rating (rendered only when `feedback` is on).
 const FeedbackSlot = resolveSlot(layout.Feedback, PageFeedback);
 
 const strings = ui ?? EN_UI;
+// The consent adapter (`consent`), site-wide: analytics waits for the reader.
+const consent = data.config.consent;
+// Code blocks get an Ask button when the assistant is on (same default as the
+// header's trigger).
+const assistantOn = assistantEnabled ?? Boolean(data.config.assistant);
 // Merge the groups this layout reads directly over the English defaults so a
 // key missing from a translation (or from a not-yet-regenerated snapshot)
 // still renders instead of coming out blank — the PageActions pattern.
@@ -328,11 +377,19 @@ const searchLocale = searchLocaleFor(data.config.i18n, locale);
 // API operation pages own a two-column body (docs + request panel) and their own
 // right rail, so they drop the table of contents and widen the content column.
 const isApiOperation = pageType === "openapi-operation";
+// A hand-written API page lays out like one: its example column replaces the
+// table of contents.
+const isApiLayout = isApiOperation || apiRail;
 // A "bare" page (the changelog index) is a standalone landing: no sidebar, no
 // TOC, just a wider centered column of content.
 const isBare = contentLayout === "bare";
-const showSidebar = !isBare;
-const showToc = !(isApiOperation || isBare);
+// The page's `mode`: which of the sidebar, TOC, and its own chrome it keeps.
+const modeLayout = pageModeLayout(pageMode);
+const showSidebar = !isBare && modeLayout.sidebar;
+const showToc = !(isApiLayout || isBare) && modeLayout.toc;
+// Breadcrumbs, page-end links, and the site footer; `custom` and `frame`
+// pages bring their own.
+const showChrome = modeLayout.chrome;
 const tocHeadings =
   toc.enabled && showToc
     ? headings.filter((h) => h.depth >= toc.minLevel && h.depth <= toc.maxLevel)
@@ -342,15 +399,21 @@ const tocHeadings =
 const hasToc = tocHeadings.length > 0;
 let gridClass =
   "lg:grid-cols-[17.5rem_minmax(0,1fr)] xl:grid-cols-[17.5rem_minmax(0,1fr)_17.5rem]";
-if (isBare) {
+if (!showSidebar) {
   gridClass = "";
-} else if (isApiOperation) {
+} else if (!showToc) {
   gridClass = "lg:grid-cols-[17.5rem_minmax(0,1fr)]";
 }
 let articleClass = "prose mx-auto max-w-content";
-if (isBare) {
+if (isBare || modeLayout.width === "center") {
   articleClass = "prose mx-auto max-w-[54rem]";
-} else if (isApiOperation) {
+} else if (apiRail) {
+  // Room at `xl` for the example column (28rem plus the 2.5rem gap an
+  // operation page keeps), which `ApiRail.astro` positions in it, and a
+  // viewport's height so the column's capped panel never overhangs the page.
+  articleClass =
+    "prose max-w-none xl:relative xl:min-h-[calc(100dvh-7.25rem)] xl:pe-[30.5rem]";
+} else if (isApiOperation || modeLayout.width === "full") {
   articleClass = "prose max-w-none";
 }
 // A page titled like the site (a home page often is) takes the bare site title
@@ -435,6 +498,17 @@ const activeTab = currentTabForRoute(
   navigation.root
 );
 const crumbs = findBreadcrumbs(sidebar, page.route);
+// A group's own page lists the group's pages below its content when the
+// group asks for a directory. Looked up in the full tree: a tab's own page
+// is not in its scoped sidebar.
+const directoryGroup = directoryGroupForRoute(navigation.sidebar, page.route);
+// The page's `related` links, resolved to served routes in this locale.
+const relatedItems = relatedLinks(related, {
+  basePath: data.config.basePath,
+  i18n: data.config.i18n,
+  locale,
+  routes: data.routes,
+});
 const { prev, next } = getPagination(flattenPages(sidebar), page.route);
 
 // Structured data is skipped when disabled or for pages we ask crawlers not to
@@ -466,6 +540,27 @@ const bannerKey = banner?.dismissible ? banner.key : null;
 // Start the page's icon sprite before anything renders an icon (see
 // icon-sprite.ts); <IconSprite /> at the end of the body emits it.
 createIconSprite(Astro.locals);
+
+const pagefind = pagefindRanking(search ?? {});
+
+// A visitor landing on the default language's home page goes to their
+// browser's language (`i18n.routeByBrowserLanguage`, see locale-redirect.ts).
+const localeTargets = browserLanguageTargets({
+  basePath: data.config.basePath,
+  i18n: data.config.i18n,
+  route: page.route,
+  routes: routeSetFor(data.routes),
+});
+const localeRedirect = localeTargets
+  ? JSON.stringify(
+      Object.fromEntries(
+        Object.entries(localeTargets).map(([code, path]) => [
+          code,
+          withMountedBase(path),
+        ])
+      )
+    )
+  : null;
 ---
 
 <!doctype html>
@@ -473,6 +568,16 @@ createIconSprite(Astro.locals);
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
+    {
+      localeRedirect && (
+        <script
+          data-default={data.config.i18n?.defaultLocale}
+          data-targets={localeRedirect}
+          is:inline
+          set:html={LOCALE_REDIRECT_SCRIPT}
+        />
+      )
+    }
     {/* Client-side navigation: same-origin link clicks swap the DOM in place
         instead of tearing the document down, so no browser ever paints a blank
         frame between pages (Firefox has no cross-document paint holding and
@@ -537,6 +642,7 @@ createIconSprite(Astro.locals);
     {description && <meta name="twitter:description" content={description} />}
     {xSite && <meta name="twitter:site" content={xSite} />}
     {xCreator && <meta name="twitter:creator" content={xCreator} />}
+    <SiteMetatags tags={data.config.metatags} />
     {
       feeds?.map((feed) => (
         <link
@@ -563,16 +669,21 @@ createIconSprite(Astro.locals);
       )
     }
     <script data-mode={themeMode} is:inline set:html={THEME_INIT_SCRIPT} />
+    {consent && <ConsentHead consent={consent} />}
     <Analytics analytics={analytics} />
   </head>
   <body
     class="bg-background font-sans text-foreground antialiased"
+    data-blume-code-ask={assistantOn ? "" : undefined}
     data-blume-code-copy=""
     data-blume-code-wrap={codeWrap ? "" : undefined}
     data-blume-image-zoom={imageZoom ? "" : undefined}
+    data-i18n-ask-code={assistantOn ? actionStrings.askAboutCode : undefined}
     data-i18n-copied={actionStrings.copied}
     data-i18n-copy-code={actionStrings.copyCode}
     data-i18n-diagram-error={contentStrings.diagramError}
+    data-i18n-show-less={contentStrings.showLess}
+    data-i18n-show-more={contentStrings.showMore}
   >
     <a
       class="absolute start-[-999px] top-0 z-[100] bg-accent px-4 py-2 text-accent-foreground focus:start-0"
@@ -616,6 +727,13 @@ createIconSprite(Astro.locals);
           !showSidebar && "lg:hidden",
         ]}
       >
+        <DrawerSwitchers
+          localeSwitch={localeSwitch}
+          route={page.route}
+          selectors={navigation.selectors}
+          switcherStrings={strings.languageSwitcher}
+          versionSelector={versionSelector}
+        />
         {
           // Pinned links (blog, changelog, contact…) sit above every section on
           // all breakpoints, outside the tab-scoped sidebar so they never change
@@ -740,18 +858,30 @@ createIconSprite(Astro.locals);
       </aside>
       <script is:inline set:html={SIDEBAR_SCROLL_INIT_SCRIPT} />
       <main class="px-6 pt-6 pb-10 lg:px-8 xl:px-10" id="blume-content">
-        <BreadcrumbsSlot
-          crumbs={crumbs}
-          strings={navStrings}
-          wide={isApiOperation}
-        />
         {
-          hasToc && (
+          showChrome && (
+            <BreadcrumbsSlot
+              crumbs={crumbs}
+              strings={navStrings}
+              centered={modeLayout.width === "center"}
+              wide={isApiLayout || modeLayout.width === "full"}
+            />
+          )
+        }
+        {/* Below `xl`, where the rail is hidden, the page actions ride in
+            the "On this page" dropdown, so it renders wherever the rail
+            would, with or without headings. They render once, in the rail:
+            the dropdown gets an empty mount the actions script moves them
+            into (see PageActions.astro). */}
+        {
+          showToc && (
             <TableOfContentsSlot
               headings={tocHeadings}
               title={strings.toc.title}
               variant="mobile"
-            />
+            >
+              <div data-blume-page-actions-mount />
+            </TableOfContentsSlot>
           )
         }
         <PageHeaderSlot headings={tocHeadings} page={page} route={page.route} />
@@ -764,14 +894,34 @@ createIconSprite(Astro.locals);
         <article
           class:list={[articleClass]}
           data-pagefind-body={indexable && !isBare ? "" : undefined}
+          data-pagefind-weight={pagefind.weight}
           dir={contentDir}
           lang={articleLang}
         >
+          {pagefind.keywords && (
+            <span
+              data-pagefind-index-attrs={KEYWORDS_ATTRIBUTE}
+              {...{ [KEYWORDS_ATTRIBUTE]: pagefind.keywords }}
+              hidden
+            />
+          )}
           <slot />
         </article>
         {
-          !isApiOperation && (
-            <>
+          !isApiOperation && showChrome && (
+            <div
+              class:list={[
+                // Aligned with the content column, not centered under the
+                // prose measure: a rail page's, a wide page's, or a center
+                // page's wider one.
+                apiRail && "xl:pe-[30.5rem]",
+                (apiRail || modeLayout.width === "full") && "[&>*]:max-w-none",
+                modeLayout.width === "center" && "[&>*]:max-w-[54rem]",
+              ]}
+              data-blume-page-end
+            >
+              {directoryGroup && <Directory group={directoryGroup} />}
+              <RelatedPages links={relatedItems} title={strings.page.related} />
               <PageFooterSlot
                 headings={tocHeadings}
                 page={page}
@@ -782,9 +932,16 @@ createIconSprite(Astro.locals);
                   {strings.page.lastUpdated} {formattedLastModified}
                 </p>
               )}
-              {feedback && <FeedbackSlot strings={strings.feedback} />}
-              <PaginationSlot next={next} prev={prev} strings={strings.page} />
-            </>
+              {feedback && (
+                <FeedbackSlot
+                  comments={feedbackComments}
+                  strings={strings.feedback}
+                />
+              )}
+              {pagination && (
+                <PaginationSlot next={next} prev={prev} strings={strings.page} />
+              )}
+            </div>
           )
         }
       </main>
@@ -817,7 +974,17 @@ createIconSprite(Astro.locals);
         )
       }
     </div>
-    <FooterSlot navigation={navigation} site={site} ui={strings} />
+    {
+      showChrome && (
+        <FooterSlot
+          footer={data.config.footer}
+          locale={locale}
+          navigation={navigation}
+          site={site}
+          ui={strings}
+        />
+      )
+    }
     {
       clientDataJson && (
         <script
@@ -954,6 +1121,24 @@ createIconSprite(Astro.locals);
         const copiedLabel =
           document.body.getAttribute("data-i18n-copied") || "Copied!";
 
+        // A block's code as the reader sees it. Twoslash nests each hover
+        // popup's type signature and docs inside the <code>; its textContent
+        // verbatim would interleave them with the source, so the popups are
+        // stripped from a clone first.
+        const codeText = (pre: Element | null): string => {
+          const code = pre?.querySelector("code");
+          if (!code?.querySelector(".twoslash-popup-container")) {
+            return code?.textContent ?? "";
+          }
+          const clone = code.cloneNode(true) as HTMLElement;
+          for (const popup of clone.querySelectorAll(
+            ".twoslash-popup-container"
+          )) {
+            popup.remove();
+          }
+          return clone.textContent ?? "";
+        };
+
         // `placement` is the extra class set for an overlay button (empty for
         // one hosted by a tab strip); `readPre` resolves the block to copy at
         // click time, since a strip button follows the active panel.
@@ -989,26 +1174,90 @@ createIconSprite(Astro.locals);
           };
           const flash = createCopyFlash(setChecked, copiedLabel);
           button.addEventListener("click", async () => {
-            const code = readPre()?.querySelector("code");
-            let text = code?.textContent ?? "";
-            // Twoslash nests each hover popup's type signature and docs inside
-            // the <code>; copying textContent verbatim would interleave them
-            // with the source. Strip the popups from a clone first.
-            if (code?.querySelector(".twoslash-popup-container")) {
-              const clone = code.cloneNode(true) as HTMLElement;
-              for (const popup of clone.querySelectorAll(
-                ".twoslash-popup-container"
-              )) {
-                popup.remove();
-              }
-              text = clone.textContent ?? "";
-            }
-            if (await copyText(text)) {
+            if (await copyText(codeText(readPre()))) {
               flash();
             }
           });
           return button;
         };
+
+        // A code block's Ask button, when the assistant is on: it opens the
+        // panel with the block attached (see islands/code-question.ts).
+        const askEnabled = document.body.hasAttribute("data-blume-code-ask");
+        const askLabel =
+          document.body.getAttribute("data-i18n-ask-code") ||
+          "Ask about this code";
+        const createAskButton = (
+          placement: string,
+          readPre: () => Element | null
+        ) => {
+          const button = document.createElement("button");
+          button.type = "button";
+          button.className = `${buttonClass} ${idleClasses.join(" ")} ${placement}`;
+          button.setAttribute("data-blume-ask", "");
+          button.setAttribute("aria-label", askLabel);
+          button.title = askLabel;
+          button.innerHTML = svg("sparkles");
+          button.addEventListener("click", () => {
+            const pre = readPre();
+            if (!(pre instanceof HTMLElement)) {
+              return;
+            }
+            window.dispatchEvent(
+              new CustomEvent("blume:open-assistant", {
+                detail: {
+                  code: {
+                    language: pre.dataset.blumeLanguage ?? "",
+                    source: codeText(pre),
+                    title: pre.dataset.title,
+                  },
+                },
+              })
+            );
+          });
+          return button;
+        };
+
+        // An `expandable` block (```ts expandable) opens and closes from a
+        // toggle under its code. The theme only collapses the block where
+        // scripting runs, so the toggle is added on the same terms.
+        const showMoreLabel =
+          document.body.getAttribute("data-i18n-show-more") || "Show more";
+        const showLessLabel =
+          document.body.getAttribute("data-i18n-show-less") || "Show less";
+        const expandToggle = (pre: HTMLElement) => {
+          const button = document.createElement("button");
+          button.type = "button";
+          button.setAttribute("data-blume-code-expand", "");
+          button.innerHTML = svg("chevron-down");
+          const label = document.createElement("span");
+          button.prepend(label);
+          const setExpanded = (expanded: boolean) => {
+            pre.toggleAttribute("data-expanded", expanded);
+            button.setAttribute("aria-expanded", String(expanded));
+            label.textContent = expanded ? showLessLabel : showMoreLabel;
+          };
+          setExpanded(false);
+          button.addEventListener("click", () => {
+            const expanded = !pre.hasAttribute("data-expanded");
+            setExpanded(expanded);
+            // Collapsing a long block can leave the reader below it; bring
+            // its top back into view.
+            if (!expanded && pre.getBoundingClientRect().top < 0) {
+              pre.scrollIntoView({ block: "start" });
+            }
+          });
+          return button;
+        };
+        if (matchMedia("(scripting: enabled)").matches) {
+          for (const pre of document.querySelectorAll<HTMLElement>(
+            ".prose pre[data-expandable]"
+          )) {
+            if (!pre.querySelector(":scope > [data-blume-code-expand]")) {
+              pre.appendChild(expandToggle(pre));
+            }
+          }
+        }
 
         for (const pre of document.querySelectorAll(".prose pre")) {
           if (pre.querySelector("[data-blume-copy]")) {
@@ -1021,6 +1270,11 @@ createIconSprite(Astro.locals);
           }
           const language = pre.getAttribute("data-language");
           if (language) {
+            // The fence's own language id, for a question about the code; the
+            // attribute itself becomes the header's display label.
+            if (pre instanceof HTMLElement) {
+              pre.dataset.blumeLanguage = language;
+            }
             pre.setAttribute(
               "data-language",
               languageLabels[language.toLowerCase()] ?? language
@@ -1042,9 +1296,11 @@ createIconSprite(Astro.locals);
             // One button per code switcher, reading whichever panel shows.
             if (!actions.querySelector("[data-blume-copy]")) {
               const tabs = actions.closest("blume-tabs");
-              actions.appendChild(
-                createCopyButton("", () => (tabs ? activeCodePre(tabs) : null))
-              );
+              const readActive = () => (tabs ? activeCodePre(tabs) : null);
+              if (askEnabled) {
+                actions.appendChild(createAskButton("", readActive));
+              }
+              actions.appendChild(createCopyButton("", readActive));
             }
             continue;
           }
@@ -1053,6 +1309,13 @@ createIconSprite(Astro.locals);
           const topClass = pre.closest("blume-tabs, .not-prose")
             ? "top-2.5"
             : "top-2";
+          if (askEnabled) {
+            // Beside the copy button: its 0.75rem inset, its 1.875rem width,
+            // and a quarter-rem gap.
+            pre.appendChild(
+              createAskButton(`absolute right-[2.875rem] z-[2] ${topClass}`, () => pre)
+            );
+          }
           pre.appendChild(
             createCopyButton(`${overlayClass} ${topClass}`, () => pre)
           );
@@ -1123,6 +1386,14 @@ createIconSprite(Astro.locals);
       }
     </style>
     <WebMcp />
+    {
+      consent?.kind === "native" && (
+        <ConsentBanner
+          policy={consent.options.policy}
+          strings={strings.consent}
+        />
+      )
+    }
   <IconSprite />
   </body>
 </html>

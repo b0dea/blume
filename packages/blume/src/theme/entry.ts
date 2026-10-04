@@ -1,3 +1,4 @@
+import { EXPANDABLE_VISIBLE_LINES } from "../markdown/code-title.ts";
 import { CODE_PADDING_BLOCK_REM } from "./code-block-padding.ts";
 
 /**
@@ -601,12 +602,58 @@ ${options.languageIcons ?? ""}
     transparent;
 }
 
-/* Word wrap (markdown.code.wrap): long lines wrap instead of scrolling. The
-   attribute is set on <body> from config; default code keeps \`white-space: pre\`. */
+/* Word wrap: long lines wrap instead of scrolling, on every block
+   (markdown.code.wrap, an attribute on <body>) or on one (\`\`\`ts wrap, which
+   Shiki's fence-meta reader sets as data-wrap). Default code keeps
+   \`white-space: pre\`. */
 [data-blume-code-wrap] pre,
-[data-blume-code-wrap] pre code {
+[data-blume-code-wrap] pre code,
+pre[data-wrap],
+pre[data-wrap] code {
   overflow-wrap: break-word;
   white-space: pre-wrap;
+}
+
+/* An expandable block (\`\`\`ts expandable) starts collapsed to its first lines,
+   faded out toward the cut, with a toggle under it (added by the layout
+   script). Opened, it shows in full: no height cap and no inner scroll. The
+   collapse needs that script to undo it, so a page without scripting shows
+   the block the ordinary way. */
+@media (scripting: enabled) {
+  .prose pre[data-expandable]:not([data-expanded]) > code {
+    max-height: calc(${EXPANDABLE_VISIBLE_LINES}lh + ${CODE_SCROLL_INSET_REM}rem);
+    mask-image: linear-gradient(to bottom, #000 calc(100% - 3lh), transparent);
+    overflow-y: hidden;
+  }
+}
+
+.prose pre[data-expandable][data-expanded] > code {
+  max-height: none;
+}
+
+[data-blume-code-expand] {
+  align-items: center;
+  color: var(--blume-muted-foreground);
+  display: flex;
+  font-family: var(--font-sans);
+  font-size: 0.75rem;
+  font-weight: 500;
+  gap: 0.25rem;
+  justify-content: center;
+  padding-top: 0.5rem;
+  width: 100%;
+}
+
+[data-blume-code-expand]:hover {
+  color: var(--blume-foreground);
+}
+
+[data-blume-code-expand] svg {
+  transition: transform 150ms;
+}
+
+[data-blume-code-expand][aria-expanded="true"] svg {
+  transform: rotate(180deg);
 }
 
 .prose :where(table) {
@@ -718,6 +765,12 @@ blume-tabs pre[data-language],
    command and read as a rendering bug. */
 .prose :is(blume-tabs pre, .not-prose pre, pre:not([data-language])):not(.twoslash, .twoslash pre, blume-panel-tabs *):has(> [data-blume-copy]) > code {
   padding-inline-end: 3.5rem;
+}
+
+/* With the assistant on, an Ask button sits beside the copy button, so the
+   line's tail clears both. */
+.prose :is(blume-tabs pre, .not-prose pre, pre:not([data-language])):not(.twoslash, .twoslash pre, blume-panel-tabs *):has(> [data-blume-ask]) > code {
+  padding-inline-end: 5.75rem;
 }
 
 blume-tabs pre[data-language]::before,
@@ -887,8 +940,11 @@ pre:has(.line.focused):hover .line:not(.focused) {
    Strip the surrounding chrome so the printout is just the article. Scoped to
    the chrome itself, never bare \`header\`/\`aside\`: content renders those too
    (every Callout and Panel is an <aside>, every changelog Update has a
-   <header>), and they belong in the printout. \`body > header\` keeps a
-   \`layout.Header\` override out as well. */
+   <header>), and they belong in the printout. \`body > header\` and
+   \`body > footer\` keep \`layout.Header\` and \`layout.Footer\` overrides out
+   as well. Everything after the article (directory and related-page cards,
+   last updated, feedback, prev/next) is page chrome too, and so are the
+   copy, ask, and expand buttons on code blocks. */
 @media print {
   [data-blume-banner],
   [data-blume-header],
@@ -898,7 +954,13 @@ pre:has(.line.focused):hover .line:not(.focused) {
   [data-blume-assistant-panel],
   [data-blume-page-actions],
   #blume-content > nav,
-  #blume-content > details {
+  #blume-content > details,
+  [data-blume-page-end],
+  [data-blume-footer],
+  body > footer,
+  [data-blume-copy],
+  [data-blume-ask],
+  [data-blume-code-expand] {
     display: none !important;
   }
 
@@ -907,6 +969,23 @@ pre:has(.line.focused):hover .line:not(.focused) {
   .prose :where(pre:not(.twoslash, .twoslash pre, blume-panel-tabs *) > code) {
     max-height: none;
     overflow: visible;
+  }
+
+  /* A collapsed \`expandable\` block prints open: its toggle is hidden above,
+     so the collapse would cut the block off at its first lines. Same
+     selector as the collapse, so this later rule wins. */
+  .prose pre[data-expandable]:not([data-expanded]) > code {
+    mask-image: none;
+    max-height: none;
+    overflow-y: visible;
+  }
+
+  /* The theme script switches a dark page to light for printing
+     (\`beforeprint\`); a color transition would print mid-fade. */
+  *,
+  *::before,
+  *::after {
+    transition: none !important;
   }
 
   #blume-content {

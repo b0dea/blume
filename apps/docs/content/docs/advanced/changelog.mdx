@@ -62,13 +62,24 @@ Once you have at least one `type: changelog` entry, Blume generates a **`/change
 - The date follows the configured [`dateFormat`](/docs/configuration#date-format), minus the year the row's group already shows.
 - Drafts and `sidebar.hidden` entries are skipped.
 
+The page is headed **Changelog** (in English), with a one-line description below. Set your own with `changelog` in your config; they also become the page's `<title>`, meta description, and OG card, and the top of its Markdown mirror at `/changelog.md`:
+
+```ts blume.config.ts
+changelog: {
+  title: "Release notes",
+  description: "Every Acme SDK release, newest first.",
+},
+```
+
+Each takes a map of locale code to text too, like a [header tab label](/docs/content/i18n#per-locale-navigation). The index renders in the default locale, so it shows that locale's entry. Leave either unset and it keeps the built-in text, which a [UI string override](/docs/content/i18n#translated-ui) (`changelog.title` and `changelog.description` under `i18n.ui`) replaces.
+
 The page appears only when nothing already occupies the `/changelog` route. To replace it with your own design, add a [custom page](/docs/advanced/custom-pages) at `pages/changelog.astro` — it takes over and Blume stops generating the default index. The `<Update>` component the previous timeline was built from still ships for a custom page that wants inline release notes. It isn't one of the MDX components, so import it in the `.astro` page itself: `import Update from "blume/components/content/Update.astro";`.
 
 A header [tab](/docs/content/navigation#tabs) pointing at `/changelog` opens this index — no `href` needed.
 
 ## From GitHub Releases
 
-Rather than authoring entries by hand, point the built-in [`githubReleases()` source](/docs/content/sources#github-releases) at a repo and every release becomes a `type: changelog` entry — the same timeline and feed, fed straight from the releases you already publish. Blume's own [changelog](/changelog) is built this way:
+Rather than authoring entries by hand, point the built-in [`githubReleases()` source](/docs/content/sources/github-releases) at a repo and every release becomes a `type: changelog` entry — the same timeline and feed, fed straight from the releases you already publish. Blume's own [changelog](/changelog) is built this way:
 
 ```ts blume.config.ts
 import { filesystem, githubReleases } from "blume/sources";
@@ -85,7 +96,7 @@ content: {
 }
 ```
 
-The release name becomes the title, its tag becomes `changelog.version`, and its published date sorts the timeline. Each release page also gets a unique meta description summarized from its notes — markdown stripped, section headings and changeset commit-hash prefixes dropped, trimmed to the search-snippet length [`blume audit`](/docs/cli/audit) checks for — instead of falling back to the site description. A private repo authenticates with the `GITHUB_TOKEN` environment variable. See [Content sources](/docs/content/sources#github-releases) for every option.
+The release name becomes the title, its tag becomes `changelog.version`, and its published date sorts the timeline. Each release page also gets a unique meta description summarized from its notes — markdown stripped, section headings and changeset commit-hash prefixes dropped, trimmed to the search-snippet length [`blume audit`](/docs/cli/audit) checks for — instead of falling back to the site description. A private repo authenticates with the `GITHUB_TOKEN` environment variable. See [GitHub Releases](/docs/content/sources/github-releases) for every option.
 
 ## The RSS feed
 

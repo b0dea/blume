@@ -380,6 +380,32 @@ describe("buildRuntimeData — navigation.repo", () => {
 });
 
 describe("buildRuntimeData", () => {
+  it("tells the player whether the build generates narration audio", async () => {
+    const off = await scanProject(
+      await writeProject({ "docs/index.md": "# Home\n" })
+    );
+    expect(JSON.parse(buildRuntimeData(off)).config.narration).toBeNull();
+    const browser = await scanProject(
+      await writeProject({
+        "blume.config.ts": "export default { narration: true };\n",
+        "docs/index.md": "# Home\n",
+      })
+    );
+    expect(JSON.parse(buildRuntimeData(browser)).config.narration).toEqual({
+      generated: false,
+    });
+    const generated = await scanProject(
+      await writeProject({
+        "blume.config.ts":
+          'export default { narration: { provider: { kind: "gateway", options: {}, requiredSecrets: [], runtimeDeps: [] } } };\n',
+        "docs/index.md": "# Home\n",
+      })
+    );
+    expect(JSON.parse(buildRuntimeData(generated)).config.narration).toEqual({
+      generated: true,
+    });
+  });
+
   it("serializes a minimal project with feature defaults off", async () => {
     const project = await scanProject(
       await writeProject({ "docs/index.md": "# Home\n" })
@@ -389,11 +415,13 @@ describe("buildRuntimeData", () => {
     expect(data.config.i18n).toBeNull();
     expect(data.config.repoUrl).toBeNull();
     expect(data.config.banner).toBeNull();
+    expect(data.config.footer).toBeNull();
     expect(data.config.logo).toBeNull();
     expect(data.config.mcp).toBeNull();
     expect(data.config.og.enabled).toBe(false);
     expect(data.config.search.provider).toBe("orama");
     expect(data.config.search.popular).toStrictEqual([]);
+    expect(data.config.search.analytics).toStrictEqual({ queries: true });
     expect(data.config.favicon.href.startsWith("data:image/png")).toBe(true);
     expect(data.navigationByLocale).toEqual({});
     expect(data.navigation.repoUrl).toBeNull();
@@ -706,12 +734,23 @@ describe("buildRuntimeData", () => {
     );
   });
 
+  it("leaves an empty footer out of the snapshot", async () => {
+    const project = await scanProject(
+      await writeProject({
+        "blume.config.ts": "export default { footer: { socials: {} } };\n",
+        "docs/index.md": "# Home\n",
+      })
+    );
+    expect(JSON.parse(buildRuntimeData(project)).config.footer).toBeNull();
+  });
+
   it("resolves github edit urls, repo url, banner, logo, mcp and og", async () => {
     const project = await scanProject(
       await writeProject({
         "blume.config.ts": `export default {
   banner: { content: "Hello", dismissible: true, id: "promo", link: { href: "/x", text: "Go" } },
   deployment: { site: "https://example.com" },
+  footer: { socials: { github: "https://github.com/acme" } },
   github: { owner: "acme", repo: "docs" },
   agents: { mcp: { enabled: true, name: "Docs MCP" } },
   logo: { href: "/home", image: { alt: "Logo", dark: "/dark.png", light: "/light.png" } },
@@ -733,6 +772,10 @@ describe("buildRuntimeData", () => {
       dismissible: true,
       key: "promo",
       link: { href: "/x", text: "Go" },
+    });
+    expect(data.config.footer).toEqual({
+      links: [],
+      socials: { github: "https://github.com/acme" },
     });
     expect(data.config.logo).toEqual({
       alt: "Logo",
@@ -770,6 +813,48 @@ describe("buildRuntimeData", () => {
     ).toEqual(["en", "fr"]);
     expect(Object.keys(data.uiByLocale)).toEqual(["en", "fr"]);
     expect(Object.keys(data.navigationByLocale)).toEqual(["en", "fr"]);
+  });
+
+  it("puts the changelog config's title and description in the ui strings", async () => {
+    const plain = await scanProject(
+      await writeProject({
+        "blume.config.ts":
+          'export default { changelog: { description: "Every Acme release.", title: "Release notes" } };\n',
+        "docs/index.md": "# Home\n",
+      })
+    );
+    expect(JSON.parse(buildRuntimeData(plain)).ui.changelog).toStrictEqual({
+      description: "Every Acme release.",
+      empty: "No changelog entries yet.",
+      title: "Release notes",
+    });
+
+    const translated = await scanProject(
+      await writeProject({
+        "blume.config.ts": `export default {
+  changelog: { title: { en: "Release notes", fr: "Notes de version" } },
+  i18n: {
+    defaultLocale: "en",
+    locales: [
+      { code: "en", label: "English" },
+      { code: "fr", label: "Français" },
+    ],
+  },
+};
+`,
+        "docs/index.md": "# Home\n",
+      })
+    );
+    const data = JSON.parse(buildRuntimeData(translated));
+    expect(data.ui.changelog.title).toBe("Release notes");
+    expect(data.uiByLocale.fr.changelog.title).toBe("Notes de version");
+    // Unset, the description stays each locale's UI string.
+    expect(data.ui.changelog.description).toBe(
+      "Product updates, new features, and fixes from every release."
+    );
+    expect(data.uiByLocale.fr.changelog.description).not.toBe(
+      data.ui.changelog.description
+    );
   });
 
   it("inlines a single-file SVG logo", async () => {
@@ -1063,6 +1148,34 @@ describe("buildRuntimeData", () => {
     expect(data.config.favicon.href.startsWith("data:image/png;base64,")).toBe(
       true
     );
+  });
+
+  it("keys a per-locale banner by its default locale's content", async () => {
+    const project = await scanProject(
+      await writeProject({
+        "blume.config.ts": `export default {
+  banner: {
+    content: { de: "Neu", en: "New" },
+    dismissible: true,
+    link: { href: "/x", text: { de: "Mehr", en: "More" } },
+  },
+  i18n: {
+    defaultLocale: "en",
+    locales: [{ code: "de", label: "Deutsch" }, { code: "en", label: "English" }],
+  },
+};
+`,
+        "docs/de/index.md": "# Start\n",
+        "docs/index.md": "# Home\n",
+      })
+    );
+    const data = JSON.parse(buildRuntimeData(project));
+    expect(data.config.banner).toEqual({
+      content: { de: "Neu", en: "New" },
+      dismissible: true,
+      key: "New",
+      link: { href: "/x", text: { de: "Mehr", en: "More" } },
+    });
   });
 
   it("references a public favicon by url", async () => {
@@ -1415,7 +1528,9 @@ describe("generateRuntime", () => {
     expect(route).toContain(
       'model: openrouter("x/y", { reasoning: { effort: "none" } }),'
     );
-    expect(route).toContain("createAskContext(askData)");
+    // OpenRouter's models call tools, so the docs tools are on by default.
+    expect(route).toContain("createAskContext(askData, { tools: true })");
+    expect(route).toContain("tools: askTools(body.page),");
     // The provider SDK is declared in the generated manifest.
     const manifest = await readFile(
       join(project.context.outDir, "package.json"),
@@ -1940,6 +2055,22 @@ describe("generateRuntime", () => {
     expect(css).not.toContain('data-icon="python"');
   });
 
+  it("scans the project's .jsx files for the site stylesheet's classes", async () => {
+    // Tailwind's `@source` is a file glob, not an import graph: a class used
+    // only in a `.jsx` island is generated only if the glob names `.jsx`.
+    const project = await scanProject(
+      await writeProject({ "docs/index.md": "# Home\n" })
+    );
+    await generateRuntime(project);
+    const css = await readFile(
+      join(project.context.outDir, "src/generated/app.css"),
+      "utf-8"
+    );
+    expect(css).toContain(
+      `@source "${project.context.root}/**/*.{astro,jsx,mdx,ts,tsx}";`
+    );
+  });
+
   it("ships the Mermaid element only when a page has a mermaid fence", async () => {
     // Mermaid is over 3 MB of client chunks (ELK, Cytoscape, KaTeX, every
     // diagram type); a site with no diagram must not bundle, or pre-bundle in
@@ -2156,8 +2287,10 @@ describe("generateRuntime", () => {
 export default { mdx: { Counter: { component: Counter, client: "visible" } } };
 `,
         "docs/index.md": "# Home\n",
-        // An unknown `<Fancy>` tag that isn't a built-in, island, or override.
-        "docs/page.mdx": "---\ntitle: Page\n---\n\nUse the <Fancy /> widget.\n",
+        // An unknown `<Fancy>` tag that isn't a built-in, island, or override,
+        // and a `<Component>` example that doesn't exist.
+        "docs/page.mdx":
+          '---\ntitle: Page\n---\n\nUse the <Fancy /> widget.\n\n<Component path="missing" />\n',
       })
     );
     const out = project.context.outDir;
@@ -2172,6 +2305,12 @@ export default { mdx: { Counter: { component: Counter, client: "visible" } } };
     expect(result.warnings.some((w) => w.includes("<Fancy>"))).toBe(true);
     // The override's own tag is known, so it is not.
     expect(result.warnings.some((w) => w.includes("<Counter>"))).toBe(false);
+    // The missing example is flagged, naming the page it's on.
+    expect(
+      result.warnings.some((w) =>
+        w.includes('<Component path="missing"> in /page names no example')
+      )
+    ).toBe(true);
   });
 
   it("fails generation on a components.ts override it cannot plan", async () => {
@@ -2233,22 +2372,20 @@ describe("resolveReactCompiler", () => {
   // SAFETY: same partial-config shortcut as `compilerOn`.
   const compilerOff = { react: { compiler: false } } as ResolvedConfig;
 
-  it("resolves Blume's shipped babel plugin as an absolute path", () => {
-    expect(resolveReactCompiler(compilerOn, true)).toContain(
-      "babel-plugin-react-compiler"
-    );
+  it("resolves Blume's shipped compiler through @vitejs/plugin-react", () => {
+    expect(resolveReactCompiler(compilerOn, true)).toBe(true);
   });
 
-  it("returns null when React isn't needed or the compiler is off", () => {
-    expect(resolveReactCompiler(compilerOn, false)).toBeNull();
-    expect(resolveReactCompiler(compilerOff, true)).toBeNull();
+  it("is false when React isn't needed or the compiler is off", () => {
+    expect(resolveReactCompiler(compilerOn, false)).toBe(false);
+    expect(resolveReactCompiler(compilerOff, true)).toBe(false);
   });
 
-  it("returns null when the plugin doesn't resolve from the package dir", () => {
+  it("is false when the chain doesn't resolve from the package dir", () => {
     // An empty temp dir has no node_modules anywhere up its ancestor chain
-    // that could hold the plugin, so resolution throws and the helper
-    // degrades to null instead of failing the build.
-    expect(resolveReactCompiler(compilerOn, true, srcDir)).toBeNull();
+    // that could hold @astrojs/react, so resolution throws and the helper
+    // degrades to false instead of failing the build.
+    expect(resolveReactCompiler(compilerOn, true, srcDir)).toBe(false);
   });
 });
 
@@ -2257,16 +2394,16 @@ describe("reactCompilerWarnings", () => {
   // config is all it needs.
   const compilerOn = { react: { compiler: true } } as ResolvedConfig;
 
-  it("warns when the compiler was requested but its plugin is missing", () => {
-    const warnings = reactCompilerWarnings(compilerOn, true, null);
+  it("warns when the compiler was requested but doesn't resolve", () => {
+    const warnings = reactCompilerWarnings(compilerOn, true, false);
     expect(warnings).toHaveLength(1);
-    expect(warnings[0]).toContain("babel-plugin-react-compiler");
+    expect(warnings[0]).toContain("oxc-transform-react");
     expect(warnings[0]).toContain("react: { compiler: false }");
   });
 
-  it("stays quiet when the plugin resolved or React isn't in play", () => {
-    expect(reactCompilerWarnings(compilerOn, true, "/some/path")).toEqual([]);
-    expect(reactCompilerWarnings(compilerOn, false, null)).toEqual([]);
+  it("stays quiet when the compiler resolved or React isn't in play", () => {
+    expect(reactCompilerWarnings(compilerOn, true, true)).toEqual([]);
+    expect(reactCompilerWarnings(compilerOn, false, false)).toEqual([]);
   });
 });
 

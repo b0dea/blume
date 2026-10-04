@@ -1,13 +1,21 @@
 import { defineConfig } from "blume";
+import { script } from "blume/analytics";
+import { turnstile } from "blume/captcha";
+import { native } from "blume/consent";
 import { node } from "blume/deploy";
+import { memory } from "blume/ratelimit";
 import { asyncapi, graphql, openapi } from "blume/reference";
 import { filesystem, githubReleases } from "blume/sources";
 import { z } from "zod";
 
 /**
  * Kitchen-sink sandbox: every Blume feature enabled in one project, for
- * exercising the framework end to end — including the native OpenAPI and
- * AsyncAPI renderers, search, the assistant, MCP, i18n, export, and OG images.
+ * exercising the framework end to end — including the native OpenAPI (with
+ * an overlay) and AsyncAPI renderers, search, the assistant, MCP, i18n, export, OG images,
+ * narration, content variables, pattern redirects, the site footer, a
+ * renamed changelog index, written feedback, rate limiting, and cookie
+ * consent (the `script()` analytics logs to the console, with every tracked
+ * event, only once a reader accepts).
  */
 export default defineConfig({
   agents: {
@@ -16,20 +24,49 @@ export default defineConfig({
   },
   ai: {
     assistant: {
+      // Cloudflare's always-passing invisible test key; its test secret is
+      // 1x0000000000000000000000000000000AA (TURNSTILE_SECRET_KEY).
+      captcha: turnstile({ siteKey: "1x00000000000000000000BB" }),
       enabled: true,
       suggestions: [
         { icon: "rocket", label: "How do I get started?" },
         { icon: "radio", label: "What events does the API publish?" },
         { icon: "blocks", label: "Which components can I use?" },
       ],
+      support: "mailto:support@example.com",
     },
   },
+  analytics: [
+    script({
+      content:
+        'console.info("[sandbox] analytics ran after consent");addEventListener("blume:track",(e)=>console.info("[sandbox] track",e.detail));',
+    }),
+  ],
+  api: {
+    auth: { method: "bearer" },
+    playground: { proxy: true },
+    server: "https://api.acme.dev/v1",
+  },
   banner: {
-    content: "This is the Blume kitchen-sink sandbox.",
+    content: {
+      de: "Das ist die Blume-Sandbox mit allem Drum und Dran.",
+      en: "This is the Blume kitchen-sink sandbox.",
+    },
     dismissible: true,
     id: "sandbox",
-    link: { href: "/events", text: "Try the AsyncAPI reference" },
+    link: {
+      href: "/events",
+      text: {
+        de: "Probier die AsyncAPI-Referenz aus",
+        en: "Try the AsyncAPI reference",
+      },
+    },
   },
+  changelog: {
+    description: "Every Blume release, straight from GitHub.",
+    title: { de: "Versionshinweise", en: "Release notes" },
+  },
+  consent: native({ policy: "/docs/privacy" }),
   content: {
     sources: [
       filesystem({ root: "content" }),
@@ -46,7 +83,26 @@ export default defineConfig({
   deployment: node({ site: "https://sandbox.useblume.dev" }),
   description: "Every Blume feature, enabled in one place.",
   export: true,
-  feedback: true,
+  feedback: { comments: true },
+  footer: {
+    links: [
+      {
+        href: "/docs",
+        label: { de: "Erste Schritte", en: "Getting started" },
+      },
+      {
+        href: "/docs/components",
+        label: { de: "Komponenten", en: "Components" },
+      },
+      { href: "/api", label: "REST API" },
+      { href: "/changelog", label: "Changelog" },
+      { href: "https://useblume.dev", label: "useblume.dev" },
+    ],
+    socials: {
+      website: "https://useblume.dev",
+      x: "https://x.com/haydenbleasel",
+    },
+  },
   frontmatter: {
     extend: {
       owner: z.string().optional(),
@@ -64,12 +120,14 @@ export default defineConfig({
       { code: "en", label: "English" },
       { code: "de", label: "Deutsch", style: "Informal du-form" },
     ],
+    routeByBrowserLanguage: true,
   },
   lastModified: "git",
   logo: "/logo.svg",
   markdown: {
     code: { icons: true, wrap: true },
   },
+  narration: true,
   navigation: {
     featured: [
       {
@@ -87,10 +145,16 @@ export default defineConfig({
       { label: "Changelog", path: "/changelog" },
     ],
   },
-  redirects: [{ from: "/start", to: "/docs" }],
+  // On by default; spelled out here with its default limit.
+  rateLimit: memory({ requests: 30, window: 600 }),
+  redirects: [
+    { from: "/start", to: "/docs" },
+    { from: "/guides/:slug*", to: "/docs/guides/:slug*" },
+  ],
   reference: [
     openapi({
       expandSchemas: true,
+      overlays: ["./specs/public.overlay.yaml"],
       route: "/api",
       spec: "./specs/openapi.yaml",
     }),
@@ -98,11 +162,14 @@ export default defineConfig({
       sources: [{ label: "Commerce events", spec: "./specs/asyncapi.yaml" }],
     }),
     graphql({
+      auth: { method: "bearer" },
       endpoint: "https://petstore.example.com/graphql",
       spec: "./specs/schema.graphql",
     }),
   ],
   search: {
+    // Query text reaches only the `blume:track` listener above.
+    analytics: { queries: false },
     popular: [
       { href: "/docs", icon: "rocket", label: "Getting started" },
       { href: "/events", icon: "radio", label: "Event reference" },
@@ -110,6 +177,10 @@ export default defineConfig({
     ],
   },
   seo: {
+    metatags: {
+      "apple-mobile-web-app-title": "Blume Sandbox",
+      "theme-color": "#7c3aed",
+    },
     x: { creator: "@haydenbleasel", handle: "@haydenbleasel" },
   },
   theme: {
@@ -117,6 +188,11 @@ export default defineConfig({
     radius: "lg",
   },
   title: "Blume Sandbox",
+  variables: {
+    "api-url": "https://api.acme.dev/v1",
+    plan: "Team",
+    version: "2.0",
+  },
   versions: {
     archived: [{ id: "v1.0" }],
     current: { badge: "Latest", label: "v2.0" },

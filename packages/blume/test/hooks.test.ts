@@ -36,17 +36,22 @@ const isStateUpdater = <T>(
   value: T | ((current: T) => T)
 ): value is (current: T) => T => typeof value === "function";
 
+/** A lazy initial state: `useState(() => value)`. */
+const isLazyInitial = <T>(initial: T | (() => T)): initial is () => T =>
+  typeof initial === "function";
+
 mock.module("react", () => ({
   useCallback: <T>(fn: T) => fn,
   useEffect: (effect: Effect, deps?: unknown[]) => {
     effects.push({ effect, once: deps?.length === 0 });
   },
   useRef: <T>(value: T) => ({ current: value }),
-  useState: <T>(initial: T) => {
+  // Like React, a function initial state is called once, for the first value.
+  useState: <T>(initial: T | (() => T)) => {
     const index = cursor;
     cursor += 1;
     if (!(index in cells)) {
-      cells[index] = initial;
+      cells[index] = isLazyInitial(initial) ? initial() : initial;
     }
     const set = (update: T | ((current: T) => T)) => {
       // SAFETY: cell `index` is owned by this useState call, so it always
@@ -160,6 +165,16 @@ afterAll(() => {
   // SAFETY: removes the document stubs installed by the snapshot tests.
   delete (globalThis as { document?: unknown }).document;
 });
+
+// The bot check's token getter: the real client module, with the page's
+// singleton swapped for one a test controls (the rest stays real for the
+// suites that test it).
+const captchaClient = await import("../src/captcha/client.ts");
+let captchaImpl = (): Promise<string> => Promise.resolve("token-1");
+mock.module("../src/captcha/client.ts", () => ({
+  ...captchaClient,
+  captchaToken: () => captchaImpl(),
+}));
 
 const hooks = await import("../src/components/islands/hooks.ts");
 const { useAssistant, useBlume, usePage, useSearch } = hooks;
@@ -395,6 +410,16 @@ describe("useSearch", () => {
   });
 });
 
+/** The assistant hook on a site with a Turnstile check. */
+const useCheckedAssistant = () =>
+  useAssistant({
+    captcha: { kind: "turnstile", siteKey: "1x00000000000000000000AA" },
+  });
+
+/** The assistant hook with a localized rate limit message. */
+const useLocalizedAssistant = () =>
+  useAssistant({ rateLimitMessage: "Langsamer." });
+
 describe("useAssistant", () => {
   const ERROR_MESSAGE =
     "Something went wrong answering that. Please try again.";
@@ -415,8 +440,11 @@ describe("useAssistant", () => {
     // The question and its outcome reach analytics, like page feedback.
     // Providers get the question's length; only the `blume:track` event
     // carries its text.
+    // Every event carries the conversation's id, the same across its turns.
+    const thread = String(tracked[0]?.props.thread);
+    expect(thread).toMatch(/^[\da-f]{16}$/u);
     expect(tracked).toStrictEqual([
-      { event: "ask", props: { path: "/guide", questionChars: 14 } },
+      { event: "ask", props: { path: "/guide", questionChars: 14, thread } },
       {
         event: "ask_answer",
         props: {
@@ -424,12 +452,18 @@ describe("useAssistant", () => {
           ms: expect.any(Number),
           path: "/guide",
           questionChars: 14,
+          thread,
         },
       },
     ]);
     expect(dispatched[0]).toStrictEqual({
       event: "ask",
-      props: { path: "/guide", question: "What is Blume?", questionChars: 14 },
+      props: {
+        path: "/guide",
+        question: "What is Blume?",
+        questionChars: 14,
+        thread,
+      },
     });
     expect(dispatched[1]?.props.question).toBe("What is Blume?");
     // Latency comes from a monotonic clock, rounded to whole milliseconds.
@@ -450,6 +484,57 @@ describe("useAssistant", () => {
     ]);
   });
 
+  it("sends only the latest turns that fit the route's limits", async () => {
+    const sent: { content: string; role: string }[][] = [];
+    const answer = "x".repeat(10_000);
+    setFetch((_url, init) => {
+      sent.push(JSON.parse(String(init?.body)).messages);
+      return Promise.resolve(streamResponse([answer]));
+    });
+    freshRender(useAssistant);
+    for (const question of ["first?", "second?", "third?", "fourth?"]) {
+      // oxlint-disable-next-line no-await-in-loop -- one question at a time, like a reader
+      await render(useAssistant).ask(question);
+    }
+    // Three 10,000-character answers are over the route's 24,000: the
+    // oldest turn goes, and its answer with it, so the kept ones open with a
+    // question.
+    expect(sent[2]).toHaveLength(5);
+    expect(sent[3]?.map((message) => message.content.slice(0, 7))).toEqual([
+      "second?",
+      "x".repeat(7),
+      "third?",
+      "x".repeat(7),
+      "fourth?",
+    ]);
+    expect(JSON.stringify(sent[3]).length).toBeLessThanOrEqual(24_000);
+    // The reader still sees the whole conversation.
+    expect(render(useAssistant).messages).toHaveLength(8);
+
+    // A question over the limit on its own still goes, alone.
+    await render(useAssistant).ask("y".repeat(30_000));
+    expect(sent[4]).toStrictEqual([
+      { content: "y".repeat(30_000), role: "user" },
+    ]);
+  });
+
+  it("sends at most the route's 40 messages", async () => {
+    const sent: { content: string; role: string }[][] = [];
+    setFetch((_url, init) => {
+      sent.push(JSON.parse(String(init?.body)).messages);
+      return Promise.resolve(streamResponse(["ok"]));
+    });
+    freshRender(useAssistant);
+    for (let turn = 1; turn <= 21; turn += 1) {
+      // oxlint-disable-next-line no-await-in-loop -- one question at a time, like a reader
+      await render(useAssistant).ask(`question ${turn}?`);
+    }
+    const last = sent.at(-1) ?? [];
+    expect(sent[19]).toHaveLength(39);
+    expect(last).toHaveLength(39);
+    expect(last[0]).toStrictEqual({ content: "question 2?", role: "user" });
+  });
+
   it("replaces the placeholder with an error notice on a non-OK response", async () => {
     setFetch(() => Promise.resolve(new Response("boom", { status: 500 })));
     const { ask } = freshRender(useAssistant);
@@ -468,6 +553,77 @@ describe("useAssistant", () => {
       questionChars: 7,
       status: 500,
     });
+  });
+
+  it("sends a fresh bot-check token with each question", async () => {
+    const bodies: string[] = [];
+    setFetch((_url, init) => {
+      bodies.push(String(init?.body));
+      return Promise.resolve(streamResponse(["Hi."]));
+    });
+    let issued = 0;
+    captchaImpl = () => {
+      issued += 1;
+      return Promise.resolve(`token-${issued}`);
+    };
+    const { ask } = freshRender(useCheckedAssistant);
+    await ask("first?");
+    await render(useCheckedAssistant).ask("second?");
+    expect(bodies.map((body) => JSON.parse(body).captcha)).toStrictEqual([
+      "token-1",
+      "token-2",
+    ]);
+  });
+
+  it("says the bot check failed, in the browser or at the route", async () => {
+    let fetched = 0;
+    setFetch(() => {
+      fetched += 1;
+      return Promise.resolve(
+        new Response("Verification failed.", { status: 403 })
+      );
+    });
+    captchaImpl = () => Promise.reject(new Error("challenge closed"));
+    const { ask } = freshRender(useCheckedAssistant);
+    await ask("robot?");
+    expect(fetched).toBe(0);
+    expect(render(useCheckedAssistant).messages.at(-1)?.content).toBe(
+      "We couldn't check that you're human. Try again."
+    );
+    expect(render(useCheckedAssistant).loading).toBe(false);
+
+    captchaImpl = () => Promise.resolve("token-1");
+    await render(useCheckedAssistant).ask("human?");
+    expect(fetched).toBe(1);
+    expect(render(useCheckedAssistant).messages.at(-1)?.content).toBe(
+      "We couldn't check that you're human. Try again."
+    );
+  });
+
+  it("says the rate limit turned the question away on a 429", async () => {
+    setFetch(() =>
+      Promise.resolve(
+        new Response("Too many requests: try again in 30 seconds.", {
+          status: 429,
+        })
+      )
+    );
+    const { ask } = freshRender(useAssistant);
+    await ask("again?");
+    expect(render(useAssistant).messages.at(-1)).toStrictEqual({
+      content: "You've asked a lot of questions. Try again in a few minutes.",
+      role: "assistant",
+    });
+    expect(tracked[1]).toMatchObject({
+      event: "ask_error",
+      props: { status: 429 },
+    });
+
+    const { ask: askLocalized } = freshRender(useLocalizedAssistant);
+    await askLocalized("noch einmal?");
+    expect(render(useLocalizedAssistant).messages.at(-1)?.content).toBe(
+      "Langsamer."
+    );
   });
 
   it("reports the HTTP status when the stream breaks after a 200", async () => {
@@ -594,10 +750,13 @@ describe("useAssistant", () => {
     setFetch(() => Promise.resolve(streamResponse(["ok"])));
     const { ask } = freshRender(useAssistant);
     await ask("hi");
-    const { messages, reset } = render(useAssistant);
+    const { messages, reset, thread } = render(useAssistant);
     expect(messages).toHaveLength(2);
     reset();
-    expect(render(useAssistant).messages).toStrictEqual([]);
+    const after = render(useAssistant);
+    expect(after.messages).toStrictEqual([]);
+    // A new conversation gets a new id.
+    expect(after.thread).not.toBe(thread);
   });
 
   it("discards stream chunks that land after a mid-answer reset", async () => {
